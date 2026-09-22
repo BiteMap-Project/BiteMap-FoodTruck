@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: Backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/bitemap}
+    username: ${DB_USERNAME:bitemap}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false

@@ -1,0 +1,63 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend build and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: Backend
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: bitemap_ci
+          POSTGRES_USER: bitemap_ci
+          # Disposable CI-only credentials; never use these outside this job.
+          POSTGRES_PASSWORD: bitemap_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bitemap_ci -d bitemap_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      DB_URL: jdbc:postgresql://localhost:5432/bitemap_ci
+      DB_USERNAME: bitemap_ci
+      DB_PASSWORD: bitemap_ci_only
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 21 and Maven cache
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: Backend/pom.xml
+
+      - name: Build and test backend
+        run: ./mvnw --batch-mode --no-transfer-progress clean verify

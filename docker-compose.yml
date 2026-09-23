@@ -1,0 +1,57 @@
+name: bitemap
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: bitemap
+      POSTGRES_USER: bitemap
+      POSTGRES_PASSWORD: ${COMPOSE_DB_PASSWORD:?Set COMPOSE_DB_PASSWORD in your root .env file}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bitemap -d bitemap"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./Backend
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/bitemap
+      DB_USERNAME: bitemap
+      DB_PASSWORD: ${COMPOSE_DB_PASSWORD:?Set COMPOSE_DB_PASSWORD in your root .env file}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend/src:/app/src:ro
+      - ./frontend/public:/app/public:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+volumes:
+  postgres_data:

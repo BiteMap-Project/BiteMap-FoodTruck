@@ -1,4 +1,7 @@
+import { Link } from "react-router-dom";
+
 type FoodTruckCardProps = {
+  id: number;
   name: string;
   category: string;
   location: string;
@@ -6,6 +9,7 @@ type FoodTruckCardProps = {
 };
 
 function FoodTruckCard({
+  id,
   name,
   category,
   location,
@@ -17,7 +21,10 @@ function FoodTruckCard({
       <p>{category}</p>
       <p>Location: {location}</p>
       <p>Open until {closingTime}</p>
-      <button>View Menu</button>
+
+      <Link to={`/trucks/${id}`}>
+        <button>View Menu</button>
+      </Link>
     </div>
   );
 }

@@ -22,6 +22,11 @@ If you do not have a root `.env`, copy the Docker template once:
 ```bash
 cp -n compose.env.example .env
 ```
+for MAC or
+```bash
+if not exist .env copy compose.env.example .env
+```
+for windows.
 
 If `.env` already exists, add the variables from `compose.env.example` to it
 without replacing your existing values. Set `COMPOSE_DB_PASSWORD` to your own

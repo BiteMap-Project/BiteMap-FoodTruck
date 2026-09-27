@@ -4,8 +4,9 @@ COMP 490/491 FoodTruck vendor discovery, ordering, delivery, and location intell
 ## Current status
 
 This repository contains the Spring Boot backend foundation and a React frontend
-with sample food-truck search. Business APIs, migrations, and production deployment
-are future work. Docker Compose runs all three development services together.
+with sample food-truck search and Flyway-managed vendor database migrations.
+Business APIs and production deployment are future work. Docker Compose runs all
+three development services together, enabling development-only database fixtures.
 The backend starts with PostgreSQL and provides an Actuator health endpoint.
 Spring Security still uses its generated development login; production authentication
 has not been implemented.
@@ -184,19 +185,30 @@ password. The generated login is for local development only.
 
 ## Verify before review
 
-With PostgreSQL running, load `.env` from the repository root as above, then run:
+With PostgreSQL running, configure `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`
+for a dedicated test database (not production), then run without the `dev` profile:
 
 ```bash
 cd Backend
 ./mvnw verify
 ```
 
-The current `@SpringBootTest` loads the application context and connects to the
-configured database. Use your local development database only. This is a startup
-smoke test, not complete feature coverage. Local verification uses your configured
-database; GitHub Actions provisions a separate temporary database for each job.
-Schema generation is disabled (`ddl-auto: validate`); add versioned migrations
-before implementing persistent business entities.
+The startup test loads the application context and applies Flyway migrations.
+Migration tests use isolated temporary schemas in the configured PostgreSQL
+database; the test role needs permission to create and drop schemas. GitHub
+Actions already provisions a separate temporary database for each job.
+Hibernate validates the schema (`ddl-auto: validate`) and never creates it.
+These checks are not complete business-feature coverage.
+
+## Database migrations
+
+Flyway initializes the vendor schema and tracks subsequent versioned SQL changes.
+Docker Compose enables the `dev` profile to load three sample vendors from a
+separate fixture folder. The default profile and CI load no demo vendors.
+The frontend is not yet connected to this database.
+
+See [Database migrations](docs/database-migrations.md) for file locations,
+manual setup, team migration rules, safety precautions, and verification.
 
 ## Continuous integration (CI)
 
@@ -218,8 +230,9 @@ for that job's temporary database only; no repository secrets are needed.
 GitHub removes the service container after the job finishes.
 
 CI checks whether the backend compiles, the existing tests pass, and the JAR can
-be packaged in a fresh environment. Currently the test checks application startup
-and database connectivity. Add behavior tests with each new feature; a green
+be packaged in a fresh environment. Tests check application startup, database
+connectivity, and migrations (including separated development fixtures).
+Add behavior tests with each new feature; a green
 check does not yet demonstrate that ordering, authorization, or other future
 features work. This workflow does not deploy the application.
 

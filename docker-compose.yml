@@ -23,6 +23,8 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/bitemap
       DB_USERNAME: bitemap
       DB_PASSWORD: ${COMPOSE_DB_PASSWORD:?Set COMPOSE_DB_PASSWORD in your root .env file}
+      # This Compose file is for local development only; enables demo fixtures.
+      SPRING_PROFILES_ACTIVE: dev
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     depends_on:

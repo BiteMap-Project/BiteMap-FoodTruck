@@ -7,6 +7,16 @@ spring:
     username: ${DB_USERNAME:bitemap}
     password: ${DB_PASSWORD}
 
+  flyway:
+    locations: classpath:db/migration
+    clean-disabled: true
+    baseline-on-migrate: false
+    validate-migration-naming: true
+
+  sql:
+    init:
+      mode: never
+
   jpa:
     hibernate:
       ddl-auto: validate

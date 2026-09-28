@@ -78,10 +78,12 @@ status. The generated Spring Security login is still development scaffolding;
 this change does not implement real accounts, roles, or a production auth system.
 
 No create/update/delete endpoint is provided. CORS is not opened globally.
-The React screens are unchanged and still use mock data; a follow-up should use
-a development proxy or explicitly approved origins when connecting them to this
-API. Their menu IDs and closing-time display also need to be reconciled with the
-database contract rather than mixing mock and real vendor IDs.
+React discovery uses a same-origin /api request through the Vite development
+proxy (Docker target: http://backend:8080; host default: http://localhost:8080).
+It displays loading, empty, error/retry states and paginated search results.
+Closing times are not displayed and database cards do not link to mock menus.
+The existing menu routes are explicitly demo-only until a menu API is available.
+Production hosting must provide same-origin /api routing separately.
 
 ## Verification
 

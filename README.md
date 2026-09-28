@@ -4,7 +4,7 @@ COMP 490/491 FoodTruck vendor discovery, ordering, delivery, and location intell
 ## Current status
 
 This repository contains the Spring Boot backend foundation and a React frontend
-with sample food-truck search and Flyway-managed vendor database migrations.
+with database-backed food-truck search and Flyway-managed vendor migrations.
 A public vendor-list/search API is available; other business APIs and production
 deployment are future work. Docker Compose runs all three development services
 together, enabling development-only database fixtures.
@@ -50,7 +50,7 @@ The backend waits for PostgreSQL readiness, and the frontend waits for backend
 health. The Docker database is separate from any PostgreSQL installed on your
 machine, so your existing port 5432 and local data are unaffected.
 This is a development setup: the frontend uses Vite's development server and
-sample data, and is not yet connected to the vendor API. Default Spring Security
+database-backed vendor discovery. Menus remain demo-only. Default Spring Security
 authentication must be replaced before production deployment. Only localhost
 ports are published, and both application containers run as non-root users.
 
@@ -92,6 +92,7 @@ Frontend checks can run inside its container:
 
 ```bash
 docker compose exec frontend npm run lint
+docker compose exec frontend npm test
 docker compose exec frontend npm run build
 ```
 
@@ -206,7 +207,9 @@ These checks are not complete business-feature coverage.
 `GET /api/vendors` lists database-backed vendors without requiring login. It
 supports case-insensitive search (`q`) and bounded pagination (`page`, `size`).
 See [Vendor API](docs/vendor-api.md) for request/response examples, error behavior,
-security boundaries, and tests. The React frontend still uses mock data.
+security boundaries, and tests. React discovery uses this API with search,
+pagination, loading, empty, and retry states. Menus remain demo-only.
+See [frontend setup and checks](frontend/README.md).
 
 ## Database migrations
 
@@ -220,7 +223,7 @@ manual setup, team migration rules, safety precautions, and verification.
 
 ## Continuous integration (CI)
 
-[Backend CI](.github/workflows/ci.yml) runs on pull requests targeting `main` and
+[BiteMap CI](.github/workflows/ci.yml) runs on pull requests targeting `main` and
 pushes to `main`. Once the workflow is on the default branch, it can also be
 started manually from the repository's Actions tab.
 
@@ -237,7 +240,9 @@ credentials written in the workflow are intentionally public, disposable values
 for that job's temporary database only; no repository secrets are needed.
 GitHub removes the service container after the job finishes.
 
-CI checks whether the backend compiles, the existing tests pass, and the JAR can
+The frontend job runs a clean dependency install, lint, component tests, and a
+production build with Node 24. The backend job checks whether the backend compiles,
+the existing tests pass, and the JAR can
 be packaged in a fresh environment. Tests check application startup, database
 connectivity, migrations (including separated development fixtures), and the
 vendor-list API's search, pagination, input validation, errors, and security.
@@ -245,8 +250,8 @@ Add behavior tests with each new feature; a green
 check does not yet demonstrate that ordering, authorization, or other future
 features work. This workflow does not deploy the application.
 
-To inspect a failure, open the PR's Checks tab (or Actions > Backend CI), select
-**Backend build and tests**, and read the failing step's logs. Fix the problem
+To inspect a failure, open the PR's Checks tab (or Actions > BiteMap CI), select
+the failed frontend or backend job, and read the failing step's logs. Fix the problem
 on the same branch and push again; the PR check will rerun automatically.
 
 After the first successful GitHub run, a repository administrator should require

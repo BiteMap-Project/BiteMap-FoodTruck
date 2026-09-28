@@ -2,6 +2,10 @@ spring:
   application:
     name: Backend
 
+  mvc:
+    problemdetails:
+      enabled: true
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/bitemap}
     username: ${DB_USERNAME:bitemap}

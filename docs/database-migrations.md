@@ -8,6 +8,9 @@ do not switch it to `update`, `create`, or `create-drop`.
 
 - `Backend/src/main/resources/db/migration/V1__create_vendors.sql` creates the
   initial discovery table. It contains no demo data.
+- `Backend/src/main/resources/db/migration/V2__strengthen_vendor_required_fields.sql`
+  rejects empty or whitespace-only names, categories, and locations, including
+  tabs and line breaks. Existing rows are validated during the upgrade.
 - `Backend/src/main/resources/db/dev/R__sample_vendors.sql` inserts three sample
   trucks, only when the `dev` Spring profile is active.
 - `application.yaml` enables only production schema migrations by default.
@@ -18,8 +21,8 @@ The initial table has a generated bigint ID, name, category, human-readable
 location, and creation timestamp. Location is a display label, not coordinates.
 Names are not unique: separate vendors may share a name. Ownership, schedules,
 closing times, menus, and geographic search are deliberately left for later
-feature migrations. The frontend still uses its own hardcoded trucks; this task
-does not connect it to the database or introduce a vendor API.
+feature migrations. The [vendor-list API](vendor-api.md) reads this table, but
+the frontend still uses its own hardcoded trucks and is not yet connected to it.
 
 Sample rows reserve IDs -1, -2, and -3, separate from positive generated IDs.
 These are not the frontend's hardcoded IDs. The repeatable fixture runs initially
@@ -59,7 +62,7 @@ role must already exist; Flyway creates tables, not the PostgreSQL server or rol
 ## Add the next migration
 
 1. Pull the latest `main` and coordinate a unique next version with teammates.
-2. Add a file such as `V2__add_vendor_description.sql` under `db/migration`.
+2. Add a file such as `V3__add_vendor_description.sql` under `db/migration`.
    There are two underscores between the version and description.
 3. Include only reviewed schema/data changes needed for the feature. Use a new
    migration to change an existing table; do not use manual SQL as the rollout.
@@ -78,6 +81,29 @@ Do not enable `baseline-on-migrate`, run `repair`, modify history, or delete dat
 just to bypass a startup error. Migrations are not backups or automatic rollback;
 production changes require a backup and a reviewed deployment/recovery plan.
 
+## Upgrading existing vendor data to V2
+
+V1 allowed tab/newline-only fields. V2 requires a character outside PostgreSQL's
+`[:space:]` class in each required field; non-ASCII classification depends on the
+database locale. It does not trim or otherwise rewrite valid text. `NOT NULL`
+constraints remain in place.
+
+Before upgrading an existing database, this read-only query identifies affected
+rows without printing their field values:
+
+```sql
+SELECT id FROM vendors
+WHERE name !~ '[^[:space:]]'
+   OR category !~ '[^[:space:]]'
+   OR location !~ '[^[:space:]]';
+```
+
+If any rows are found, coordinate their correct values with the data owner and
+correct them before deploying V2. Do not replace them with invented values or
+delete rows just to make the migration pass. If V2 encounters invalid rows, the
+PostgreSQL migration transaction rolls back and startup fails. After correcting
+the data, restart the backend to retry; do not edit V1 or the Flyway history.
+
 ## Verification and CI
 
 Run `./mvnw --batch-mode --no-transfer-progress clean verify` from `Backend`,
@@ -90,7 +116,12 @@ Migration tests create uniquely named `migration_test_*` schemas and remove only
 those schemas afterward. They verify schema-only initialization, exclusion of
 development fixtures from the default configuration, identity/default/constraint
 behavior, repeat startup without duplicate data, and adding demo fixtures while
-preserving existing records. They use real PostgreSQL, not an H2 substitute.
+preserving existing records. Parameterized tests reject null/empty/whitespace-only
+values in all three required fields on both inserts and updates. Upgrade tests
+verify V1 data preservation, rejection of invalid legacy data, and retry after
+correction. Successful initialization is checked through schema behavior,
+validation, and no pending migrations rather than a fixed total migration count.
+They use real PostgreSQL, not an H2 substitute.
 
 The existing GitHub Actions backend job supplies a fresh PostgreSQL 15 database
 and runs the same Maven verification, so it exercises migrations on every run.

@@ -5,8 +5,9 @@ COMP 490/491 FoodTruck vendor discovery, ordering, delivery, and location intell
 
 This repository contains the Spring Boot backend foundation and a React frontend
 with sample food-truck search and Flyway-managed vendor database migrations.
-Business APIs and production deployment are future work. Docker Compose runs all
-three development services together, enabling development-only database fixtures.
+A public vendor-list/search API is available; other business APIs and production
+deployment are future work. Docker Compose runs all three development services
+together, enabling development-only database fixtures.
 The backend starts with PostgreSQL and provides an Actuator health endpoint.
 Spring Security still uses its generated development login; production authentication
 has not been implemented.
@@ -49,7 +50,7 @@ The backend waits for PostgreSQL readiness, and the frontend waits for backend
 health. The Docker database is separate from any PostgreSQL installed on your
 machine, so your existing port 5432 and local data are unaffected.
 This is a development setup: the frontend uses Vite's development server and
-sample data, and is not yet connected to business APIs. Default Spring Security
+sample data, and is not yet connected to the vendor API. Default Spring Security
 authentication must be replaced before production deployment. Only localhost
 ports are published, and both application containers run as non-root users.
 
@@ -200,6 +201,13 @@ Actions already provisions a separate temporary database for each job.
 Hibernate validates the schema (`ddl-auto: validate`) and never creates it.
 These checks are not complete business-feature coverage.
 
+## Vendor discovery API
+
+`GET /api/vendors` lists database-backed vendors without requiring login. It
+supports case-insensitive search (`q`) and bounded pagination (`page`, `size`).
+See [Vendor API](docs/vendor-api.md) for request/response examples, error behavior,
+security boundaries, and tests. The React frontend still uses mock data.
+
 ## Database migrations
 
 Flyway initializes the vendor schema and tracks subsequent versioned SQL changes.
@@ -231,7 +239,8 @@ GitHub removes the service container after the job finishes.
 
 CI checks whether the backend compiles, the existing tests pass, and the JAR can
 be packaged in a fresh environment. Tests check application startup, database
-connectivity, and migrations (including separated development fixtures).
+connectivity, migrations (including separated development fixtures), and the
+vendor-list API's search, pagination, input validation, errors, and security.
 Add behavior tests with each new feature; a green
 check does not yet demonstrate that ordering, authorization, or other future
 features work. This workflow does not deploy the application.

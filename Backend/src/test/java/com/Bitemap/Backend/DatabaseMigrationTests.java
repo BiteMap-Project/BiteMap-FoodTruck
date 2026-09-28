@@ -5,9 +5,13 @@ import java.util.UUID;
 import javax.sql.DataSource;
 
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.FlywayException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -53,8 +57,7 @@ class DatabaseMigrationTests {
 	@Test
 	void freshDatabaseHasValidSchemaWithoutSampleData() {
 		Flyway flyway = migrations(false);
-		assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1);
-		assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
+		migrateAndValidate(flyway);
 		assertThat(vendorCount()).isZero();
 		assertThat(jdbc.queryForObject("INSERT INTO " + schema
 				+ ".vendors (name, category, location) VALUES ('Test Vendor', 'Soup', 'CSUN') RETURNING id",
@@ -69,12 +72,15 @@ class DatabaseMigrationTests {
 	@Test
 	void developmentFixturesDoNotDuplicateOrOverwriteDataOnRestart() {
 		Flyway flyway = migrations(true);
-		assertThat(flyway.migrate().migrationsExecuted).isEqualTo(2);
-		assertThat(vendorCount()).isEqualTo(3);
+		migrateAndValidate(flyway);
+		assertThat(jdbc.queryForList("SELECT id FROM " + schema + ".vendors", Long.class))
+				.contains(-1L, -2L, -3L);
 		jdbc.update("UPDATE " + schema + ".vendors SET name = 'Edited locally' WHERE id = -1");
+		var vendorsBeforeRestart = jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id");
 
 		assertThat(flyway.migrate().migrationsExecuted).isZero();
-		assertThat(vendorCount()).isEqualTo(3);
+		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id"))
+				.isEqualTo(vendorsBeforeRestart);
 		assertThat(jdbc.queryForObject("SELECT name FROM " + schema + ".vendors WHERE id = -1",
 				String.class)).isEqualTo("Edited locally");
 		assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
@@ -82,15 +88,84 @@ class DatabaseMigrationTests {
 
 	@Test
 	void developmentFixturesCanBeAddedWithoutLosingExistingVendors() {
-		migrations(false).migrate();
+		migrateAndValidate(migrations(false));
 		Long existingId = jdbc.queryForObject("INSERT INTO " + schema
 				+ ".vendors (name, category, location) VALUES ('Existing Vendor', 'Coffee', 'CSUN') RETURNING id",
 				Long.class);
 
-		assertThat(migrations(true).migrate().migrationsExecuted).isEqualTo(1);
-		assertThat(vendorCount()).isEqualTo(4);
+		migrateAndValidate(migrations(true));
+		assertThat(jdbc.queryForList("SELECT id FROM " + schema + ".vendors", Long.class))
+				.contains(existingId, -1L, -2L, -3L);
 		assertThat(jdbc.queryForObject("SELECT name FROM " + schema + ".vendors WHERE id = ?",
 				String.class, existingId)).isEqualTo("Existing Vendor");
+	}
+
+	@ParameterizedTest
+	@NullAndEmptySource
+	@ValueSource(strings = { " ", "\t", "\n", "\r", "\f", "\u000B", " \t\r\n" })
+	void requiredFieldsRejectBlankValuesOnInsertAndUpdate(String blank) {
+		migrateAndValidate(migrations(false));
+		Long id = jdbc.queryForObject("INSERT INTO " + schema
+				+ ".vendors (name, category, location) VALUES ('Valid Vendor', 'Coffee', 'CSUN') RETURNING id",
+				Long.class);
+		for (String column : new String[] { "name", "category", "location" }) {
+			Object name = column.equals("name") ? blank : "Valid Vendor";
+			Object category = column.equals("category") ? blank : "Coffee";
+			Object location = column.equals("location") ? blank : "CSUN";
+			assertThatThrownBy(() -> jdbc.update("INSERT INTO " + schema
+					+ ".vendors (name, category, location) VALUES (?, ?, ?)", name, category, location))
+					.as("insert rejects blank %s", column)
+					.isInstanceOf(DataIntegrityViolationException.class);
+			// Column identifiers come only from the fixed list above, never user input.
+			assertThatThrownBy(() -> jdbc.update("UPDATE " + schema + ".vendors SET " + column
+					+ " = ? WHERE id = ?", blank, id))
+					.as("update rejects blank %s", column)
+					.isInstanceOf(DataIntegrityViolationException.class);
+		}
+		assertThat(vendorCount()).isEqualTo(1);
+		assertThat(jdbc.queryForObject("SELECT name FROM " + schema + ".vendors WHERE id = ?",
+				String.class, id)).isEqualTo("Valid Vendor");
+	}
+
+	@Test
+	void upgradeFromV1PreservesExistingVendorData() {
+		Flyway.configure().configuration(migrations(false).getConfiguration())
+				.target("1").load().migrate();
+		jdbc.update("INSERT INTO " + schema
+				+ ".vendors (name, category, location) VALUES (?, ?, ?)",
+				"Café on Wheels", "Coffee & Tea", "CSUN Student Union");
+		var vendorsBeforeUpgrade = jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id");
+
+		migrateAndValidate(migrations(false));
+		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id"))
+				.isEqualTo(vendorsBeforeUpgrade);
+		assertThatThrownBy(() -> jdbc.update("UPDATE " + schema + ".vendors SET name = ?", "\t"))
+				.isInstanceOf(DataIntegrityViolationException.class);
+	}
+
+	@Test
+	void upgradeRejectsInvalidExistingDataWithoutChangingItAndCanBeRetried() {
+		Flyway.configure().configuration(migrations(false).getConfiguration())
+				.target("1").load().migrate();
+		Long id = jdbc.queryForObject("INSERT INTO " + schema
+				+ ".vendors (name, category, location) VALUES (?, 'Coffee', 'CSUN') RETURNING id",
+				Long.class, "\t");
+		Flyway flyway = migrations(false);
+
+		assertThatThrownBy(flyway::migrate).isInstanceOf(FlywayException.class);
+		assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
+		assertThat(jdbc.queryForObject("SELECT name FROM " + schema + ".vendors WHERE id = ?",
+				String.class, id)).isEqualTo("\t");
+
+		jdbc.update("UPDATE " + schema + ".vendors SET name = ? WHERE id = ?", "Corrected Vendor", id);
+		migrateAndValidate(flyway);
+		assertThat(vendorCount()).isEqualTo(1);
+	}
+
+	private void migrateAndValidate(Flyway flyway) {
+		assertThat(flyway.migrate().success).isTrue();
+		assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
+		assertThat(flyway.info().pending()).isEmpty();
 	}
 
 	private Flyway migrations(boolean development) {

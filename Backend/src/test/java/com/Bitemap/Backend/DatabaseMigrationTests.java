@@ -168,6 +168,19 @@ class DatabaseMigrationTests {
 		assertThat(flyway.info().pending()).isEmpty();
 	}
 
+	@Test
+	void upgradeFromV2PreservesVendorsAndCreatesEmptyStops() {
+		Flyway.configure().configuration(migrations(false).getConfiguration())
+				.target("2").load().migrate();
+		jdbc.update("INSERT INTO " + schema
+				+ ".vendors (name, category, location) VALUES ('Existing Vendor', 'Soup', 'Original location')");
+		var before = jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id");
+		migrateAndValidate(migrations(false));
+		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id")).isEqualTo(before);
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".vendor_stops", Integer.class)).isZero();
+		assertThat(migrations(false).migrate().migrationsExecuted).isZero();
+	}
+
 	private Flyway migrations(boolean development) {
 		String[] locations = development
 				? new String[] { "classpath:db/migration", "classpath:db/dev" }

@@ -22,10 +22,10 @@ location, and creation timestamp. Location is a display label, not coordinates.
 Names are not unique: separate vendors may share a name. Ownership, schedules,
 closing times, menus, and geographic search are deliberately left for later
 feature migrations. The [vendor-list API](vendor-api.md) reads this table, but
-the frontend still uses its own hardcoded trucks and is not yet connected to it.
+the frontend discovery page uses the API's database IDs. Menus remain demo-only.
 
 Sample rows reserve IDs -1, -2, and -3, separate from positive generated IDs.
-These are not the frontend's hardcoded IDs. The repeatable fixture runs initially
+These differ from the legacy demo menu IDs. The repeatable fixture runs initially
 and when its contents change; conflicts on an existing ID do nothing, preserving
 local edits. An unchanged fixture is not rerun on every restart. Removing a row
 from the SQL file does not delete an existing database row.

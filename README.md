@@ -210,6 +210,11 @@ security boundaries, and tests. The React frontend still uses mock data.
 
 ## Database migrations
 
+Serving-stop schedules are available through public `GET /api/vendor-stops`.
+See [serving-stop API](docs/vendor-stops-api.md) for time windows, coordinate and
+distance filters, validation, and the limits of schedule versus live status.
+Stops are initially empty; no guessed map locations or write endpoints are added.
+
 Flyway initializes the vendor schema and tracks subsequent versioned SQL changes.
 Docker Compose enables the `dev` profile to load three sample vendors from a
 separate fixture folder. The default profile and CI load no demo vendors.

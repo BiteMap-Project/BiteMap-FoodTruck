@@ -11,6 +11,9 @@ do not switch it to `update`, `create`, or `create-drop`.
 - `Backend/src/main/resources/db/migration/V2__strengthen_vendor_required_fields.sql`
   rejects empty or whitespace-only names, categories, and locations, including
   tabs and line breaks. Existing rows are validated during the upgrade.
+- `Backend/src/main/resources/db/migration/V3__create_vendor_stops.sql` adds an
+  empty dated-stop table with coordinate, time-zone, interval, status, and
+  foreign-key validation. See [serving-stop API](vendor-stops-api.md).
 - `Backend/src/main/resources/db/dev/R__sample_vendors.sql` inserts three sample
   trucks, only when the `dev` Spring profile is active.
 - `application.yaml` enables only production schema migrations by default.
@@ -62,7 +65,7 @@ role must already exist; Flyway creates tables, not the PostgreSQL server or rol
 ## Add the next migration
 
 1. Pull the latest `main` and coordinate a unique next version with teammates.
-2. Add a file such as `V3__add_vendor_description.sql` under `db/migration`.
+2. Add a file such as `V4__add_vendor_description.sql` under `db/migration`.
    There are two underscores between the version and description.
 3. Include only reviewed schema/data changes needed for the feature. Use a new
    migration to change an existing table; do not use manual SQL as the rollout.

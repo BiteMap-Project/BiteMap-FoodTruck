@@ -63,7 +63,10 @@ erDiagram
         bigint id PK
         varchar display_name
         varchar email UK
+        varchar password_hash
+        boolean enabled
         timestamptz created_at
+        timestamptz updated_at
     }
 
     vendors {
@@ -90,16 +93,18 @@ trucks throughout the backend and frontend. Adding `operator_id` immediately as
 required would break existing vendors, including development fixtures. The safe
 implementation sequence is:
 
-1. Decide whether an operator is also the future login account or a business
-   profile linked to an account.
-2. Add `operators` and a nullable `vendors.operator_id` in a new migration.
-3. Add real operator records and assign every existing vendor.
+1. Add `operators` as the login-account table and add a nullable
+   `vendors.operator_id` in a new migration.
+2. Implement operator registration and authentication with Spring Security.
+3. Add real operator accounts and assign every existing vendor.
 4. In a later migration, make `operator_id` required after verifying that no
    vendor remains unassigned.
 
-An operator email should be unique without regard to capitalization. Authentication,
-passwords, roles, and invitations are outside this schema ticket and must not be
-stored as plain text fields here.
+An operator account has a unique case-insensitive email, display name, password
+hash, enabled flag, and audit timestamps. Passwords must be hashed by the backend
+before insertion and must never be stored or logged as plain text. All rows in
+this table are operators, so an additional role column is unnecessary for the
+initial design. Consumer accounts and operator invitations remain separate work.
 
 ## Rules for the next migration
 

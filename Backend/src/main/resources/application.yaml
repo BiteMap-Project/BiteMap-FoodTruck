@@ -2,10 +2,24 @@ spring:
   application:
     name: Backend
 
+  mvc:
+    problemdetails:
+      enabled: true
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/bitemap}
     username: ${DB_USERNAME:bitemap}
     password: ${DB_PASSWORD}
+
+  flyway:
+    locations: classpath:db/migration
+    clean-disabled: true
+    baseline-on-migrate: false
+    validate-migration-naming: true
+
+  sql:
+    init:
+      mode: never
 
   jpa:
     hibernate:

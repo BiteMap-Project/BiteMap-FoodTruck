@@ -44,6 +44,7 @@ function TruckMenuPage() {
       <Link to="/">← Back to trucks</Link>
 
       <h1>{truck.name}</h1>
+      <p>Demo menu only — not connected to live vendor data.</p>
       <h2>Menu</h2>
 
       {truck.menu.map((item) => (

@@ -51,14 +51,18 @@ function VendorResults({ search }: { search: string }) {
       )}
       {result.status === "success" && (
         <>
-          <p role="status">
+          <p role="status" className="results-count">
             {result.data.items.length === 0
               ? (page > 0 ? "No vendors on this page. Go back to the previous page." : search.trim() ? "No vendors found. Try another search." : "No vendors available yet.")
               : `${result.data.totalElements} ${result.data.totalElements === 1 ? "vendor" : "vendors"} found`}
           </p>
-          {result.data.items.map((vendor) => <FoodTruckCard key={vendor.id} {...vendor} />)}
+          {result.data.items.length > 0 && (
+            <div className="card-grid">
+              {result.data.items.map((vendor) => <FoodTruckCard key={vendor.id} {...vendor} />)}
+            </div>
+          )}
           {(result.data.totalPages > 1 || page > 0) && (
-            <nav aria-label="Vendor pagination">
+            <nav aria-label="Vendor pagination" className="pager">
               <button disabled={page === 0} onClick={() => changePage(page - 1)}>Previous</button>
               <span> Page {page + 1}{result.data.totalPages > page ? ` of ${result.data.totalPages}` : ""} </span>
               <button disabled={page + 1 >= result.data.totalPages || page >= 10000} onClick={() => changePage(page + 1)}>Next</button>

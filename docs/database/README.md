@@ -1,96 +1,113 @@
 # SCRUM-24: Initial database schema
 
-This design supports consumer truck discovery, truck profiles, menus, and basic
-operator ownership. `schema.sql` is a PostgreSQL 15 review draft. It has not been
-applied to the development database and is not wired into application startup.
+BiteMap uses PostgreSQL and Flyway. The schema is built by the versioned files in
+`Backend/src/main/resources/db/migration`; this document is a readable map of
+those migrations. It is not a second schema initializer.
 
-## Relationships
-
-An operator can manage multiple trucks. Each truck has exactly one operator for
-this first version; shared management is not implemented. A truck may have no
-menu items or scheduled stops yet.
+## Current schema
 
 ```mermaid
 erDiagram
-    operators ||--o{ food_trucks : manages
-    food_trucks ||--o{ menu_items : offers
-    food_trucks ||--o{ truck_stops : schedules
-    operators {
+    vendors ||--o{ vendor_stops : schedules
+
+    vendors {
         bigint id PK
         varchar name
-        varchar email UK
-    }
-    food_trucks {
-        bigint id PK
-        bigint operator_id FK
-        varchar name
-        text description
         varchar category
+        varchar location
+        timestamptz created_at
     }
-    menu_items {
+
+    vendor_stops {
         bigint id PK
-        bigint truck_id FK
-        varchar name
-        text description
-        numeric price
-        boolean is_available
-    }
-    truck_stops {
-        bigint id PK
-        bigint truck_id FK
-        varchar location_name
-        numeric latitude
-        numeric longitude
-        timestamptz opens_at
-        timestamptz closes_at
+        bigint vendor_id FK
+        varchar venue_name
+        varchar address
+        double latitude
+        double longitude
+        timestamptz starts_at
+        timestamptz ends_at
+        varchar time_zone
+        varchar status
+        timestamptz last_confirmed_at
+        timestamptz created_at
+        timestamptz updated_at
     }
 ```
 
-## What the fields mean
+The `vendors` table stores the truck information used by discovery. A vendor may
+have many dated stops. Each stop belongs to exactly one vendor through
+`vendor_stops.vendor_id`.
 
-| Table | Purpose | Main rules |
-| --- | --- | --- |
-| `operators` | Operator name and contact email | Email is unique ignoring capitalization and surrounding spaces. This is not yet a login account. |
-| `food_trucks` | Truck profile | One required operator, name, and category; description is optional. |
-| `menu_items` | Items sold by a truck | Required name and nonnegative USD price; availability defaults to true. |
-| `truck_stops` | A truck's scheduled visit to a location | Required location and opening/closing timestamps; closing must follow opening. Coordinates are optional but must be supplied together. |
-
-A primary key (`id`) identifies a row. A foreign key (`operator_id` or `truck_id`)
-links a row to its owner. PostgreSQL generates IDs automatically. Indexes on these
-links help retrieve an operator's trucks and a truck's menu or stops.
-
-Prices use exact decimals, such as `8.99`. The frontend adds the dollar sign.
-Stops use timestamps with time zones rather than text such as `3:00 PM`, so each
-visit has a date and can cross midnight. Send timestamps with an explicit offset
-and format them in the intended display time zone. PostgreSQL stores the instant,
-not the original named time zone.
-
-Deletion is restricted when dependent rows exist, avoiding accidental removal of
-a truck's menu or schedule. A future deletion/archive workflow needs its own design.
-
-## Connection to the current frontend
-
-| Current sample field | Database source |
+| Migration | Purpose |
 | --- | --- |
-| `id`, `name`, `category` | `food_trucks` |
-| `location` | Selected stop's `location_name` |
-| `closingTime` | Selected stop's `closes_at`, formatted for display |
-| `menu` | `menu_items` filtered by `truck_id` |
+| `V1__create_vendors.sql` | Creates the discovery table. |
+| `V2__strengthen_vendor_required_fields.sql` | Rejects blank vendor fields. |
+| `V3__create_vendor_stops.sql` | Adds dated locations, coordinates, hours, and status. |
 
-Discovery will need an explicit rule for selecting the current or upcoming stop.
-Show “Open until” only during that stop's opening interval. The current sample
-closing times lack dates, so do not automatically convert them into real schedules.
+The SCRUM-31 branch also proposes `vendor_menu_items`. That migration must be
+merged and its version coordinated before the ownership migration is numbered.
 
-## Scope and next implementation step
+## Planned operator ownership
 
-This is an initial design, not the full BiteMap database. Authentication, consumer
-accounts, orders, payments, recurring schedules, and shared operator access remain
-separate work. One category per truck and USD prices are initial assumptions.
-Overlapping stops are not prevented by this draft; validate scheduling conflicts
-when the operator scheduling feature is implemented.
+The agreed relationship is one operator to many trucks, while each truck has one
+operator. The next ownership design should extend the existing `vendors` table:
 
-Review these relationships with the team, then integrate a versioned migration
-tool such as Flyway and test the schema in a disposable PostgreSQL database before
-applying it locally. Keep Spring's `ddl-auto: validate`: it checks entities against
-the schema instead of silently creating or modifying tables. Do not run this draft
-against an existing database without first inspecting its schema.
+```mermaid
+erDiagram
+    operators ||--o{ vendors : manages
+    vendors ||--o{ vendor_stops : schedules
+    vendors ||--o{ vendor_menu_items : offers
+
+    operators {
+        bigint id PK
+        varchar display_name
+        varchar email UK
+        timestamptz created_at
+    }
+
+    vendors {
+        bigint id PK
+        bigint operator_id FK
+        varchar name
+        varchar category
+        varchar location
+        timestamptz created_at
+    }
+
+    vendor_menu_items {
+        bigint id PK
+        bigint vendor_id FK
+        varchar name
+        text description
+        numeric price
+        boolean available
+    }
+```
+
+Do not create a separate `food_trucks` table; `vendors` already represents food
+trucks throughout the backend and frontend. Adding `operator_id` immediately as
+required would break existing vendors, including development fixtures. The safe
+implementation sequence is:
+
+1. Decide whether an operator is also the future login account or a business
+   profile linked to an account.
+2. Add `operators` and a nullable `vendors.operator_id` in a new migration.
+3. Add real operator records and assign every existing vendor.
+4. In a later migration, make `operator_id` required after verifying that no
+   vendor remains unassigned.
+
+An operator email should be unique without regard to capitalization. Authentication,
+passwords, roles, and invitations are outside this schema ticket and must not be
+stored as plain text fields here.
+
+## Rules for the next migration
+
+- Pull the latest `main` and coordinate the next Flyway version with teammates.
+- Never edit a versioned migration after teammates have applied it.
+- Test both a fresh database and an upgrade containing existing vendors.
+- Keep development fixtures separate from production migrations.
+- Keep Hibernate on `ddl-auto: validate`; Flyway owns schema changes.
+
+See [database migration workflow](../database-migrations.md) for commands and
+safety rules.

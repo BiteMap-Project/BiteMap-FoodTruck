@@ -225,6 +225,8 @@ The frontend is not yet connected to this database.
 
 See [Database migrations](docs/database-migrations.md) for file locations,
 manual setup, team migration rules, safety precautions, and verification.
+See [Initial database schema](docs/database/README.md) for the current relationship
+diagram and the planned operator-to-truck ownership design.
 
 ## Continuous integration (CI)
 

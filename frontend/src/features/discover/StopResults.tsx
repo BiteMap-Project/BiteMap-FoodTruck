@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import StopCard from "../../components/StopCard";
+import { NavigationIcon } from "../../components/icons";
 import { InvalidFilterError, listStops, type StopPage } from "../../services/stops";
 import { resolveWindow, type CustomDates, type When } from "./timeWindow";
 
@@ -125,7 +126,7 @@ function StopResults({ search }: { search: string }) {
     <>
       <form className="filters" aria-label="Filters" onSubmit={(event) => event.preventDefault()}>
         <div className="filter">
-          <label htmlFor="filter-cuisine">Cuisine</label>
+          <label htmlFor="filter-cuisine" className="filter-label">Cuisine</label>
           <input
             id="filter-cuisine"
             list="filter-cuisine-options"
@@ -140,7 +141,7 @@ function StopResults({ search }: { search: string }) {
         </div>
 
         <fieldset className="filter">
-          <legend>When</legend>
+          <legend className="filter-label">When</legend>
           <div className="segmented">
             {(Object.keys(WHEN_LABELS) as When[]).map((option) => (
               <button
@@ -166,7 +167,7 @@ function StopResults({ search }: { search: string }) {
         </fieldset>
 
         <fieldset className="filter">
-          <legend>Distance</legend>
+          <legend className="filter-label">Distance</legend>
           {place.status === "on" ? (
             <div className="near-me">
               <label htmlFor="filter-radius">Within</label>
@@ -174,12 +175,13 @@ function StopResults({ search }: { search: string }) {
                 onChange={(event) => refilter(() => setRadiusMiles(Number(event.target.value)))}>
                 {RADIUS_MILES.map((miles) => <option key={miles} value={miles}>{miles} mi</option>)}
               </select>
-              <button type="button" onClick={() => refilter(() => setPlace({ status: "off" }))}>
+              <button type="button" className="text-button" onClick={() => refilter(() => setPlace({ status: "off" }))}>
                 Stop using my location
               </button>
             </div>
           ) : (
-            <button type="button" onClick={locate} disabled={place.status === "locating"}>
+            <button type="button" className="outline-button" onClick={locate} disabled={place.status === "locating"}>
+              <NavigationIcon />
               {place.status === "locating" ? "Finding your location…" : "Near me"}
             </button>
           )}
@@ -191,7 +193,7 @@ function StopResults({ search }: { search: string }) {
           )}
         </fieldset>
 
-        {filtersActive && <button type="button" onClick={clearFilters}>Clear filters</button>}
+        {filtersActive && <button type="button" className="text-button clear-filters" onClick={clearFilters}>Clear filters</button>}
       </form>
 
       <section aria-label="Schedule results" aria-busy={!windowError && result.status === "loading"}>
@@ -210,16 +212,20 @@ function StopResults({ search }: { search: string }) {
             )}
             {result.status === "success" && (
               <>
-                <p role="status">
+                <p role="status" className="results-count">
                   {result.data.items.length === 0
                     ? (page > 0 ? "No stops on this page. Go back to the previous page."
                       : filtersActive || search.trim() ? "No trucks match these filters. Try widening your search."
                         : "No trucks are scheduled in the next 7 days.")
                     : `${result.data.totalElements} ${result.data.totalElements === 1 ? "stop" : "stops"} found`}
                 </p>
-                {result.data.items.map((stop) => <StopCard key={stop.stopId} stop={stop} />)}
+                {result.data.items.length > 0 && (
+                  <div className="card-grid">
+                    {result.data.items.map((stop) => <StopCard key={stop.stopId} stop={stop} />)}
+                  </div>
+                )}
                 {(result.data.totalPages > 1 || page > 0) && (
-                  <nav aria-label="Schedule pagination">
+                  <nav aria-label="Schedule pagination" className="pager">
                     <button disabled={page === 0} onClick={() => { setResult({ status: "loading" }); setPage(page - 1); }}>Previous</button>
                     <span> Page {page + 1}{result.data.totalPages > page ? ` of ${result.data.totalPages}` : ""} </span>
                     <button disabled={page + 1 >= result.data.totalPages || page >= 10000}

@@ -116,7 +116,11 @@ code {
 }
 
 .truck-profile {
-  padding: 24px 16px 40px;
+  width: 100%;
+  max-width: 760px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 24px 24px 48px;
   text-align: left;
   overflow-wrap: anywhere;
 }
@@ -126,15 +130,22 @@ code {
   align-items: center;
   min-height: 44px;
   color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
 }
 
+.truck-profile > a:hover { text-decoration: underline; }
+.truck-profile h1 { font-size: 40px; line-height: 1.1; letter-spacing: -1px; margin: 16px 0 8px; }
+.truck-profile > p { margin-top: 4px; }
 .truck-profile section { margin-top: 32px; }
-.truck-profile h1 { line-height: 1.15; }
+.truck-profile h2 { font-size: 22px; }
 .truck-profile button { min-height: 44px; padding: 8px 16px; font: inherit; }
-.menu-items { list-style: none; padding: 0; margin: 0; }
-.menu-items li { border-bottom: 1px solid var(--border); padding: 20px 0; }
+.menu-items { list-style: none; padding: 0; margin: 12px 0 0; border: 1px solid var(--border); border-radius: var(--radius); }
+.menu-items li { padding: 16px 18px; }
+.menu-items li + li { border-top: 1px solid var(--border); }
 .menu-item-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px; justify-content: space-between; }
-.menu-item-heading h3 { margin: 0; min-width: 0; font-size: 20px; color: var(--text-h); }
-.menu-item-heading span { white-space: nowrap; }
-.unavailable { font-weight: 600; margin-top: 8px; }
-
+.menu-item-heading h3 { margin: 0; min-width: 0; font-size: 18px; font-weight: 600; color: var(--text-h); }
+.menu-item-heading span { white-space: nowrap; color: var(--text-h); font-weight: 600; }
+.menu-items li > p { margin-top: 4px; font-size: 15px; }
+.unavailable { font-weight: 600; margin-top: 8px; color: var(--danger); }
+.not-found p { margin-bottom: 16px; }

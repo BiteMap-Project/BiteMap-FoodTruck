@@ -1,0 +1,105 @@
+/* Shared loading / empty / error states (SCRUM-36). */
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 24px 0;
+  padding: 32px 20px;
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.state p {
+  margin: 0;
+}
+
+.state-empty {
+  border: 1px dashed var(--border);
+  background: var(--surface-muted);
+}
+
+.state-error {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--danger);
+  background: var(--surface);
+  align-items: flex-start;
+  text-align: left;
+  padding: 18px 20px;
+}
+
+.state-error > p:first-child {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.state-loading {
+  flex-direction: row;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+}
+
+.state-title {
+  color: var(--text-h);
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.state-hint {
+  font-size: 15px;
+}
+
+.state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.state-actions button {
+  min-height: 40px;
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.state-actions button:hover {
+  border-color: var(--accent-border);
+}
+
+.state-actions button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+.inline-alert {
+  color: var(--danger);
+}

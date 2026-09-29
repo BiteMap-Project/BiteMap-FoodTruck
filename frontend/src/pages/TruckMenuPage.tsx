@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getVendor, type VendorProfile } from "../services/vendors";
+import { EmptyState, ErrorState, LoadingState } from "../components/StatusViews";
 
 type Result =
   | { status: "loading"; id: string }
@@ -36,16 +37,21 @@ function TruckMenuPage() {
   return (
     <main className="truck-profile">
       <Link to="/">← Back to trucks</Link>
-      {current.status === "loading" && <p role="status">Loading truck…</p>}
-      {current.status === "missing" && <h1>Truck not found.</h1>}
+      {current.status === "loading" && <LoadingState label="Loading truck…" />}
+      {current.status === "missing" && (
+        <>
+          <h1>Truck not found.</h1>
+          <p>This truck may have left BiteMap, or the link may be wrong.</p>
+        </>
+      )}
       {current.status === "error" && (
-        <div role="alert">
-          <p>Unable to load this truck. Please try again.</p>
-          <button onClick={() => {
+        <ErrorState
+          message="Unable to load this truck. Please try again."
+          onRetry={() => {
             setResult({ status: "loading", id });
             setAttempt((value) => value + 1);
-          }}>Retry</button>
-        </div>
+          }}
+        />
       )}
       {current.status === "success" && (
         <>
@@ -54,7 +60,9 @@ function TruckMenuPage() {
           <p>Location: {current.truck.location}</p>
           <section aria-labelledby="menu-heading">
             <h2 id="menu-heading">Menu</h2>
-            {current.truck.menu.length === 0 ? <p>No menu available yet.</p> : (
+            {current.truck.menu.length === 0 ? (
+              <EmptyState title="No menu available yet." hint="This truck hasn't posted its menu. Check back later." />
+            ) : (
               <ul className="menu-items">
                 {current.truck.menu.map((item) => (
                   <li key={item.id}>

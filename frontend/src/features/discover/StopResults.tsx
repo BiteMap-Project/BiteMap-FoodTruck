@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import StopCard from "../../components/StopCard";
 import { NavigationIcon } from "../../components/icons";
+import { EmptyState, ErrorState, LoadingState } from "../../components/StatusViews";
 import { InvalidFilterError, listStops, type StopPage } from "../../services/stops";
 import { resolveWindow, type CustomDates, type When } from "./timeWindow";
 
@@ -186,10 +187,10 @@ function StopResults({ search }: { search: string }) {
             </button>
           )}
           {place.status === "denied" && (
-            <p role="alert">Location access is blocked. Allow it in your browser settings to search near you.</p>
+            <p role="alert" className="inline-alert">Location access is blocked. Allow it in your browser settings to search near you.</p>
           )}
           {place.status === "unavailable" && (
-            <p role="alert">We couldn't get your location. You can still search by name or cuisine.</p>
+            <p role="alert" className="inline-alert">We couldn't get your location. You can still search by name or cuisine.</p>
           )}
         </fieldset>
 
@@ -197,32 +198,52 @@ function StopResults({ search }: { search: string }) {
       </form>
 
       <section aria-label="Schedule results" aria-busy={!windowError && result.status === "loading"}>
-        {windowError ? <p role="alert">{windowError}</p> : (
+        {windowError ? <ErrorState message={windowError} /> : (
           <>
-            {result.status === "loading" && <p role="status">Loading schedules…</p>}
-            {result.status === "invalid" && <p role="alert">{result.message}</p>}
+            {result.status === "loading" && <LoadingState label="Loading schedules…" />}
+            {result.status === "invalid" && (
+              <ErrorState message={result.message}>
+                <button type="button" onClick={clearFilters}>Clear filters</button>
+              </ErrorState>
+            )}
             {result.status === "error" && (
-              <div role="alert">
-                <p>Unable to load schedules. Please try again.</p>
-                <button onClick={() => {
+              <ErrorState
+                message="Unable to load schedules. Please try again."
+                onRetry={() => {
                   setResult({ status: "loading" });
                   setAttempt((value) => value + 1);
-                }}>Retry</button>
-              </div>
+                }}
+              />
+            )}
+            {result.status === "success" && result.data.items.length === 0 && (
+              page > 0 ? (
+                <EmptyState title="No stops on this page." hint="The schedule changed since you opened this page.">
+                  <button type="button" onClick={() => { setResult({ status: "loading" }); setPage(page - 1); }}>
+                    Previous page
+                  </button>
+                </EmptyState>
+              ) : filtersActive || search.trim() ? (
+                <EmptyState
+                  title="No trucks match these filters."
+                  hint={place.status === "on" && radiusMiles < 50 ? "Try a larger distance or different dates." : "Try widening your search or different dates."}
+                >
+                  {filtersActive && <button type="button" onClick={clearFilters}>Clear filters</button>}
+                </EmptyState>
+              ) : (
+                <EmptyState title="No trucks are scheduled in the next 7 days." hint="Try “Pick dates” to look further ahead, or browse all trucks." />
+              )
             )}
             {result.status === "success" && (
               <>
-                <p role="status" className="results-count">
-                  {result.data.items.length === 0
-                    ? (page > 0 ? "No stops on this page. Go back to the previous page."
-                      : filtersActive || search.trim() ? "No trucks match these filters. Try widening your search."
-                        : "No trucks are scheduled in the next 7 days.")
-                    : `${result.data.totalElements} ${result.data.totalElements === 1 ? "stop" : "stops"} found`}
-                </p>
                 {result.data.items.length > 0 && (
-                  <div className="card-grid">
-                    {result.data.items.map((stop) => <StopCard key={stop.stopId} stop={stop} />)}
-                  </div>
+                  <>
+                    <p role="status" className="results-count">
+                      {`${result.data.totalElements} ${result.data.totalElements === 1 ? "stop" : "stops"} found`}
+                    </p>
+                    <div className="card-grid">
+                      {result.data.items.map((stop) => <StopCard key={stop.stopId} stop={stop} />)}
+                    </div>
+                  </>
                 )}
                 {(result.data.totalPages > 1 || page > 0) && (
                   <nav aria-label="Schedule pagination" className="pager">

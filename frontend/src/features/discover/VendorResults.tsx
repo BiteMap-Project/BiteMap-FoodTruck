@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import FoodTruckCard from "../../components/FoodTruckCard";
+import { EmptyState, ErrorState, LoadingState } from "../../components/StatusViews";
 import { listVendors, type VendorPage } from "../../services/vendors";
 
 type Result =
@@ -8,7 +9,7 @@ type Result =
   | { status: "error" };
 
 /** "All trucks" view. The parent remounts it (via `key`) when the search changes, which resets the page. */
-function VendorResults({ search }: { search: string }) {
+function VendorResults({ search, onClearSearch }: { search: string; onClearSearch: () => void }) {
   const [page, setPage] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<Result>({ status: "loading" });
@@ -39,27 +40,40 @@ function VendorResults({ search }: { search: string }) {
 
   return (
     <section aria-label="Vendor results" aria-busy={result.status === "loading"}>
-      {result.status === "loading" && <p role="status">Loading vendors…</p>}
+      {result.status === "loading" && <LoadingState label="Loading vendors…" />}
       {result.status === "error" && (
-        <div role="alert">
-          <p>Unable to load vendors. Please try again.</p>
-          <button onClick={() => {
+        <ErrorState
+          message="Unable to load vendors. Please try again."
+          onRetry={() => {
             setResult({ status: "loading" });
             setAttempt((value) => value + 1);
-          }}>Retry</button>
-        </div>
+          }}
+        />
+      )}
+      {result.status === "success" && result.data.items.length === 0 && (
+        page > 0 ? (
+          <EmptyState title="No vendors on this page." hint="The list changed since you opened this page.">
+            <button type="button" onClick={() => changePage(page - 1)}>Previous page</button>
+          </EmptyState>
+        ) : search.trim() ? (
+          <EmptyState title="No vendors found. Try another search." hint={`Nothing matched “${search.trim()}”.`}>
+            <button type="button" onClick={onClearSearch}>Clear search</button>
+          </EmptyState>
+        ) : (
+          <EmptyState title="No vendors available yet." hint="Check back soon as trucks join BiteMap." />
+        )
       )}
       {result.status === "success" && (
         <>
-          <p role="status" className="results-count">
-            {result.data.items.length === 0
-              ? (page > 0 ? "No vendors on this page. Go back to the previous page." : search.trim() ? "No vendors found. Try another search." : "No vendors available yet.")
-              : `${result.data.totalElements} ${result.data.totalElements === 1 ? "vendor" : "vendors"} found`}
-          </p>
           {result.data.items.length > 0 && (
-            <div className="card-grid">
-              {result.data.items.map((vendor) => <FoodTruckCard key={vendor.id} {...vendor} />)}
-            </div>
+            <>
+              <p role="status" className="results-count">
+                {`${result.data.totalElements} ${result.data.totalElements === 1 ? "vendor" : "vendors"} found`}
+              </p>
+              <div className="card-grid">
+                {result.data.items.map((vendor) => <FoodTruckCard key={vendor.id} {...vendor} />)}
+              </div>
+            </>
           )}
           {(result.data.totalPages > 1 || page > 0) && (
             <nav aria-label="Vendor pagination" className="pager">

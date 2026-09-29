@@ -4,6 +4,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -11,9 +15,23 @@ import org.springframework.transaction.annotation.Transactional;
 public class VendorService {
 
 	private final VendorRepository repository;
+	private final JdbcTemplate jdbc;
 
-	public VendorService(VendorRepository repository) {
+	public VendorService(VendorRepository repository, JdbcTemplate jdbc) {
 		this.repository = repository;
+		this.jdbc = jdbc;
+	}
+
+	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+	public VendorProfile profile(long id) {
+		Vendor vendor = repository.findById(id)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Truck not found"));
+		var menu = jdbc.query("""
+				SELECT id, name, description, price, available FROM vendor_menu_items
+				WHERE vendor_id = ? ORDER BY name, id
+				""", (row, index) -> new VendorProfile.MenuItem(row.getLong("id"), row.getString("name"),
+						row.getString("description"), row.getBigDecimal("price"), row.getBoolean("available")), id);
+		return new VendorProfile(vendor.getId(), vendor.getName(), vendor.getCategory(), vendor.getLocation(), menu);
 	}
 
 	public VendorPage list(String query, int page, int size) {

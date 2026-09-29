@@ -41,6 +41,15 @@ class VendorErrorTests {
 		assertUnavailable();
 	}
 
+	@Test
+	void profileDatabaseFailureIsSafeAndRetryable() throws Exception {
+		given(service.profile(1L)).willThrow(new DataAccessResourceFailureException("internal-database-detail"));
+		mvc.perform(get("/api/vendors/1"))
+				.andExpect(status().isServiceUnavailable())
+				.andExpect(jsonPath("$.status").value(503))
+				.andExpect(content().string(not(containsString("internal-database-detail"))));
+	}
+
 	private void assertUnavailable() throws Exception {
 		mvc.perform(get("/api/vendors"))
 				.andExpect(status().isServiceUnavailable())

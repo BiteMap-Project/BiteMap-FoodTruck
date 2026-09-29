@@ -16,7 +16,7 @@ public class VendorExceptionHandler {
 
 	@ExceptionHandler({ DataAccessException.class, CannotCreateTransactionException.class })
 	public ProblemDetail databaseUnavailable(RuntimeException exception) {
-		log.error("Unable to load vendor list from the database", exception);
+		log.error("Unable to load vendor information from the database", exception);
 		return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
 				"Vendor information is temporarily unavailable. Please try again later.");
 	}

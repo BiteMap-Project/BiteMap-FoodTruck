@@ -1,58 +1,77 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { getVendor, type VendorProfile } from "../services/vendors";
+
+type Result =
+  | { status: "loading"; id: string }
+  | { status: "success"; id: string; truck: VendorProfile }
+  | { status: "missing"; id: string }
+  | { status: "error"; id: string };
+
+const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
 function TruckMenuPage() {
-  const { id } = useParams();
+  const { id = "" } = useParams();
+  const [attempt, setAttempt] = useState(0);
+  const [result, setResult] = useState<Result>({ status: "loading", id });
 
-  const trucks = [
-    {
-      id: 1,
-      name: "Soup Stop",
-      menu: [
-        { name: "Tomato Soup", price: "$8.99" },
-        { name: "Bread", price: "$2.00" },
-        { name: "Lemonade", price: "$3.00" },
-      ],
-    },
-    {
-      id: 2,
-      name: "Taco Mobile",
-      menu: [
-        { name: "Chicken Taco", price: "$4.50" },
-        { name: "Veggie Taco", price: "$4.00" },
-        { name: "Horchata", price: "$3.50" },
-      ],
-    },
-    {
-      id: 3,
-      name: "Coffee Cart",
-      menu: [
-        { name: "Latte", price: "$5.00" },
-        { name: "Cold Brew", price: "$4.50" },
-        { name: "Muffin", price: "$3.00" },
-      ],
-    },
-  ];
+  useEffect(() => {
+    const controller = new AbortController();
+    getVendor(id, controller.signal).then(
+      (truck) => {
+        if (!controller.signal.aborted) {
+          setResult(truck ? { status: "success", id, truck } : { status: "missing", id });
+        }
+      },
+      () => {
+        if (!controller.signal.aborted) setResult({ status: "error", id });
+      },
+    );
+    return () => controller.abort();
+  }, [id, attempt]);
 
-  const truck = trucks.find((truck) => truck.id === Number(id));
-
-  if (!truck) {
-    return <p>Truck not found.</p>;
-  }
+  // Never show the previous truck while a different route is loading.
+  const current: Result = result.id === id ? result : { status: "loading", id };
 
   return (
-    <div>
+    <main className="truck-profile">
       <Link to="/">← Back to trucks</Link>
-
-      <h1>{truck.name}</h1>
-      <p>Demo menu only — not connected to live vendor data.</p>
-      <h2>Menu</h2>
-
-      {truck.menu.map((item) => (
-        <p key={item.name}>
-          {item.name} - {item.price}
-        </p>
-      ))}
-    </div>
+      {current.status === "loading" && <p role="status">Loading truck…</p>}
+      {current.status === "missing" && <h1>Truck not found.</h1>}
+      {current.status === "error" && (
+        <div role="alert">
+          <p>Unable to load this truck. Please try again.</p>
+          <button onClick={() => {
+            setResult({ status: "loading", id });
+            setAttempt((value) => value + 1);
+          }}>Retry</button>
+        </div>
+      )}
+      {current.status === "success" && (
+        <>
+          <h1>{current.truck.name}</h1>
+          <p>Category: {current.truck.category}</p>
+          <p>Location: {current.truck.location}</p>
+          <section aria-labelledby="menu-heading">
+            <h2 id="menu-heading">Menu</h2>
+            {current.truck.menu.length === 0 ? <p>No menu available yet.</p> : (
+              <ul className="menu-items">
+                {current.truck.menu.map((item) => (
+                  <li key={item.id}>
+                    <div className="menu-item-heading">
+                      <h3>{item.name}</h3>
+                      <span>{dollars.format(item.price)}</span>
+                    </div>
+                    {item.description && <p>{item.description}</p>}
+                    {!item.available && <p className="unavailable">Currently unavailable</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      )}
+    </main>
   );
 }
 

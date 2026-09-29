@@ -59,6 +59,8 @@ class DatabaseMigrationTests {
 		Flyway flyway = migrations(false);
 		migrateAndValidate(flyway);
 		assertThat(vendorCount()).isZero();
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
+				+ ".vendor_menu_items", Integer.class)).isZero();
 		assertThat(jdbc.queryForObject("INSERT INTO " + schema
 				+ ".vendors (name, category, location) VALUES ('Test Vendor', 'Soup', 'CSUN') RETURNING id",
 				Long.class)).isPositive();
@@ -75,12 +77,18 @@ class DatabaseMigrationTests {
 		migrateAndValidate(flyway);
 		assertThat(jdbc.queryForList("SELECT id FROM " + schema + ".vendors", Long.class))
 				.contains(-1L, -2L, -3L);
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
+				+ ".vendor_menu_items", Integer.class)).isEqualTo(9);
 		jdbc.update("UPDATE " + schema + ".vendors SET name = 'Edited locally' WHERE id = -1");
+		jdbc.update("UPDATE " + schema + ".vendor_menu_items SET name = 'Edited item' WHERE id = -101");
 		var vendorsBeforeRestart = jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id");
+		var menuBeforeRestart = jdbc.queryForList("SELECT * FROM " + schema + ".vendor_menu_items ORDER BY id");
 
 		assertThat(flyway.migrate().migrationsExecuted).isZero();
 		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id"))
 				.isEqualTo(vendorsBeforeRestart);
+		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendor_menu_items ORDER BY id"))
+				.isEqualTo(menuBeforeRestart);
 		assertThat(jdbc.queryForObject("SELECT name FROM " + schema + ".vendors WHERE id = -1",
 				String.class)).isEqualTo("Edited locally");
 		assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
@@ -98,6 +106,8 @@ class DatabaseMigrationTests {
 				.contains(existingId, -1L, -2L, -3L);
 		assertThat(jdbc.queryForObject("SELECT name FROM " + schema + ".vendors WHERE id = ?",
 				String.class, existingId)).isEqualTo("Existing Vendor");
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
+				+ ".vendor_menu_items", Integer.class)).isEqualTo(9);
 	}
 
 	@ParameterizedTest
@@ -178,6 +188,23 @@ class DatabaseMigrationTests {
 		migrateAndValidate(migrations(false));
 		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id")).isEqualTo(before);
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".vendor_stops", Integer.class)).isZero();
+		assertThat(migrations(false).migrate().migrationsExecuted).isZero();
+	}
+
+	@Test
+	void menuMigrationPreservesVendorsAndStops() {
+		Flyway.configure().configuration(migrations(false).getConfiguration())
+				.target("3").load().migrate();
+		Long id = jdbc.queryForObject("INSERT INTO " + schema
+				+ ".vendors (name, category, location) VALUES ('Existing Vendor', 'Soup', 'CSUN') RETURNING id", Long.class);
+		jdbc.update("INSERT INTO " + schema + ".vendor_stops (vendor_id, venue_name, address, latitude, longitude, starts_at, ends_at, time_zone) "
+				+ "VALUES (?, 'Test venue', 'Test address', 34, -118, '2026-09-28T10:00:00Z', '2026-09-28T12:00:00Z', 'UTC')", id);
+		var vendors = jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id");
+		var stops = jdbc.queryForList("SELECT * FROM " + schema + ".vendor_stops ORDER BY id");
+		migrateAndValidate(migrations(false));
+		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id")).isEqualTo(vendors);
+		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendor_stops ORDER BY id")).isEqualTo(stops);
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".vendor_menu_items", Integer.class)).isZero();
 		assertThat(migrations(false).migrate().migrationsExecuted).isZero();
 	}
 

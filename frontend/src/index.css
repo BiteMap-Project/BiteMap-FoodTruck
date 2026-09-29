@@ -161,3 +161,19 @@ code {
 .menu-item-heading h3 { margin: 0; min-width: 0; font-size: 20px; color: var(--text-h); }
 .menu-item-heading span { white-space: nowrap; }
 .unavailable { font-weight: 600; margin-top: 8px; }
+
+/* SCRUM-35: discovery view toggle and schedule filters */
+.segmented { display: inline-flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.segmented button { border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-h); cursor: pointer; }
+.segmented button[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent-border); color: var(--accent); font-weight: 600; }
+.view-toggle { margin-bottom: 8px; }
+.filters { display: flex; flex-wrap: wrap; gap: 16px 24px; justify-content: center; align-items: flex-start; margin: 16px 0; }
+.filters fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.filters legend { padding: 0; margin: 16px 0 8px; }
+.filters select { min-height: 44px; padding: 8px 12px; font: inherit; }
+.filter p[role="alert"] { max-width: 22rem; margin-top: 8px; }
+.date-range, .near-me { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin-top: 8px; }
+.date-range label, .near-me label { margin: 0; }
+.date-range input { width: auto; }
+.badge { display: inline-block; margin: 4px 0; padding: 2px 10px; border-radius: 999px; background: var(--accent-bg); color: var(--accent); font-weight: 600; }
+.stop-card p + p { margin-top: 4px; }

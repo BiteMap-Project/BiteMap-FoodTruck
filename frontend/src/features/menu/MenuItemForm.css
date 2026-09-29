@@ -1,0 +1,13 @@
+/* SCRUM-37: menu item form */
+.menu-item-form { display: grid; gap: 20px; max-width: 32rem; text-align: left; }
+.form-field { display: grid; gap: 6px; }
+.form-field label { color: var(--text-h); font-weight: 500; }
+.form-field input:not([type="checkbox"]), .form-field textarea { box-sizing: border-box; width: 100%; min-height: 44px; padding: 8px 12px; font: inherit; }
+.form-field [aria-invalid="true"] { border: 2px solid #d93025; }
+.price-input { display: flex; align-items: center; gap: 8px; }
+.form-count { font-size: 0.85em; justify-self: end; }
+.form-error { color: #d93025; font-size: 0.9em; }
+.form-checkbox { display: flex; align-items: center; gap: 10px; }
+.form-checkbox input { width: 20px; height: 20px; }
+.menu-item-form button { justify-self: start; min-height: 44px; padding: 8px 20px; font: inherit; }
+@media (prefers-color-scheme: dark) { .form-error { color: #f28b82; } .form-field [aria-invalid="true"] { border-color: #f28b82; } }

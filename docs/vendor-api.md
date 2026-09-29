@@ -71,7 +71,7 @@ as appropriate. Do not treat a failure as an empty successful list.
 
 ## Security boundary and frontend integration
 
-Only GET `/api/vendors` and GET health endpoints are anonymously accessible.
+GET `/api/vendors`, `/api/vendors/{id}`, `/api/vendor-stops`, and health endpoints are anonymously accessible.
 Other application routes require authentication, and CSRF protection remains
 enabled. Error dispatches are allowed so framework errors retain their intended
 status. The generated Spring Security login is still development scaffolding;
@@ -81,8 +81,8 @@ No create/update/delete endpoint is provided. CORS is not opened globally.
 React discovery uses a same-origin /api request through the Vite development
 proxy (Docker target: http://backend:8080; host default: http://localhost:8080).
 It displays loading, empty, error/retry states and paginated search results.
-Closing times are not displayed and database cards do not link to mock menus.
-The existing menu routes are explicitly demo-only until a menu API is available.
+Closing times are not displayed. Cards link to database-backed truck profiles
+and menus; see [profile and menu contract](truck-profile-menu.md).
 Production hosting must provide same-origin /api routing separately.
 
 ## Verification

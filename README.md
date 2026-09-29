@@ -50,7 +50,7 @@ The backend waits for PostgreSQL readiness, and the frontend waits for backend
 health. The Docker database is separate from any PostgreSQL installed on your
 machine, so your existing port 5432 and local data are unaffected.
 This is a development setup: the frontend uses Vite's development server and
-database-backed vendor discovery. Menus remain demo-only. Default Spring Security
+database-backed vendor discovery. Profiles and menus load from the vendor detail API. Default Spring Security
 authentication must be replaced before production deployment. Only localhost
 ports are published, and both application containers run as non-root users.
 
@@ -208,7 +208,7 @@ These checks are not complete business-feature coverage.
 supports case-insensitive search (`q`) and bounded pagination (`page`, `size`).
 See [Vendor API](docs/vendor-api.md) for request/response examples, error behavior,
 security boundaries, and tests. React discovery uses this API with search,
-pagination, loading, empty, and retry states. Menus remain demo-only.
+pagination, loading, empty, and retry states. Profiles and menus load from the vendor detail API.
 See [frontend setup and checks](frontend/README.md).
 
 ## Database migrations
@@ -221,7 +221,7 @@ Stops are initially empty; no guessed map locations or write endpoints are added
 Flyway initializes the vendor schema and tracks subsequent versioned SQL changes.
 Docker Compose enables the `dev` profile to load three sample vendors from a
 separate fixture folder. The default profile and CI load no demo vendors.
-The frontend is not yet connected to this database.
+The frontend uses the vendor list and detail APIs.
 
 See [Database migrations](docs/database-migrations.md) for file locations,
 manual setup, team migration rules, safety precautions, and verification.

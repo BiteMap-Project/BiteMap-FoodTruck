@@ -1,8 +1,12 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import type { ReactElement } from "react";
+import { act, fireEvent, render as renderView, screen } from "@testing-library/react";
 import { StrictMode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 import DiscoverPage from "./DiscoverPage";
 import type { VendorPage } from "../services/vendors";
+
+const render = (view: ReactElement) => renderView(<MemoryRouter>{view}</MemoryRouter>);
 
 const vendor = { id: -2, name: "Database Taco", category: "Tacos", location: "Northridge" };
 const data: VendorPage = { items: [vendor], page: 0, size: 20, totalElements: 1, totalPages: 1 };
@@ -17,7 +21,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
 });
 
-it("shows loading then database cards under StrictMode without mock menu links", async () => {
+it("shows loading then database cards under StrictMode with matching profile links", async () => {
   fetchMock.mockResolvedValue(response(data));
   render(<StrictMode><DiscoverPage /></StrictMode>);
   expect(screen.getByRole("status")).toHaveTextContent("Loading vendors");
@@ -25,8 +29,7 @@ it("shows loading then database cards under StrictMode without mock menu links",
   expect(screen.getByRole("heading", { name: vendor.name })).toBeInTheDocument();
   expect(screen.getByText("Location: Northridge")).toBeInTheDocument();
   expect(screen.queryByText(/Open until/)).not.toBeInTheDocument();
-  expect(screen.queryByRole("link")).not.toBeInTheDocument();
-  expect(screen.getByText("Menu coming soon")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "View Profile & Menu" })).toHaveAttribute("href", "/trucks/-2");
 });
 
 it("debounces search, encodes special characters, and uses backend results", async () => {

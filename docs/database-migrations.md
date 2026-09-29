@@ -14,8 +14,12 @@ do not switch it to `update`, `create`, or `create-drop`.
 - `Backend/src/main/resources/db/migration/V3__create_vendor_stops.sql` adds an
   empty dated-stop table with coordinate, time-zone, interval, status, and
   foreign-key validation. See [serving-stop API](vendor-stops-api.md).
+- `Backend/src/main/resources/db/migration/V4__create_vendor_menu_items.sql` adds
+  menu items linked to vendors; it inserts no sample menu data.
 - `Backend/src/main/resources/db/dev/R__sample_vendors.sql` inserts three sample
   trucks, only when the `dev` Spring profile is active.
+- `Backend/src/main/resources/db/dev/R__vendor_menu_samples.sql` inserts sample
+  menu items for those trucks, only when the `dev` profile is active.
 - `application.yaml` enables only production schema migrations by default.
 - `application-dev.yaml` adds the separate development fixture location.
 - Local Docker Compose explicitly activates `dev`. CI does not activate it.
@@ -25,13 +29,14 @@ location, and creation timestamp. Location is a display label, not coordinates.
 Names are not unique: separate vendors may share a name. Ownership, schedules,
 closing times, menus, and geographic search are deliberately left for later
 feature migrations. The [vendor-list API](vendor-api.md) reads this table, but
-the frontend discovery page uses the API's database IDs. Menus remain demo-only.
+the frontend discovery page uses the API's database IDs. Menus use the vendor detail API.
 
-Sample rows reserve IDs -1, -2, and -3, separate from positive generated IDs.
-These differ from the legacy demo menu IDs. The repeatable fixture runs initially
-and when its contents change; conflicts on an existing ID do nothing, preserving
-local edits. An unchanged fixture is not rerun on every restart. Removing a row
-from the SQL file does not delete an existing database row.
+Sample vendors reserve IDs -1, -2, and -3, and sample menu items reserve IDs
+-101 through -109, separate from positive generated IDs. Profile links use the
+vendor database IDs. The repeatable fixtures run initially and when their contents
+change; conflicts on an existing ID do nothing, preserving local edits. An
+unchanged fixture is not rerun on every restart. Removing a row from a fixture
+does not delete an existing database row.
 
 Never activate `dev` against staging or production. Disabling `dev` does not
 remove sample data already inserted: use separate databases per environment.

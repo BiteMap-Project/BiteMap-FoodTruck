@@ -5,10 +5,17 @@ debounced by 300 ms and searches name, category, and location on the backend.
 Results use 20-item pages. Loading, empty results, request errors, and retry are
 displayed explicitly. Superseded requests are cancelled and ignored.
 
-Cards display only fields provided by the API. Hours are not available yet.
-Cards show "Menu coming soon"; they do not link database IDs to mock menus.
-The existing /trucks/:id routes remain explicitly labelled demo menus pending
-a separate menu API story.
+Cards link to `/trucks/:id`, which fetches the selected vendor and its menu from
+`GET /api/vendors/{id}`. Profiles show name, category, and location. Menu prices
+are formatted as USD and unavailable items are labeled. Loading, empty menus,
+not-found, errors, and Retry are supported. No hardcoded truck data or hours are
+shown. Direct URLs and refresh work through the development server; production
+hosting must provide an SPA fallback for `/trucks/*`.
+
+The development profile includes sample menus for the three sample vendors.
+Other vendors can still exercise the empty-menu state.
+
+See [profile and menu contract](../docs/truck-profile-menu.md).
 
 ## Development
 

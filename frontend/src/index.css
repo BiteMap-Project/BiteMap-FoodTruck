@@ -137,3 +137,27 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+.truck-profile {
+  padding: 24px 16px 40px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.truck-profile > a,
+.discovery article > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent);
+}
+
+.truck-profile section { margin-top: 32px; }
+.truck-profile h1 { line-height: 1.15; }
+.truck-profile button { min-height: 44px; padding: 8px 16px; font: inherit; }
+.menu-items { list-style: none; padding: 0; margin: 0; }
+.menu-items li { border-bottom: 1px solid var(--border); padding: 20px 0; }
+.menu-item-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px; justify-content: space-between; }
+.menu-item-heading h3 { margin: 0; min-width: 0; font-size: 20px; color: var(--text-h); }
+.menu-item-heading span { white-space: nowrap; }
+.unavailable { font-weight: 600; margin-top: 8px; }

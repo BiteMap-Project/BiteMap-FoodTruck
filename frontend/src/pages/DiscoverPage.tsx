@@ -1,32 +1,9 @@
+import { trucks } from "../data/trucks";
 import { useState } from "react";
 import FoodTruckCard from "../components/FoodTruckCard";
 
 function DiscoverPage() {
   const [search, setSearch] = useState("");
-
-  const trucks = [
-    {
-      id: 1,
-      name: "Soup Stop",
-      category: "Soup",
-      location: "CSUN",
-      closingTime: "3:00 PM",
-    },
-    {
-      id: 2,
-      name: "Taco Mobile",
-      category: "Tacos",
-      location: "Northridge",
-      closingTime: "5:00 PM",
-    },
-    {
-      id: 3,
-      name: "Coffee Cart",
-      category: "Coffee",
-      location: "Reseda",
-      closingTime: "6:00 PM",
-    },
-  ];
 
   const filteredTrucks = trucks.filter((truck) => {
     const searchText = search.toLowerCase();

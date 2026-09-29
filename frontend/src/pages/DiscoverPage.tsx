@@ -55,11 +55,11 @@ function DiscoverPage() {
         }}
       />
       <hr />
-      <section aria-label="Vendor results" aria-busy={result.status === "loading"}>
-        {result.status === "loading" && <p role="status">Loading vendors…</p>}
+      <section aria-label="Truck results" aria-busy={result.status === "loading"}>
+        {result.status === "loading" && <p role="status">Loading trucks…</p>}
         {result.status === "error" && (
           <div role="alert">
-            <p>Unable to load vendors. Please try again.</p>
+            <p>Unable to load trucks. Please try again.</p>
             <button onClick={() => {
               setResult({ status: "loading" });
               setAttempt((value) => value + 1);
@@ -70,8 +70,8 @@ function DiscoverPage() {
           <>
             <p role="status">
               {result.data.items.length === 0
-                ? (page > 0 ? "No vendors on this page. Go back to the previous page." : search.trim() ? "No vendors found. Try another search." : "No vendors available yet.")
-                : `${result.data.totalElements} ${result.data.totalElements === 1 ? "vendor" : "vendors"} found`}
+                ? (page > 0 ? "No trucks on this page. Go back to the previous page." : search.trim() ? "No trucks found. Try another search." : "No trucks available yet.")
+                : `${result.data.totalElements} ${result.data.totalElements === 1 ? "truck" : "trucks"} found`}
             </p>
             {result.data.items.map((vendor) => <FoodTruckCard key={vendor.id} {...vendor} />)}
             {(result.data.totalPages > 1 || page > 0) && (

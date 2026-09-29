@@ -4,8 +4,10 @@ COMP 490/491 FoodTruck vendor discovery, ordering, delivery, and location intell
 ## Current status
 
 This repository contains the Spring Boot backend foundation and a React frontend
-with sample food-truck search. Business APIs, migrations, and production deployment
-are future work. Docker Compose runs all three development services together.
+with database-backed food-truck search and Flyway-managed vendor migrations.
+A public vendor-list/search API is available; other business APIs and production
+deployment are future work. Docker Compose runs all three development services
+together, enabling development-only database fixtures.
 The backend starts with PostgreSQL and provides an Actuator health endpoint.
 Spring Security still uses its generated development login; production authentication
 has not been implemented.
@@ -48,7 +50,7 @@ The backend waits for PostgreSQL readiness, and the frontend waits for backend
 health. The Docker database is separate from any PostgreSQL installed on your
 machine, so your existing port 5432 and local data are unaffected.
 This is a development setup: the frontend uses Vite's development server and
-sample data, and is not yet connected to business APIs. Default Spring Security
+database-backed vendor discovery. Menus remain demo-only. Default Spring Security
 authentication must be replaced before production deployment. Only localhost
 ports are published, and both application containers run as non-root users.
 
@@ -90,6 +92,7 @@ Frontend checks can run inside its container:
 
 ```bash
 docker compose exec frontend npm run lint
+docker compose exec frontend npm test
 docker compose exec frontend npm run build
 ```
 
@@ -184,23 +187,48 @@ password. The generated login is for local development only.
 
 ## Verify before review
 
-With PostgreSQL running, load `.env` from the repository root as above, then run:
+With PostgreSQL running, configure `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`
+for a dedicated test database (not production), then run without the `dev` profile:
 
 ```bash
 cd Backend
 ./mvnw verify
 ```
 
-The current `@SpringBootTest` loads the application context and connects to the
-configured database. Use your local development database only. This is a startup
-smoke test, not complete feature coverage. Local verification uses your configured
-database; GitHub Actions provisions a separate temporary database for each job.
-Schema generation is disabled (`ddl-auto: validate`); add versioned migrations
-before implementing persistent business entities.
+The startup test loads the application context and applies Flyway migrations.
+Migration tests use isolated temporary schemas in the configured PostgreSQL
+database; the test role needs permission to create and drop schemas. GitHub
+Actions already provisions a separate temporary database for each job.
+Hibernate validates the schema (`ddl-auto: validate`) and never creates it.
+These checks are not complete business-feature coverage.
+
+## Vendor discovery API
+
+`GET /api/vendors` lists database-backed vendors without requiring login. It
+supports case-insensitive search (`q`) and bounded pagination (`page`, `size`).
+See [Vendor API](docs/vendor-api.md) for request/response examples, error behavior,
+security boundaries, and tests. React discovery uses this API with search,
+pagination, loading, empty, and retry states. Menus remain demo-only.
+See [frontend setup and checks](frontend/README.md).
+
+## Database migrations
+
+Serving-stop schedules are available through public `GET /api/vendor-stops`.
+See [serving-stop API](docs/vendor-stops-api.md) for time windows, coordinate and
+distance filters, validation, and the limits of schedule versus live status.
+Stops are initially empty; no guessed map locations or write endpoints are added.
+
+Flyway initializes the vendor schema and tracks subsequent versioned SQL changes.
+Docker Compose enables the `dev` profile to load three sample vendors from a
+separate fixture folder. The default profile and CI load no demo vendors.
+The frontend is not yet connected to this database.
+
+See [Database migrations](docs/database-migrations.md) for file locations,
+manual setup, team migration rules, safety precautions, and verification.
 
 ## Continuous integration (CI)
 
-[Backend CI](.github/workflows/ci.yml) runs on pull requests targeting `main` and
+[BiteMap CI](.github/workflows/ci.yml) runs on pull requests targeting `main` and
 pushes to `main`. Once the workflow is on the default branch, it can also be
 started manually from the repository's Actions tab.
 
@@ -217,14 +245,18 @@ credentials written in the workflow are intentionally public, disposable values
 for that job's temporary database only; no repository secrets are needed.
 GitHub removes the service container after the job finishes.
 
-CI checks whether the backend compiles, the existing tests pass, and the JAR can
-be packaged in a fresh environment. Currently the test checks application startup
-and database connectivity. Add behavior tests with each new feature; a green
+The frontend job runs a clean dependency install, lint, component tests, and a
+production build with Node 24. The backend job checks whether the backend compiles,
+the existing tests pass, and the JAR can
+be packaged in a fresh environment. Tests check application startup, database
+connectivity, migrations (including separated development fixtures), and the
+vendor-list API's search, pagination, input validation, errors, and security.
+Add behavior tests with each new feature; a green
 check does not yet demonstrate that ordering, authorization, or other future
 features work. This workflow does not deploy the application.
 
-To inspect a failure, open the PR's Checks tab (or Actions > Backend CI), select
-**Backend build and tests**, and read the failing step's logs. Fix the problem
+To inspect a failure, open the PR's Checks tab (or Actions > BiteMap CI), select
+the failed frontend or backend job, and read the failing step's logs. Fix the problem
 on the same branch and push again; the PR check will rerun automatically.
 
 After the first successful GitHub run, a repository administrator should require

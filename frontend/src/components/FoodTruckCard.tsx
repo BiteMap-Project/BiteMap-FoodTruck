@@ -1,31 +1,13 @@
-import { Link } from "react-router-dom";
+import type { Vendor } from "../services/vendors";
 
-type FoodTruckCardProps = {
-  id: number;
-  name: string;
-  category: string;
-  location: string;
-  closingTime: string;
-};
-
-function FoodTruckCard({
-  id,
-  name,
-  category,
-  location,
-  closingTime,
-}: FoodTruckCardProps) {
+function FoodTruckCard({ name, category, location }: Vendor) {
   return (
-    <div>
+    <article>
       <h2>{name}</h2>
       <p>{category}</p>
       <p>Location: {location}</p>
-      <p>Open until {closingTime}</p>
-
-      <Link to={`/trucks/${id}`}>
-        <button>View Menu</button>
-      </Link>
-    </div>
+      <p>Menu coming soon</p>
+    </article>
   );
 }
 

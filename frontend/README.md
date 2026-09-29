@@ -1,32 +1,52 @@
-# React + TypeScript + Vite
+# BiteMap frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Discovery loads database-backed vendors from GET /api/vendors. Search is
+debounced by 300 ms and searches name, category, and location on the backend.
+Results use 20-item pages. Loading, empty results, request errors, and retry are
+displayed explicitly. Superseded requests are cancelled and ignored.
 
-Currently, two official plugins are available:
+Cards display only fields provided by the API. Hours are not available yet.
+Cards show "Menu coming soon"; they do not link database IDs to mock menus.
+The existing /trucks/:id routes remain explicitly labelled demo menus pending
+a separate menu API story.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Development
 
-## React Compiler
+From the repository root, run `docker compose up --build`, then open
+http://localhost:5173. Compose sets API_PROXY_TARGET=http://backend:8080.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+For a frontend running directly on your machine:
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+cd frontend
+npm ci
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Start the backend separately. Vite proxies /api to http://localhost:8080 by
+default. If the backend uses another port, set API_PROXY_TARGET in the process
+environment before starting Vite. This is a server-side development setting,
+not a browser secret. No broad backend CORS policy is needed.
+
+Production hosting must route /api to the backend on the same origin.
+The Vite development proxy is not included in the static build; production
+deployment remains a separate task.
+
+## Checks
+
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+The same checks can run with `docker compose exec frontend` prefixed to each
+command after rebuilding. Tests mock HTTP responses and exercise the rendered
+discovery page, including stale responses, failures, retry, search, and paging.
+Backend integration tests independently exercise PostgreSQL and the API.
+
+Manual smoke check: open discovery, search for taco, clear search, and try a
+query with no results. In browser developer tools, /api/vendors requests should
+use the frontend origin and return JSON. Browser offline mode can exercise the
+error and Retry state. Development data only has three vendors, so pagination
+is covered using larger mocked responses in tests.

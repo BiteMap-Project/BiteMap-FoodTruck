@@ -19,6 +19,7 @@ function TruckMenuPage() {
       <p>Location: {truck.location}</p>
       <p>Open until {truck.closingTime}</p>
 
+      <p>Demo menu only — not connected to live vendor data.</p>
       <h2>Menu</h2>
 
       {truck.menu.map((item) => (

@@ -35,6 +35,7 @@ it("shows an empty menu for a valid truck", async () => {
   fetchMock.mockResolvedValue(response({ ...truck, menu: [] }));
   open();
   expect(await screen.findByText("No menu available yet.")).toBeInTheDocument();
+  expect(screen.getByText(/hasn.t posted its menu/)).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: truck.name })).toBeInTheDocument();
 });
 

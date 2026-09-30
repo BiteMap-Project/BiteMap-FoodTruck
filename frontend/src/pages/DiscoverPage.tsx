@@ -37,7 +37,7 @@ function DiscoverPage() {
       </div>
 
       {view === "trucks"
-        ? <VendorResults key={search} search={search} />
+        ? <VendorResults key={search} search={search} onClearSearch={() => setSearch("")} />
         : <StopResults search={search} />}
     </main>
   );

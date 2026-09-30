@@ -1,5 +1,5 @@
 import { MemoryRouter } from "react-router-dom";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import DiscoverPage from "../../pages/DiscoverPage";
 import type { Stop, StopPage } from "../../services/stops";
@@ -158,4 +158,24 @@ it("shows a filter-specific empty state, and a retryable error", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   await tick();
   expect(screen.getByText("CSUN Oviatt Lawn")).toBeInTheDocument();
+});
+
+it("offers to clear filters when the server rejects them", async () => {
+  await openSchedule();
+  fetchMock.mockResolvedValueOnce({ ok: false, status: 400, json: async () => ({ detail: "Bad cuisine." }) });
+  fireEvent.change(screen.getByLabelText("Cuisine"), { target: { value: "x" } });
+  await tick();
+  const alert = screen.getByRole("alert");
+  expect(alert).toHaveTextContent("Bad cuisine.");
+  fireEvent.click(within(alert).getByRole("button", { name: "Clear filters" }));
+  await tick();
+  expect(screen.getByLabelText("Cuisine")).toHaveValue("");
+  expect(screen.getByText("CSUN Oviatt Lawn")).toBeInTheDocument();
+});
+
+it("suggests looking further ahead when nothing is scheduled", async () => {
+  fetchMock.mockImplementation(async () => ok({ ...data, items: [], totalElements: 0, totalPages: 0 }));
+  await openSchedule();
+  expect(screen.getByText("No trucks are scheduled in the next 7 days.")).toBeInTheDocument();
+  expect(screen.getByText(/Pick dates/, { selector: ".state-hint" })).toBeInTheDocument();
 });

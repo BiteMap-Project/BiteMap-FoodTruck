@@ -24,8 +24,10 @@ beforeEach(() => {
 it("shows loading then database cards under StrictMode with matching profile links", async () => {
   fetchMock.mockResolvedValue(response(data));
   render(<StrictMode><DiscoverPage /></StrictMode>);
-  expect(screen.getByRole("status")).toHaveTextContent("Loading vendors");
+  expect(screen.getByRole("status")).toHaveTextContent("Loading trucks");
   await tick();
+  expect(screen.getByRole("region", { name: "Truck results" })).toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveTextContent("1 truck found");
   expect(screen.getByRole("heading", { name: vendor.name })).toBeInTheDocument();
   expect(screen.getByText("Location: Northridge")).toBeInTheDocument();
   expect(screen.queryByText(/Open until/)).not.toBeInTheDocument();
@@ -51,10 +53,10 @@ it("distinguishes an empty database from no matching search results", async () =
   fetchMock.mockResolvedValue(response({ ...data, items: [], totalElements: 0, totalPages: 0 }));
   render(<DiscoverPage />);
   await tick();
-  expect(screen.getByText("No vendors available yet.")).toBeInTheDocument();
+  expect(screen.getByText("No trucks available yet.")).toBeInTheDocument();
   search("no-match");
   await tick();
-  expect(screen.getByText(/No vendors found/)).toBeInTheDocument();
+  expect(screen.getByText(/No trucks found/)).toBeInTheDocument();
   expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
 });
 
@@ -65,8 +67,8 @@ it.each(["http", "network", "json"])("shows an error and allows retry after a %s
   fetchMock.mockResolvedValue(response(data));
   render(<DiscoverPage />);
   await tick();
-  expect(screen.getByRole("alert")).toHaveTextContent("Unable to load vendors");
-  expect(screen.queryByText(/No vendors found/)).not.toBeInTheDocument();
+  expect(screen.getByRole("alert")).toHaveTextContent("Unable to load trucks");
+  expect(screen.queryByText(/No trucks found/)).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   await tick();
   expect(screen.getByText(vendor.name)).toBeInTheDocument();
@@ -98,7 +100,7 @@ it("allows going back when vendors disappear from a later page", async () => {
   await tick();
   fireEvent.click(screen.getByRole("button", { name: "Next" }));
   await tick();
-  expect(screen.getByText(/No vendors on this page/)).toBeInTheDocument();
+  expect(screen.getByText(/No trucks on this page/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Previous" }));
   await tick();
   expect(screen.getByText(vendor.name)).toBeInTheDocument();

@@ -38,11 +38,11 @@ function VendorResults({ search }: { search: string }) {
   }
 
   return (
-    <section aria-label="Vendor results" aria-busy={result.status === "loading"}>
-      {result.status === "loading" && <p role="status">Loading vendors…</p>}
+    <section aria-label="Truck results" aria-busy={result.status === "loading"}>
+      {result.status === "loading" && <p role="status">Loading trucks…</p>}
       {result.status === "error" && (
         <div role="alert">
-          <p>Unable to load vendors. Please try again.</p>
+          <p>Unable to load trucks. Please try again.</p>
           <button onClick={() => {
             setResult({ status: "loading" });
             setAttempt((value) => value + 1);
@@ -53,8 +53,8 @@ function VendorResults({ search }: { search: string }) {
         <>
           <p role="status" className="results-count">
             {result.data.items.length === 0
-              ? (page > 0 ? "No vendors on this page. Go back to the previous page." : search.trim() ? "No vendors found. Try another search." : "No vendors available yet.")
-              : `${result.data.totalElements} ${result.data.totalElements === 1 ? "vendor" : "vendors"} found`}
+              ? (page > 0 ? "No trucks on this page. Go back to the previous page." : search.trim() ? "No trucks found. Try another search." : "No trucks available yet.")
+              : `${result.data.totalElements} ${result.data.totalElements === 1 ? "truck" : "trucks"} found`}
           </p>
           {result.data.items.length > 0 && (
             <div className="card-grid">
@@ -62,7 +62,7 @@ function VendorResults({ search }: { search: string }) {
             </div>
           )}
           {(result.data.totalPages > 1 || page > 0) && (
-            <nav aria-label="Vendor pagination" className="pager">
+            <nav aria-label="Truck pagination" className="pager">
               <button disabled={page === 0} onClick={() => changePage(page - 1)}>Previous</button>
               <span> Page {page + 1}{result.data.totalPages > page ? ` of ${result.data.totalPages}` : ""} </span>
               <button disabled={page + 1 >= result.data.totalPages || page >= 10000} onClick={() => changePage(page + 1)}>Next</button>

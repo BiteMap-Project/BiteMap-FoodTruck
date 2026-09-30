@@ -44,14 +44,13 @@ have many dated stops. Each stop belongs to exactly one vendor through
 | `V1__create_vendors.sql` | Creates the discovery table. |
 | `V2__strengthen_vendor_required_fields.sql` | Rejects blank vendor fields. |
 | `V3__create_vendor_stops.sql` | Adds dated locations, coordinates, hours, and status. |
+| `V4__create_vendor_menu_items.sql` | Adds menu items and availability. |
+| `V5__create_operators_and_vendor_ownership.sql` | Adds operator accounts and optional truck ownership. |
 
-The SCRUM-31 branch also proposes `vendor_menu_items`. That migration must be
-merged and its version coordinated before the ownership migration is numbered.
-
-## Planned operator ownership
+## Operator ownership
 
 The agreed relationship is one operator to many trucks, while each truck has one
-operator. The next ownership design should extend the existing `vendors` table:
+operator. The ownership design extends the existing `vendors` table:
 
 ```mermaid
 erDiagram
@@ -94,7 +93,7 @@ required would break existing vendors, including development fixtures. The safe
 implementation sequence is:
 
 1. Add `operators` as the login-account table and add a nullable
-   `vendors.operator_id` in a new migration.
+   `vendors.operator_id` in a new migration. (Completed in V5.)
 2. Implement operator registration and authentication with Spring Security.
 3. Add real operator accounts and assign every existing vendor.
 4. In a later migration, make `operator_id` required after verifying that no
@@ -106,7 +105,7 @@ before insertion and must never be stored or logged as plain text. All rows in
 this table are operators, so an additional role column is unnecessary for the
 initial design. Consumer accounts and operator invitations remain separate work.
 
-## Rules for the next migration
+## Migration rules
 
 - Pull the latest `main` and coordinate the next Flyway version with teammates.
 - Never edit a versioned migration after teammates have applied it.

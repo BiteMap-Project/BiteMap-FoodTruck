@@ -210,6 +210,8 @@ See [Vendor API](docs/vendor-api.md) for request/response examples, error behavi
 security boundaries, and tests. React discovery uses this API with search,
 pagination, loading, empty, and retry states. Profiles and menus load from the vendor detail API.
 See [frontend setup and checks](frontend/README.md).
+See [consumer discovery acceptance criteria](docs/consumer-discovery.md) for the
+SCRUM-30 behavior, scope, and verification steps.
 
 ## Database migrations
 

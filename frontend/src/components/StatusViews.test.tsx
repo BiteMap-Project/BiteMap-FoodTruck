@@ -49,5 +49,5 @@ it("lets the user clear a search that found nothing", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
   expect(screen.getByRole("searchbox")).toHaveValue("");
   await act(async () => { await vi.advanceTimersByTimeAsync(300); });
-  expect(screen.getByText("No vendors available yet.")).toBeInTheDocument();
+  expect(screen.getByText("No trucks available yet.")).toBeInTheDocument();
 });

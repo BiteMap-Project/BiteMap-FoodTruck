@@ -62,6 +62,8 @@ class DatabaseMigrationTests {
 		migrateAndValidate(flyway);
 		assertThat(vendorCount()).isZero();
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
+				+ ".vendor_stops", Integer.class)).isZero();
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
 				+ ".operators", Integer.class)).isZero();
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
 				+ ".vendor_menu_items", Integer.class)).isZero();
@@ -250,6 +252,31 @@ class DatabaseMigrationTests {
 		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendor_stops ORDER BY id")).isEqualTo(stops);
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".vendor_menu_items", Integer.class)).isZero();
 		assertThat(migrations(false).migrate().migrationsExecuted).isZero();
+	}
+
+	@Test
+	void developmentSchedulesRefreshOnlyReservedRows() {
+		Flyway flyway = migrations(true);
+		migrateAndValidate(flyway);
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
+				+ ".vendor_stops", Integer.class)).isEqualTo(6);
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
+				+ ".vendor_stops WHERE status = 'serving' AND starts_at < CURRENT_TIMESTAMP"
+				+ " AND ends_at > CURRENT_TIMESTAMP AND last_confirmed_at IS NOT NULL", Integer.class)).isEqualTo(1);
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
+				+ ".vendor_stops WHERE status = 'scheduled' AND starts_at > CURRENT_TIMESTAMP", Integer.class)).isEqualTo(3);
+		Long customId = jdbc.queryForObject("INSERT INTO " + schema
+				+ ".vendor_stops (vendor_id, venue_name, address, latitude, longitude, starts_at, ends_at, time_zone)"
+				+ " VALUES (-1, 'My custom stop', 'Custom address', 34, -118, CURRENT_TIMESTAMP,"
+				+ " CURRENT_TIMESTAMP + INTERVAL '1 hour', 'UTC') RETURNING id", Long.class);
+		var customBefore = jdbc.queryForMap("SELECT * FROM " + schema + ".vendor_stops WHERE id = ?", customId);
+		jdbc.update("UPDATE " + schema + ".vendor_stops SET starts_at = starts_at - INTERVAL '30 days',"
+				+ " ends_at = ends_at - INTERVAL '30 days', status = 'ended' WHERE id = -201");
+		migrateAndValidate(migrations(true));
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".vendor_stops", Integer.class)).isEqualTo(7);
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
+				+ ".vendor_stops WHERE id = -201 AND status = 'serving' AND ends_at > CURRENT_TIMESTAMP", Integer.class)).isEqualTo(1);
+		assertThat(jdbc.queryForMap("SELECT * FROM " + schema + ".vendor_stops WHERE id = ?", customId)).isEqualTo(customBefore);
 	}
 
 	private Flyway migrations(boolean development) {

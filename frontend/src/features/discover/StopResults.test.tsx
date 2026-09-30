@@ -54,6 +54,28 @@ it("switches to scheduled stops and shows venue, local hours, status and profile
   expect(screen.getByRole("link", { name: "View Profile & Menu" })).toHaveAttribute("href", "/trucks/-2");
 });
 
+it.each(["Next 7 days", "Open now", "Later today", "Pick dates"])(
+  "keeps loaded results when the selected %s filter is clicked again",
+  async (label) => {
+    await openSchedule();
+    if (label !== "Next 7 days") {
+      fireEvent.click(screen.getByRole("button", { name: label }));
+      if (label === "Pick dates") {
+        fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-10-05" } });
+        fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-10-06" } });
+      }
+      await tick();
+    }
+    expect(screen.getByText("CSUN Oviatt Lawn")).toBeInTheDocument();
+    const calls = fetchMock.mock.calls.length;
+    fireEvent.click(screen.getByRole("button", { name: label }));
+    expect(screen.queryByText("Loading schedules…")).not.toBeInTheDocument();
+    await tick();
+    expect(screen.getByText("CSUN Oviatt Lawn")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(calls);
+  },
+);
+
 it("sends search, cuisine and 'Open now' filters and offers to clear them", async () => {
   await openSchedule();
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "taco" } });

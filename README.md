@@ -218,7 +218,11 @@ SCRUM-30 behavior, scope, and verification steps.
 Serving-stop schedules are available through public `GET /api/vendor-stops`.
 See [serving-stop API](docs/vendor-stops-api.md) for time windows, coordinate and
 distance filters, validation, and the limits of schedule versus live status.
-Stops are initially empty; no guessed map locations or write endpoints are added.
+The default profile has no sample stops. In development, six fictional `[DEMO]`
+stops refresh on backend startup so time and distance filters can be exercised.
+See [development sample schedules](docs/consumer-search-filters.md#development-sample-schedules)
+for locations, reserved IDs, refresh behavior, and filter examples.
+No schedule write endpoints are added.
 
 Flyway initializes the vendor schema and tracks subsequent versioned SQL changes.
 Docker Compose enables the `dev` profile to load three sample vendors from a

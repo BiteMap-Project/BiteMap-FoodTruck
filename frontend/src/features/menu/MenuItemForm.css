@@ -1,0 +1,153 @@
+/* SCRUM-37: menu item form. Fallback colors keep it working before the shared tokens land. */
+
+.menu-item-form {
+  --form-danger: var(--danger, #c5221f);
+  --form-surface: var(--surface, #fff);
+  display: grid;
+  gap: 20px;
+  max-width: 32rem;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 12px);
+  background: var(--form-surface);
+  text-align: left;
+}
+
+@media (prefers-color-scheme: dark) {
+  .menu-item-form {
+    --form-danger: var(--danger, #f28b82);
+    --form-surface: var(--surface, #1d1e25);
+  }
+
+}
+
+.form-field {
+  display: grid;
+  gap: 6px;
+}
+
+.form-field label {
+  color: var(--text-h);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.form-field label span {
+  color: var(--form-danger);
+}
+
+.form-field input:not([type="checkbox"]),
+.form-field textarea,
+.price-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--form-surface);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 16px;
+}
+
+.form-field textarea {
+  resize: vertical;
+}
+
+.form-field input:focus-visible,
+.form-field textarea:focus-visible,
+.price-input:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.price-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.price-input > span {
+  color: var(--text);
+}
+
+/* The wrapper draws the box; the input inside is borderless. */
+.form-field .price-input input:not([type="checkbox"]) {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+}
+
+.form-field [aria-invalid="true"],
+.price-input:has([aria-invalid="true"]) {
+  border-color: var(--form-danger);
+  box-shadow: 0 0 0 1px var(--form-danger);
+}
+
+.form-field .price-input [aria-invalid="true"] {
+  box-shadow: none;
+}
+
+.form-count {
+  justify-self: end;
+  margin: 0;
+  font-size: 13px;
+}
+
+.form-error {
+  margin: 0;
+  color: var(--form-danger);
+  font-size: 14px;
+}
+
+.form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-checkbox input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.form-checkbox label {
+  font-weight: 500;
+}
+
+.menu-item-form button {
+  justify-self: start;
+  min-height: 44px;
+  padding: 8px 24px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+  .menu-item-form button {
+    color: #16171d;
+  }
+}
+
+.menu-item-form button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.menu-item-form button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.menu-item-form button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

@@ -149,7 +149,9 @@ function StopResults({ search }: { search: string }) {
                 key={option}
                 type="button"
                 aria-pressed={when === option}
-                onClick={() => refilter(() => setWhen(option))}
+                onClick={() => {
+                  if (option !== when) refilter(() => setWhen(option));
+                }}
               >
                 {WHEN_LABELS[option]}
               </button>

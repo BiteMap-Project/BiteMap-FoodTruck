@@ -1,5 +1,7 @@
 package com.Bitemap.Backend;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -60,6 +62,8 @@ class DatabaseMigrationTests {
 		migrateAndValidate(flyway);
 		assertThat(vendorCount()).isZero();
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
+				+ ".operators", Integer.class)).isZero();
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
 				+ ".vendor_menu_items", Integer.class)).isZero();
 		assertThat(jdbc.queryForObject("INSERT INTO " + schema
 				+ ".vendors (name, category, location) VALUES ('Test Vendor', 'Soup', 'CSUN') RETURNING id",
@@ -69,6 +73,47 @@ class DatabaseMigrationTests {
 		assertThatThrownBy(() -> jdbc.update("INSERT INTO " + schema
 				+ ".vendors (name, category, location) VALUES (' ', 'Soup', 'CSUN')"))
 				.isInstanceOf(DataIntegrityViolationException.class);
+	}
+
+	@Test
+	void operatorsOwnMultipleVendorsAndEmailsAreCaseInsensitive() {
+		migrateAndValidate(migrations(false));
+		Long operatorId = jdbc.queryForObject("INSERT INTO " + schema
+				+ ".operators (display_name, email, password_hash) "
+				+ "VALUES ('Test Operator', 'owner@example.com', '$2a$10$example') RETURNING id",
+				Long.class);
+
+		jdbc.update("INSERT INTO " + schema
+				+ ".vendors (operator_id, name, category, location) VALUES (?, 'Truck One', 'Tacos', 'CSUN')",
+				operatorId);
+		jdbc.update("INSERT INTO " + schema
+				+ ".vendors (operator_id, name, category, location) VALUES (?, 'Truck Two', 'Coffee', 'Northridge')",
+				operatorId);
+
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
+				+ ".vendors WHERE operator_id = ?", Integer.class, operatorId)).isEqualTo(2);
+		assertThatThrownBy(() -> jdbc.update("INSERT INTO " + schema
+				+ ".operators (display_name, email, password_hash) "
+				+ "VALUES ('Duplicate', 'OWNER@EXAMPLE.COM', '$2a$10$other')"))
+				.isInstanceOf(DataIntegrityViolationException.class);
+		assertThatThrownBy(() -> jdbc.update("INSERT INTO " + schema
+				+ ".vendors (operator_id, name, category, location) "
+				+ "VALUES (999999, 'Orphan Truck', 'Soup', 'CSUN')"))
+				.isInstanceOf(DataIntegrityViolationException.class);
+	}
+
+	@Test
+	void operatorMigrationPreservesExistingUnassignedVendors() {
+		Flyway.configure().configuration(migrations(false).getConfiguration())
+				.target("4").load().migrate();
+		Long vendorId = jdbc.queryForObject("INSERT INTO " + schema
+				+ ".vendors (name, category, location) "
+				+ "VALUES ('Existing Vendor', 'Soup', 'CSUN') RETURNING id", Long.class);
+
+		migrateAndValidate(migrations(false));
+
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
+				+ ".vendors WHERE id = ? AND operator_id IS NULL", Integer.class, vendorId)).isEqualTo(1);
 	}
 
 	@Test
@@ -144,11 +189,10 @@ class DatabaseMigrationTests {
 		jdbc.update("INSERT INTO " + schema
 				+ ".vendors (name, category, location) VALUES (?, ?, ?)",
 				"Café on Wheels", "Coffee & Tea", "CSUN Student Union");
-		var vendorsBeforeUpgrade = jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id");
+		var vendorsBeforeUpgrade = vendorBusinessRows();
 
 		migrateAndValidate(migrations(false));
-		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id"))
-				.isEqualTo(vendorsBeforeUpgrade);
+		assertThat(vendorBusinessRows()).isEqualTo(vendorsBeforeUpgrade);
 		assertThatThrownBy(() -> jdbc.update("UPDATE " + schema + ".vendors SET name = ?", "\t"))
 				.isInstanceOf(DataIntegrityViolationException.class);
 	}
@@ -184,9 +228,9 @@ class DatabaseMigrationTests {
 				.target("2").load().migrate();
 		jdbc.update("INSERT INTO " + schema
 				+ ".vendors (name, category, location) VALUES ('Existing Vendor', 'Soup', 'Original location')");
-		var before = jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id");
+		var before = vendorBusinessRows();
 		migrateAndValidate(migrations(false));
-		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id")).isEqualTo(before);
+		assertThat(vendorBusinessRows()).isEqualTo(before);
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".vendor_stops", Integer.class)).isZero();
 		assertThat(migrations(false).migrate().migrationsExecuted).isZero();
 	}
@@ -199,10 +243,10 @@ class DatabaseMigrationTests {
 				+ ".vendors (name, category, location) VALUES ('Existing Vendor', 'Soup', 'CSUN') RETURNING id", Long.class);
 		jdbc.update("INSERT INTO " + schema + ".vendor_stops (vendor_id, venue_name, address, latitude, longitude, starts_at, ends_at, time_zone) "
 				+ "VALUES (?, 'Test venue', 'Test address', 34, -118, '2026-09-28T10:00:00Z', '2026-09-28T12:00:00Z', 'UTC')", id);
-		var vendors = jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id");
+		var vendors = vendorBusinessRows();
 		var stops = jdbc.queryForList("SELECT * FROM " + schema + ".vendor_stops ORDER BY id");
 		migrateAndValidate(migrations(false));
-		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendors ORDER BY id")).isEqualTo(vendors);
+		assertThat(vendorBusinessRows()).isEqualTo(vendors);
 		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendor_stops ORDER BY id")).isEqualTo(stops);
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".vendor_menu_items", Integer.class)).isZero();
 		assertThat(migrations(false).migrate().migrationsExecuted).isZero();
@@ -218,5 +262,10 @@ class DatabaseMigrationTests {
 
 	private int vendorCount() {
 		return jdbc.queryForObject("SELECT count(*) FROM " + schema + ".vendors", Integer.class);
+	}
+
+	private List<Map<String, Object>> vendorBusinessRows() {
+		return jdbc.queryForList("SELECT id, name, category, location, created_at FROM "
+				+ schema + ".vendors ORDER BY id");
 	}
 }

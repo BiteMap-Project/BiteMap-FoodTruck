@@ -34,5 +34,37 @@ or unavailable is explained inline, and the current results stay visible.
 
 - Filters are not saved in the URL yet.
 - No map. Stops include coordinates, so a map view can build on this page.
-- There are no development fixtures for `vendor_stops`, so the schedule view is
-  empty on a fresh database until stops are inserted.
+
+## Development sample schedules
+
+With the `dev` profile (enabled by Docker Compose), an `afterMigrate` callback
+in `db/dev` inserts or refreshes six fictional stops after vendor fixtures load.
+No production migration or default-profile configuration includes this data.
+All sample venues are labeled `[DEMO]`; coordinates are approximate landmarks.
+
+| Stop | Time relative to backend startup | Status |
+| --- | --- | --- |
+| Soup at CSUN | One hour ago through two hours ahead | Serving |
+| Tacos at CSUN | Two through four hours ahead | Scheduled |
+| Coffee at Reseda | 24 through 27 hours ahead | Scheduled |
+| Tacos at Santa Monica | 24 through 27 hours ahead | Scheduled |
+| Soup at CSUN | Four through two hours ago | Ended (hidden) |
+| Coffee at Reseda | Two through four hours ahead | Cancelled (hidden) |
+
+Run `docker compose up --build -d --wait` after pulling this change.
+Later, `docker compose restart backend` refreshes the sample times without
+deleting the database. Reserved stop IDs -201 through -206 are overwritten;
+create your own stops with generated IDs to preserve edits across restarts.
+Vendor and menu edits are preserved. Samples age normally while the app runs;
+restart before demos. The +2 hour stop may fall tomorrow near midnight.
+
+Try these checks immediately after startup:
+
+- Next 7 days: four visible stops; Open now: the Soup stop only.
+- Cuisine `Tacos`: two stops; `Sushi`: empty results.
+- Pick dates: tomorrow includes the Reseda and Santa Monica stops.
+- For repeatable distance checks use the API with `lat=34.2400&lon=-118.5291`:
+  `radiusKm=1.609344` includes two CSUN stops; `radiusKm=8.04672` also includes
+  Reseda; `radiusKm=40.2336` includes Santa Monica. These match 1, 5, and 25 miles.
+- In the UI, Near me uses your actual browser location, so results depend on
+  where you are. Ended/cancelled samples never appear in public results.

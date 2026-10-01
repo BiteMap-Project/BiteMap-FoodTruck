@@ -1,3 +1,13 @@
 spring:
   flyway:
     locations: classpath:db/migration,classpath:db/dev
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    persist-authorization: false
+    operations-sorter: alpha
+    tags-sorter: alpha
+  paths-to-match: /api/**

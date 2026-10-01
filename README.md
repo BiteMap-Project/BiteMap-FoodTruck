@@ -12,7 +12,38 @@ The backend starts with PostgreSQL and provides an Actuator health endpoint.
 Spring Security still uses its generated development login; production authentication
 has not been implemented.
 
+Operator account registration is available at `POST /api/auth/register` (SCRUM-45).
+See [the registration API guide](docs/operator-registration.md) for validation,
+CSRF usage, responses, and security limitations. Registration does not log an
+operator in; there is no registration screen yet.
+
 ## Start everything with Docker Compose (recommended)
+
+### Interactive API documentation (development only)
+
+After rebuilding the backend (`docker compose up --build -d backend`), open
+[Swagger UI](http://localhost:8080/swagger-ui/index.html). Adjust the port if you
+changed `BACKEND_PORT`. Expand an endpoint, click **Try it out**, fill in the
+parameters, and click **Execute**. The generated specification is at
+[/v3/api-docs](http://localhost:8080/v3/api-docs).
+
+For `POST /api/auth/register`, first execute `GET /api/auth/csrf` in Swagger.
+Copy the returned `token`, click **Authorize**, and paste it into `csrfToken`.
+Then execute registration in the same browser session. Fetch a new token if the
+session expires. This keeps CSRF protection enabled; the token does not log you in.
+Requests act on your real local database, so use disposable test accounts.
+
+Docker Compose already enables the `dev` profile. For manual backend startup,
+set `SPRING_PROFILES_ACTIVE=dev` (this also enables development database fixtures).
+Swagger and its specification are disabled by default outside this profile.
+Only business `/api/**` endpoints are listed, not Actuator or framework login routes.
+Never use the `dev` profile in production. Swagger is manual testing/documentation,
+not a replacement for the automated test suite.
+
+Integration uses [springdoc-openapi](https://springdoc.org/), the Spring Boot
+integration for Swagger UI.
+
+### Starting the services
 
 Install and start Docker Desktop with Docker Compose v2. You do not need Java,
 Node.js, Maven, or PostgreSQL installed on the host for this path. Run commands

@@ -75,7 +75,7 @@ docker compose up --build
 
 - Frontend: http://localhost:5173
 - Backend health: http://localhost:8080/actuator/health
-- PostgreSQL: accessible to containers as `postgres:5432`, not published to the host.
+- PostgreSQL: `postgres:5432` inside Docker; `127.0.0.1:5433` from your computer.
 
 The backend waits for PostgreSQL readiness, and the frontend waits for backend
 health. The Docker database is separate from any PostgreSQL installed on your
@@ -84,6 +84,33 @@ This is a development setup: the frontend uses Vite's development server and
 database-backed vendor discovery. Profiles and menus load from the vendor detail API. Default Spring Security
 authentication must be replaced before production deployment. Only localhost
 ports are published, and both application containers run as non-root users.
+
+### Connect DBeaver to the Docker database
+
+Start the services as described above. In DBeaver, create a new **PostgreSQL**
+connection and enter:
+
+| Setting | Value |
+| --- | --- |
+| Host | `127.0.0.1` |
+| Port | `5433` |
+| Database | `bitemap` |
+| Username | `bitemap` |
+| Password | Your local `COMPOSE_DB_PASSWORD` from the root `.env` |
+
+Click **Test Connection** (allow the PostgreSQL driver download if prompted),
+then **Finish**. Expand `bitemap` → **Schemas** → **public** → **Tables** to
+inspect your local data. Do not share passwords or commit `.env`.
+
+Port 5433 is bound only to the local machine, not the network. The backend still
+uses Docker's internal `postgres:5432`; do not change its connection URL.
+If port 5433 is already occupied, stop the conflicting local service or change
+the host-side port in your local Compose file and use that port in DBeaver.
+Changing `.env` does not reset an existing database password; use the password
+with which the database was initialized. Do not delete the database volume to
+solve a login problem.
+
+### Service status and shutdown
 
 For background operation and status:
 

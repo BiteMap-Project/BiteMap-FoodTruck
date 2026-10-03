@@ -10,8 +10,10 @@ deployment are future work. Docker Compose runs all three development services
 together, enabling development-only database fixtures.
 The backend starts with PostgreSQL and provides an Actuator health endpoint.
 Operators can register, log in, inspect their session, and log out through the API.
-The generated Spring login and HTTP Basic are disabled. Frontend authentication
-screens and vendor ownership authorization remain separate work; production
+The generated Spring login and HTTP Basic are disabled. Enabled operators can
+create, list, and update their own vendor profiles through the
+[vendor management API](docs/operator-vendors.md). Frontend authentication
+and management screens remain separate work; production
 security hardening is still required. See [operator sessions](docs/operator-sessions.md).
 
 Operator account registration is available at `POST /api/auth/register` (SCRUM-45).

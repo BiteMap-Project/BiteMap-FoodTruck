@@ -37,6 +37,17 @@ class ApiDocumentationTests {
 	}
 
 	@Test
+	void operatorManagementContractIsDocumented() throws Exception {
+		mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+				.andExpect(jsonPath("$.paths['/api/operator/vendors'].get").exists())
+				.andExpect(jsonPath("$.paths['/api/operator/vendors'].post.responses['201']").exists())
+				.andExpect(jsonPath("$.paths['/api/operator/vendors'].post.security[0].csrfToken").isArray())
+				.andExpect(jsonPath("$.paths['/api/operator/vendors/{id}'].put.responses['404']").exists())
+				.andExpect(jsonPath("$.paths['/api/operator/vendors/{id}'].put.security[0].csrfToken").isArray())
+				.andExpect(jsonPath("$.components.schemas.OperatorVendorRequest.properties.operatorId").doesNotExist());
+	}
+
+	@Test
 	void swaggerAssetsAndConfigurationAreAccessible() throws Exception {
 		mvc.perform(get("/swagger-ui.html")).andExpect(status().is3xxRedirection());
 		mvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk())

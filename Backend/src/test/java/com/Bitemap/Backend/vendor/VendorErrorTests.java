@@ -22,6 +22,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(VendorController.class)
 @Import(SecurityConfiguration.class)
 class VendorErrorTests {
+	@MockitoBean
+	private com.Bitemap.Backend.auth.OperatorAccountService accounts;
 
 	@Autowired
 	private MockMvc mvc;

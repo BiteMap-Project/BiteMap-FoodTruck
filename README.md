@@ -9,8 +9,10 @@ A public vendor-list/search API is available; other business APIs and production
 deployment are future work. Docker Compose runs all three development services
 together, enabling development-only database fixtures.
 The backend starts with PostgreSQL and provides an Actuator health endpoint.
-Spring Security still uses its generated development login; production authentication
-has not been implemented.
+Operators can register, log in, inspect their session, and log out through the API.
+The generated Spring login and HTTP Basic are disabled. Frontend authentication
+screens and vendor ownership authorization remain separate work; production
+security hardening is still required. See [operator sessions](docs/operator-sessions.md).
 
 Operator account registration is available at `POST /api/auth/register` (SCRUM-45).
 See [the registration API guide](docs/operator-registration.md) for validation,
@@ -27,10 +29,11 @@ changed `BACKEND_PORT`. Expand an endpoint, click **Try it out**, fill in the
 parameters, and click **Execute**. The generated specification is at
 [/v3/api-docs](http://localhost:8080/v3/api-docs).
 
-For `POST /api/auth/register`, first execute `GET /api/auth/csrf` in Swagger.
+For registration, login, or logout, first execute `GET /api/auth/csrf` in Swagger.
 Copy the returned `token`, click **Authorize**, and paste it into `csrfToken`.
-Then execute registration in the same browser session. Fetch a new token if the
-session expires. This keeps CSRF protection enabled; the token does not log you in.
+Then execute the request in the same browser session. Fetch and authorize a fresh
+token after login/logout or if the session expires. Login sets a session cookie;
+the CSRF token itself does not log you in.
 Requests act on your real local database, so use disposable test accounts.
 
 Docker Compose already enables the `dev` profile. For manual backend startup,
@@ -81,8 +84,8 @@ The backend waits for PostgreSQL readiness, and the frontend waits for backend
 health. The Docker database is separate from any PostgreSQL installed on your
 machine, so your existing port 5432 and local data are unaffected.
 This is a development setup: the frontend uses Vite's development server and
-database-backed vendor discovery. Profiles and menus load from the vendor detail API. Default Spring Security
-authentication must be replaced before production deployment. Only localhost
+database-backed vendor discovery. Profiles and menus load from the vendor detail API.
+Authentication still needs production hardening before public deployment. Only localhost
 ports are published, and both application containers run as non-root users.
 
 ### Connect DBeaver to the Docker database
@@ -240,8 +243,8 @@ curl --fail http://localhost:8080/actuator/health
 ```
 
 Expected response: `{"status":"UP"}`. Stop the application with Control+C.
-The generated Spring Security application password is separate from the database
-password. The generated login is for local development only.
+Operator passwords are set through registration and are separate from the database
+password. Use the login API; the generated Spring Security login is disabled.
 
 ## Verify before review
 

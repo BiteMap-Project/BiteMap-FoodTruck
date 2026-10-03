@@ -29,6 +29,10 @@ class ApiDocumentationTests {
 				.andExpect(jsonPath("$.paths['/api/auth/csrf'].get.parameters").isEmpty())
 				.andExpect(jsonPath("$.paths['/api/auth/register'].post.responses['201']").exists())
 				.andExpect(jsonPath("$.paths['/api/auth/register'].post.security[0].csrfToken").isArray())
+				.andExpect(jsonPath("$.paths['/api/auth/login'].post.security[0].csrfToken").isArray())
+				.andExpect(jsonPath("$.paths['/api/auth/login'].post.responses['401']").exists())
+				.andExpect(jsonPath("$.paths['/api/auth/me'].get.responses['401']").exists())
+				.andExpect(jsonPath("$.paths['/api/auth/logout'].post.responses['204']").exists())
 				.andExpect(jsonPath("$.components.securitySchemes.csrfToken.name").value("X-CSRF-TOKEN"));
 	}
 

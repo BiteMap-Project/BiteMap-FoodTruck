@@ -17,6 +17,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(StopController.class)
 @Import(SecurityConfiguration.class)
 class StopErrorTests {
+	@MockitoBean
+	private com.Bitemap.Backend.auth.OperatorAccountService accounts;
     @Autowired MockMvc mvc;
     @MockitoBean StopService service;
 

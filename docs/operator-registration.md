@@ -5,8 +5,8 @@
 Creates an enabled operator in the existing `operators` table from migration V5.
 No new migration is needed. Registration does not log the operator in, issue an
 access token, assign a vendor, or implement customer registration. The frontend
-registration screen and operator login are separate tasks. Existing development
-Spring Security login remains unchanged.
+registration screen is a separate task. Operator login/session/logout are now
+available through [SCRUM-46's session API](operator-sessions.md).
 
 ## API contract
 
@@ -81,7 +81,7 @@ The database's unique index plus a single `INSERT ... ON CONFLICT` statement
 prevents duplicate email rows without a check-then-insert race.
 
 This is not a complete production authentication system. Before public launch,
-add operator login/logout and authorization, registration rate limiting (hashing
+add vendor ownership authorization, registration/login rate limiting (hashing
 is deliberately expensive), email verification/recovery, breached-password
 screening, and production TLS/session-cookie configuration. The explicit 409
 response reveals whether an email is registered; review that privacy tradeoff

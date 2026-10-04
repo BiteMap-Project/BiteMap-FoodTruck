@@ -20,7 +20,9 @@ public class SecurityConfiguration {
 				.requestMatchers(HttpMethod.GET, "/api/vendors", "/api/vendors/{id}", "/api/vendor-stops", "/actuator/health", "/actuator/health/**").permitAll()
 				.anyRequest().authenticated())
 				.httpBasic(withDefaults())
-				.formLogin(withDefaults());
+				.formLogin(form -> form
+					.defaultSuccessUrl("http://127.0.0.1:5173/owner", true)
+				);
 		// Keep CSRF and default security headers enabled. Real accounts/roles are a separate task.
 		return http.build();
 	}

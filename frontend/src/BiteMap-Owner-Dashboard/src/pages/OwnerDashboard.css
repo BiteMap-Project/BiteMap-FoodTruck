@@ -1,0 +1,162 @@
+.owner-dashboard {
+    display: flex;
+    min-height: 100vh;
+    color: #26382e;
+    background: #f6f7f2;
+    font: 16px/1.5 system-ui, sans-serif;
+    text-align: left;
+}
+
+.owner-dashboard * {
+    box-sizing: border-box;
+}
+
+.owner-dashboard aside {
+    width: 220px;
+    flex-shrink: 0;
+    padding: 28px 20px;
+    background: white;
+    border-right: 1px solid #e0e4da;
+}
+
+.owner-dashboard nav,
+.owner-dashboard label,
+.owner-dashboard form {
+    display: grid;
+    gap: 12px;
+}
+
+.owner-dashboard nav {
+    margin-top: 30px;
+}
+
+.owner-dashboard main {
+    width: 100%;
+    min-width: 0;
+    max-width: 1200px;
+    padding: 32px;
+    margin: 0 auto;
+}
+
+.owner-dashboard header,
+.owner-dashboard .list-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.owner-dashboard h1 {
+    font-size: 32px;
+}
+
+.owner-dashboard h2,
+.owner-dashboard h3,
+.owner-dashboard p {
+    margin: 0 0 12px;
+    overflow-wrap: anywhere;
+}
+
+.owner-dashboard p,
+.owner-dashboard header span {
+    color: #63705f;
+}
+
+.owner-dashboard section {
+    padding: 24px;
+    margin-bottom: 20px;
+    border: 1px solid #e0e4da;
+    border-radius: 12px;
+    background: white;
+}
+
+.owner-dashboard .truck-banner {
+    background: #faecd9;
+}
+
+.owner-dashboard .cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.owner-dashboard strong {
+    font-size: 30px;
+}
+
+.owner-dashboard button,
+.owner-dashboard input {
+    padding: 10px 14px;
+    border: 1px solid #d5dbcf;
+    border-radius: 6px;
+    font: inherit;
+}
+
+.owner-dashboard button {
+    color: #33472e;
+    background: #eff2e7;
+    cursor: pointer;
+}
+
+.owner-dashboard button:hover {
+    background: #dfe7d2;
+}
+
+.owner-dashboard button[aria-current='page'],
+.owner-dashboard button[type='submit'] {
+    color: white;
+    background: #ae4725;
+}
+
+.owner-dashboard :focus-visible {
+    outline: 3px solid #ae4725;
+    outline-offset: 3px;
+}
+
+.owner-dashboard input {
+    width: 100%;
+    min-width: 0;
+    color: #26382e;
+    background: white;
+}
+
+.owner-dashboard .item-form {
+    grid-template-columns: 2fr 1fr auto;
+    align-items: end;
+    margin-bottom: 24px;
+}
+
+.owner-dashboard .truck-form {
+    max-width: 550px;
+    gap: 20px;
+}
+
+.owner-dashboard .list-row {
+    padding: 18px 0;
+    border-bottom: 1px solid #e0e4da;
+}
+
+@media (max-width: 700px) {
+    .owner-dashboard {
+        display: block;
+    }
+
+    .owner-dashboard aside {
+        width: 100%;
+    }
+
+    .owner-dashboard nav {
+        grid-template-columns: repeat(2, 1fr);
+        margin-top: 16px;
+    }
+
+    .owner-dashboard main {
+        padding: 20px;
+    }
+
+    .owner-dashboard .cards,
+    .owner-dashboard .item-form {
+        grid-template-columns: 1fr;
+    }
+}

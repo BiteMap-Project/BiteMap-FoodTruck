@@ -9,10 +9,46 @@ A public vendor-list/search API is available; other business APIs and production
 deployment are future work. Docker Compose runs all three development services
 together, enabling development-only database fixtures.
 The backend starts with PostgreSQL and provides an Actuator health endpoint.
-Spring Security still uses its generated development login; production authentication
-has not been implemented.
+Operators can register, log in, inspect their session, and log out through the API.
+The generated Spring login and HTTP Basic are disabled. Enabled operators can
+create, list, and update their own vendor profiles through the
+[vendor management API](docs/operator-vendors.md). Frontend authentication
+and management screens remain separate work; production
+security hardening is still required. See [operator sessions](docs/operator-sessions.md).
+
+Operator account registration is available at `POST /api/auth/register` (SCRUM-45).
+See [the registration API guide](docs/operator-registration.md) for validation,
+CSRF usage, responses, and security limitations. Registration does not log an
+operator in; there is no registration screen yet.
 
 ## Start everything with Docker Compose (recommended)
+
+### Interactive API documentation (development only)
+
+After rebuilding the backend (`docker compose up --build -d backend`), open
+[Swagger UI](http://localhost:8080/swagger-ui/index.html). Adjust the port if you
+changed `BACKEND_PORT`. Expand an endpoint, click **Try it out**, fill in the
+parameters, and click **Execute**. The generated specification is at
+[/v3/api-docs](http://localhost:8080/v3/api-docs).
+
+For registration, login, or logout, first execute `GET /api/auth/csrf` in Swagger.
+Copy the returned `token`, click **Authorize**, and paste it into `csrfToken`.
+Then execute the request in the same browser session. Fetch and authorize a fresh
+token after login/logout or if the session expires. Login sets a session cookie;
+the CSRF token itself does not log you in.
+Requests act on your real local database, so use disposable test accounts.
+
+Docker Compose already enables the `dev` profile. For manual backend startup,
+set `SPRING_PROFILES_ACTIVE=dev` (this also enables development database fixtures).
+Swagger and its specification are disabled by default outside this profile.
+Only business `/api/**` endpoints are listed, not Actuator or framework login routes.
+Never use the `dev` profile in production. Swagger is manual testing/documentation,
+not a replacement for the automated test suite.
+
+Integration uses [springdoc-openapi](https://springdoc.org/), the Spring Boot
+integration for Swagger UI.
+
+### Starting the services
 
 Install and start Docker Desktop with Docker Compose v2. You do not need Java,
 Node.js, Maven, or PostgreSQL installed on the host for this path. Run commands
@@ -44,15 +80,42 @@ docker compose up --build
 
 - Frontend: http://localhost:5173
 - Backend health: http://localhost:8080/actuator/health
-- PostgreSQL: accessible to containers as `postgres:5432`, not published to the host.
+- PostgreSQL: `postgres:5432` inside Docker; `127.0.0.1:5433` from your computer.
 
 The backend waits for PostgreSQL readiness, and the frontend waits for backend
 health. The Docker database is separate from any PostgreSQL installed on your
 machine, so your existing port 5432 and local data are unaffected.
 This is a development setup: the frontend uses Vite's development server and
-database-backed vendor discovery. Profiles and menus load from the vendor detail API. Default Spring Security
-authentication must be replaced before production deployment. Only localhost
+database-backed vendor discovery. Profiles and menus load from the vendor detail API.
+Authentication still needs production hardening before public deployment. Only localhost
 ports are published, and both application containers run as non-root users.
+
+### Connect DBeaver to the Docker database
+
+Start the services as described above. In DBeaver, create a new **PostgreSQL**
+connection and enter:
+
+| Setting | Value |
+| --- | --- |
+| Host | `127.0.0.1` |
+| Port | `5433` |
+| Database | `bitemap` |
+| Username | `bitemap` |
+| Password | Your local `COMPOSE_DB_PASSWORD` from the root `.env` |
+
+Click **Test Connection** (allow the PostgreSQL driver download if prompted),
+then **Finish**. Expand `bitemap` → **Schemas** → **public** → **Tables** to
+inspect your local data. Do not share passwords or commit `.env`.
+
+Port 5433 is bound only to the local machine, not the network. The backend still
+uses Docker's internal `postgres:5432`; do not change its connection URL.
+If port 5433 is already occupied, stop the conflicting local service or change
+the host-side port in your local Compose file and use that port in DBeaver.
+Changing `.env` does not reset an existing database password; use the password
+with which the database was initialized. Do not delete the database volume to
+solve a login problem.
+
+### Service status and shutdown
 
 For background operation and status:
 
@@ -182,8 +245,8 @@ curl --fail http://localhost:8080/actuator/health
 ```
 
 Expected response: `{"status":"UP"}`. Stop the application with Control+C.
-The generated Spring Security application password is separate from the database
-password. The generated login is for local development only.
+Operator passwords are set through registration and are separate from the database
+password. Use the login API; the generated Spring Security login is disabled.
 
 ## Verify before review
 

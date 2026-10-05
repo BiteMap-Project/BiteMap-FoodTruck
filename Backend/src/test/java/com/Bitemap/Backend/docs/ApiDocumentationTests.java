@@ -48,6 +48,16 @@ class ApiDocumentationTests {
 	}
 
 	@Test
+	void ownerMenuEndpointsExposeStatusAndVersionContract() throws Exception {
+		mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+				.andExpect(jsonPath("$.paths['/api/operator/vendors/{vendorId}/menu-items'].post.responses['201']").exists())
+				.andExpect(jsonPath("$.paths['/api/operator/vendors/{vendorId}/menu-items'].post.security[0].csrfToken").isArray())
+				.andExpect(jsonPath("$.paths['/api/operator/vendors/{vendorId}/menu-items/{itemId}'].put.responses['409']").exists())
+				.andExpect(jsonPath("$.paths['/api/operator/vendors/{vendorId}/menu-items/{itemId}/availability'].patch").exists())
+				.andExpect(jsonPath("$.components.schemas.UpdateMenuItemRequest.required", org.hamcrest.Matchers.hasItem("version")));
+	}
+
+	@Test
 	void swaggerAssetsAndConfigurationAreAccessible() throws Exception {
 		mvc.perform(get("/swagger-ui.html")).andExpect(status().is3xxRedirection());
 		mvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk())

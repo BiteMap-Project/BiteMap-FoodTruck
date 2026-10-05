@@ -29,7 +29,7 @@ class VendorProfileTests {
     void returnsOnlyTheSelectedVendorsMenuIncludingUnavailableItems() throws Exception {
         long first = vendor("First Truck");
         long second = vendor("Second Truck");
-        jdbc.update("INSERT INTO vendor_menu_items (vendor_id, name, description, price, available) VALUES (?, 'Soup', 'Warm soup', 8.99, false)", first);
+        jdbc.update("INSERT INTO vendor_menu_items (vendor_id, name, description, price, availability_status) VALUES (?, 'Soup', 'Warm soup', 8.99, 'INACTIVE')", first);
         jdbc.update("INSERT INTO vendor_menu_items (vendor_id, name, price) VALUES (?, 'Other item', 4.50)", second);
         mvc.perform(get("/api/vendors/" + first))
             .andExpect(status().isOk())

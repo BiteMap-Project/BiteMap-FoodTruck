@@ -17,6 +17,10 @@ and management screens remain separate work; production
 security hardening is still required. See [operator sessions](docs/operator-sessions.md).
 
 Operator account registration is available at `POST /api/auth/register` (SCRUM-45).
+Owner-protected menu create/read/edit/status endpoints are documented in
+[menu management](docs/operator-menu.md), including version-conflict handling and
+the V6 availability migration. The frontend's existing public `available` boolean
+remains compatible; operator forms need to use the new status/version DTOs.
 See [the registration API guide](docs/operator-registration.md) for validation,
 CSRF usage, responses, and security limitations. Registration does not log an
 operator in; there is no registration screen yet.

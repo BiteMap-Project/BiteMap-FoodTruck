@@ -279,6 +279,22 @@ class DatabaseMigrationTests {
 		assertThat(jdbc.queryForMap("SELECT * FROM " + schema + ".vendor_stops WHERE id = ?", customId)).isEqualTo(customBefore);
 	}
 
+	@Test
+	void menuStateUpgradePreservesLegacyDataAndDerivesAvailability() {
+		Flyway.configure().configuration(migrations(false).getConfiguration()).target("5").load().migrate();
+		long vendor = jdbc.queryForObject("INSERT INTO " + schema + ".vendors(name,category,location) VALUES ('Test','Food','CSUN') RETURNING id", Long.class);
+		jdbc.update("INSERT INTO " + schema + ".vendor_menu_items(vendor_id,name,description,price,available) VALUES (?, 'Old active','Keep me',5.25,TRUE), (?, 'Old unavailable',NULL,0,FALSE)", vendor, vendor);
+		var before = jdbc.queryForList("SELECT id,vendor_id,name,description,price,available FROM " + schema + ".vendor_menu_items ORDER BY id");
+		migrateAndValidate(migrations(false));
+		assertThat(jdbc.queryForList("SELECT id,vendor_id,name,description,price,available FROM " + schema + ".vendor_menu_items ORDER BY id")).isEqualTo(before);
+		assertThat(jdbc.queryForList("SELECT availability_status FROM " + schema + ".vendor_menu_items ORDER BY id", String.class)).containsExactly("ACTIVE", "INACTIVE");
+		jdbc.update("UPDATE " + schema + ".vendor_menu_items SET availability_status = 'SOLD_OUT'");
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".vendor_menu_items WHERE available", Integer.class)).isZero();
+		assertThatThrownBy(() -> jdbc.update("UPDATE " + schema + ".vendor_menu_items SET availability_status = 'INVALID'"))
+				.isInstanceOf(DataIntegrityViolationException.class);
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".vendor_menu_items WHERE version = 0", Integer.class)).isEqualTo(2);
+	}
+
 	private Flyway migrations(boolean development) {
 		String[] locations = development
 				? new String[] { "classpath:db/migration", "classpath:db/dev" }

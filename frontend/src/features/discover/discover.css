@@ -4,6 +4,22 @@
   padding: 32px 24px 48px;
 }
 
+.discovery-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.discovery-header > a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .discovery-header h1 {
   font-size: 40px;
   line-height: 1.1;
@@ -13,6 +29,16 @@
 
 .discovery-header p {
   margin: 0 0 24px;
+}
+
+@media (max-width: 520px) {
+  .discovery-header {
+    align-items: center;
+  }
+
+  .discovery-header h1 {
+    font-size: 34px;
+  }
 }
 
 .visually-hidden {

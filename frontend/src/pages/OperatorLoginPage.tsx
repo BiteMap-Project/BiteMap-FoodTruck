@@ -1,0 +1,72 @@
+import { type FormEvent, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { AuthApiError, loginOperator } from "../services/auth";
+import "./operator-auth.css";
+
+type RegistrationState = { registered?: boolean; email?: string } | null;
+
+function OperatorLoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const registration = location.state as RegistrationState;
+  const [email, setEmail] = useState(registration?.email || "");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setSubmitting(true);
+    try {
+      await loginOperator(email, password);
+      navigate("/operator", { replace: true });
+    } catch (cause) {
+      setError(cause instanceof AuthApiError ? cause.message : "Unable to sign in. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="auth-page">
+      <section className="auth-card" aria-labelledby="login-heading">
+        <Link className="auth-brand" to="/">BiteMap</Link>
+        <h1 id="login-heading">Operator sign in</h1>
+        <p className="auth-intro">Sign in to manage your food trucks and menus.</p>
+        {registration?.registered && (
+          <p className="auth-success" role="status">Account created. You can sign in now.</p>
+        )}
+        {error && <p className="auth-error" role="alert">{error}</p>}
+        <form onSubmit={submit}>
+          <label htmlFor="login-email">Email</label>
+          <input
+            id="login-email"
+            type="email"
+            autoComplete="email"
+            maxLength={320}
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+          <label htmlFor="login-password">Password</label>
+          <input
+            id="login-password"
+            type="password"
+            autoComplete="current-password"
+            maxLength={128}
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+          <button type="submit" disabled={submitting}>
+            {submitting ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+        <p className="auth-switch">New operator? <Link to="/operator/register">Create an account</Link></p>
+      </section>
+    </main>
+  );
+}
+
+export default OperatorLoginPage;

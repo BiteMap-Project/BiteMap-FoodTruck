@@ -70,9 +70,18 @@ public class SecurityConfiguration {
 				.requestMatchers(HttpMethod.GET, "/api/vendors", "/api/vendors/{id}", "/api/vendor-stops", "/actuator/health", "/actuator/health/**").permitAll()
 				.requestMatchers("/api/operator/**").hasRole("OPERATOR")
 				.anyRequest().authenticated())
-				.httpBasic(withDefaults())
-				.formLogin(withDefaults());
-		// Keep CSRF and default security headers enabled. Real accounts/roles are a separate task.
+				.securityContext(context -> context.securityContextRepository(contexts))
+				.csrf(config -> config.csrfTokenRepository(csrf))
+				.requestCache(AbstractHttpConfigurer::disable)
+				.httpBasic(AbstractHttpConfigurer::disable)
+				.formLogin(AbstractHttpConfigurer::disable)
+				.logout(AbstractHttpConfigurer::disable)
+				.exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) -> {
+					response.setStatus(401);
+					response.setContentType("application/problem+json");
+					response.getWriter().write("{\"status\":401,\"title\":\"Unauthorized\",\"detail\":\"Sign in to continue.\"}");
+				}));
+		// JSON controller endpoints handle login/logout; CSRF and security headers remain enabled.
 		return http.build();
 	}
 }

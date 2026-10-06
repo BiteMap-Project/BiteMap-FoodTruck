@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { SearchIcon } from "../components/icons";
 import StopResults from "../features/discover/StopResults";
 import VendorResults from "../features/discover/VendorResults";
@@ -13,8 +14,11 @@ function DiscoverPage() {
   return (
     <main className="discovery">
       <header className="discovery-header">
-        <h1>BiteMap</h1>
-        <p>Find mobile food near you.</p>
+        <div>
+          <h1>BiteMap</h1>
+          <p>Find mobile food near you.</p>
+        </div>
+        <Link to="/operator/login">Operator sign in</Link>
       </header>
 
       <div className="search-row">

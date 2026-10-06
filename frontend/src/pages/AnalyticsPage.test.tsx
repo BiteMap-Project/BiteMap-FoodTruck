@@ -25,12 +25,14 @@ it("renders database totals and truck details", async () => {
   expect(screen.getByText("1 of 2 available")).toBeInTheDocument();
   expect(screen.getByText("$10.00")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Analytics Tacos" })).toHaveAttribute("href", "/trucks/7");
+  expect(screen.getByRole("button", { name: "Export CSV" })).toBeInTheDocument();
 });
 
 it("shows an empty state", async () => {
   fetchMock.mockResolvedValue({ ok: true, json: async () => ({ ...data, totalTrucks: 0, trucks: [] }) });
   render(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
   expect(await screen.findByText("No truck data is available yet.")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Export CSV" })).not.toBeInTheDocument();
 });
 
 it("retries after an API failure", async () => {

@@ -6,6 +6,7 @@ import OwnerDashboard from "./BiteMap-Owner-Dashboard/src/pages/OwnerDashboard";
 import OperatorHomePage from "./pages/OperatorHomePage";
 import OperatorLoginPage from "./pages/OperatorLoginPage";
 import OperatorRegisterPage from "./pages/OperatorRegisterPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
       <Route path="/operator" element={<OperatorHomePage />} />
       <Route path="/operator/login" element={<OperatorLoginPage />} />
       <Route path="/operator/register" element={<OperatorRegisterPage />} />
+      <Route path="/analytics" element={<AnalyticsPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

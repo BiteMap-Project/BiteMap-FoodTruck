@@ -126,6 +126,21 @@ body:has(.discovery) {
   text-align: left;
 }
 
+.discovery .discover-menu-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: var(--text);
+}
+
+.discovery .discover-menu-link:hover {
+  background: var(--surface-muted);
+  color: var(--accent);
+}
+
 .discovery .discover-menu button[aria-pressed="true"] {
   background: #faeee6;
   color: #a94220;

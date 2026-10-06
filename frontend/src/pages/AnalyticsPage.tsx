@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PinIcon } from "../components/icons";
+import { downloadAnalyticsCsv } from "../features/analytics/exportCsv";
 import { getTruckAnalytics, type TruckAnalytics } from "../services/analytics";
 import "./analytics.css";
 
@@ -54,9 +55,16 @@ export default function AnalyticsPage() {
             </section>
 
             <section className="analytics-table-section" aria-labelledby="truck-metrics-title">
-              <div>
-                <p className="analytics-eyebrow">TRUCK DETAILS</p>
-                <h2 id="truck-metrics-title">Operational metrics</h2>
+              <div className="analytics-table-heading">
+                <div>
+                  <p className="analytics-eyebrow">TRUCK DETAILS</p>
+                  <h2 id="truck-metrics-title">Operational metrics</h2>
+                </div>
+                {data.trucks.length > 0 && (
+                  <button type="button" className="analytics-export" onClick={() => downloadAnalyticsCsv(data)}>
+                    Export CSV
+                  </button>
+                )}
               </div>
               {data.trucks.length === 0 ? (
                 <p className="analytics-empty">No truck data is available yet.</p>

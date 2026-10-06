@@ -97,6 +97,9 @@ export default function DiscoverPage() {
           >
             <ClockIcon /> Upcoming stops
           </button>
+          <Link className="discover-menu-link" to="/analytics">
+            <span aria-hidden="true">↗</span> Truck insights
+          </Link>
         </div>
 
         <div className="discover-owner-note">

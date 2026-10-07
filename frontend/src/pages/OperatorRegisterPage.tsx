@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthApiError, registerOperator } from "../services/auth";
+import PasswordInput from "../components/PasswordInput";
 import "./operator-auth.css";
 
 function OperatorRegisterPage() {
@@ -74,9 +75,8 @@ function OperatorRegisterPage() {
           {fieldErrors.email && <span id="register-email-error" className="field-error">{fieldErrors.email}</span>}
 
           <label htmlFor="register-password">Password</label>
-          <input
+          <PasswordInput
             id="register-password"
-            type="password"
             autoComplete="new-password"
             minLength={15}
             maxLength={128}
@@ -89,9 +89,8 @@ function OperatorRegisterPage() {
           {fieldErrors.password && <span id="register-password-error" className="field-error">{fieldErrors.password}</span>}
 
           <label htmlFor="register-confirmation">Confirm password</label>
-          <input
+          <PasswordInput
             id="register-confirmation"
-            type="password"
             autoComplete="new-password"
             minLength={15}
             maxLength={128}

@@ -11,6 +11,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<DiscoverPage />} />
+      <Route path="/trucks" element={<DiscoverPage />} />
 
       <Route path="/trucks/:id" element={<TruckMenuPage />} />
       <Route path="/owner" element={<OperatorHomePage />} />

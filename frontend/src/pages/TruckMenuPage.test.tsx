@@ -17,6 +17,13 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
 });
 
+it("opens the styled discovery page at /trucks", async () => {
+  fetchMock.mockResolvedValue(response({ items: [], totalElements: 0, totalPages: 0, page: 0, size: 20 }));
+  render(<MemoryRouter initialEntries={["/trucks"]}><App /></MemoryRouter>);
+  expect(screen.getByRole("heading", { name: "Your next great bite, nearby." })).toBeInTheDocument();
+  expect(await screen.findByRole("searchbox")).toBeInTheDocument();
+});
+
 it("loads a direct URL with matching details, USD prices and unavailable items", async () => {
   fetchMock.mockResolvedValue(response(truck));
   open();
@@ -28,7 +35,7 @@ it("loads a direct URL with matching details, USD prices and unavailable items",
   expect(screen.getByText("$4.50")).toBeInTheDocument();
   expect(screen.getByText("Currently unavailable")).toBeInTheDocument();
   expect(screen.queryByText(/Open until|Demo menu/)).not.toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /Back to trucks/ })).toHaveAttribute("href", "/");
+  expect(screen.getByRole("link", { name: /Back to trucks/ })).toHaveAttribute("href", "/trucks");
 });
 
 it("shows an empty menu for a valid truck", async () => {
@@ -43,7 +50,7 @@ it.each([404, 400])("shows a return link for a missing or malformed truck (%s)",
   fetchMock.mockResolvedValue(response({}, status));
   open(status === 400 ? "invalid" : "999");
   expect(await screen.findByText("Truck not found.")).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /Back to trucks/ })).toHaveAttribute("href", "/");
+  expect(screen.getByRole("link", { name: /Back to trucks/ })).toHaveAttribute("href", "/trucks");
 });
 
 it.each(["http", "network"])("recovers from a %s failure with Retry", async (kind) => {

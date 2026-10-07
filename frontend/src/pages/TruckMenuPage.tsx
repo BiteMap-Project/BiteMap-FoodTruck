@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getVendor, type VendorProfile } from "../services/vendors";
 import { EmptyState, ErrorState, LoadingState } from "../components/StatusViews";
+import "./truck-profile.css";
 
 type Result =
   | { status: "loading"; id: string }
@@ -35,8 +36,10 @@ function TruckMenuPage() {
   const current: Result = result.id === id ? result : { status: "loading", id };
 
   return (
+    <div className="truck-site">
+      <header className="truck-site-header"><Link className="truck-site-brand" to="/trucks">BiteMap<span>.</span></Link><nav aria-label="Truck page navigation"><Link to="/trucks">Discover trucks</Link><Link to="/operator/login">Owner workspace →</Link></nav></header>
     <main className="truck-profile">
-      <Link to="/">← Back to trucks</Link>
+      <Link to="/trucks">← Back to trucks</Link>
       {current.status === "loading" && <LoadingState label="Loading truck…" />}
       {current.status === "missing" && (
         <>
@@ -55,9 +58,13 @@ function TruckMenuPage() {
       )}
       {current.status === "success" && (
         <>
+          <div className="truck-profile-hero">
+          <p className="truck-eyebrow">MEET YOUR NEXT FAVORITE</p>
           <h1>{current.truck.name}</h1>
           <p>Category: {current.truck.category}</p>
           <p>Location: {current.truck.location}</p>
+          <a className="truck-menu-jump" href="#menu-heading">Explore the menu ↓</a>
+          </div>
           <section aria-labelledby="menu-heading">
             <h2 id="menu-heading">Menu</h2>
             {current.truck.menu.length === 0 ? (
@@ -80,6 +87,8 @@ function TruckMenuPage() {
         </>
       )}
     </main>
+    <footer className="truck-site-footer">BiteMap · Good food is worth finding.</footer>
+    </div>
   );
 }
 

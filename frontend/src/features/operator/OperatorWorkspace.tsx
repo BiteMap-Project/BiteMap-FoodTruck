@@ -3,10 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import type { OperatorAccount } from "../../services/auth";
 import { listOwnedVendors, listMenu, saveVendor, createMenuItem, editMenuItem, changeAvailability, WorkspaceError, type Vendor, type MenuItem, type Page, type Availability } from "../../services/operatorWorkspace";
 import { ItemForm, VendorForm } from "./WorkspaceForms";
+import SchedulePanel from "./SchedulePanel";
 import "./owner-design.css";
 import "./workspace.css";
 
-type Tab = "Overview" | "Menu" | "Truck Details" | "Orders";
+type Tab = "Overview" | "Menu" | "Schedule" | "Truck Details" | "Orders";
 type Load<T> = { kind: "loading" } | { kind: "error"; error: unknown } | { kind: "ready"; data: T };
 const errorText = (error: unknown) => error instanceof WorkspaceError ? error.message : "Unable to reach the server. Check your connection and try again.";
 
@@ -36,7 +37,7 @@ export default function OperatorWorkspace({ account, onSignOut, signingOut, logo
   function reload(nextPage = page) { setVendors({ kind: "loading" }); setSelected(null); setCreating(false); setPage(nextPage); setAttempt(a => a + 1); }
   return <div className="od-app ow-connected">
     <aside className="od-sidebar"><Link className="od-brand" to="/">BiteMap<span className="od-brand-dot">.</span></Link>
-      <p className="od-sidebar-label">OWNER WORKSPACE</p><nav aria-label="Owner navigation">{(["Overview", "Menu", "Truck Details", "Orders"] as Tab[]).map(t => <button className={`od-nav-item ${tab === t ? "is-active" : ""}`} aria-current={tab === t ? "page" : undefined} key={t} onClick={() => { setTab(t); setCreating(false); }}>{t}</button>)}</nav>
+      <p className="od-sidebar-label">OWNER WORKSPACE</p><nav aria-label="Owner navigation">{(["Overview", "Menu", "Schedule", "Truck Details", "Orders"] as Tab[]).map(t => <button className={`od-nav-item ${tab === t ? "is-active" : ""}`} aria-current={tab === t ? "page" : undefined} key={t} onClick={() => { setTab(t); setCreating(false); }}>{t}</button>)}</nav>
       <div className="od-sidebar-tip"><strong>Your kitchen, connected.</strong><p>Truck and menu changes are saved to BiteMap, not this browser.</p><Link to="/analytics">Public truck insights →</Link></div>
       <div className="od-owner"><div><strong>{account.displayName}</strong><p>{account.email}</p><button type="button" className="od-button od-button-secondary" disabled={signingOut} onClick={onSignOut}>{signingOut ? "Signing out…" : "Sign out"}</button></div></div>
     </aside>
@@ -104,7 +105,8 @@ function VendorWorkspace({ vendor, tab, onSaved }: { vendor: Vendor; tab: Tab; o
   return <>
     <section className="od-hero"><div className="od-hero-copy"><span className="od-label">YOUR TRUCK</span><h2>{vendor.name}</h2><p>{vendor.category} · {vendor.location}</p><div className="od-hero-bottom"><Link className="od-button od-button-secondary" to={`/trucks/${vendor.id}`}>View customer menu →</Link></div></div></section>
     {message && <p role="status" className="ow-message">{message}</p>}{error && <p role="alert" className="ow-error">{error}</p>}
-    {tab === "Overview" && <section className="ow-panel"><h2>Your workspace is connected</h2><p>Use Menu to add items, edit prices and change availability. Use Truck Details to update this truck’s public profile.</p><p>Orders, revenue, opening-hours controls and schedule editing are not available yet.</p></section>}
+    {tab === "Overview" && <section className="ow-panel"><h2>Your workspace is connected</h2><p>Use Menu to add items, edit prices and change availability. Use Truck Details to update this truck’s public profile. Use Schedule to publish, edit and cancel planned stops.</p><p>Orders, revenue and opening-hours controls are not available yet.</p></section>}
+    {tab === "Schedule" && <SchedulePanel key={vendor.id} vendorId={vendor.id} />}
     {tab === "Orders" && <section className="ow-panel"><h2>Orders are not connected yet</h2><p>No order or revenue backend is available. This workspace does not show simulated sales.</p></section>}
     {tab === "Truck Details" && <section className="ow-panel"><h2>Truck details</h2><VendorForm key={`${vendor.id}-${vendor.name}-${vendor.category}-${vendor.location}`} initial={vendor} busy={unavailable} onSave={input => mutate(() => saveVendor(input, vendor.id), result => onSaved(result as Vendor))} />{blocked && <p>Refresh trucks to reload your access before retrying.</p>}</section>}
     {tab === "Menu" && <section className="ow-panel"><div className="ow-toolbar"><h2>Your menu</h2><button className="od-button od-button-primary" disabled={unavailable || menu.kind !== "ready"} onClick={() => setEditor("new")}>Add menu item</button><button disabled={busy} className="od-button od-button-secondary" onClick={() => reload()}>Reload menu</button></div>

@@ -247,6 +247,8 @@ class DatabaseMigrationTests {
 				+ "VALUES (?, 'Test venue', 'Test address', 34, -118, '2026-09-28T10:00:00Z', '2026-09-28T12:00:00Z', 'UTC')", id);
 		var vendors = vendorBusinessRows();
 		var stops = jdbc.queryForList("SELECT * FROM " + schema + ".vendor_stops ORDER BY id");
+		// V7 adds only a zero-initialized version; all pre-existing stop fields must remain identical.
+		stops.forEach(stop -> stop.put("version", 0L));
 		migrateAndValidate(migrations(false));
 		assertThat(vendorBusinessRows()).isEqualTo(vendors);
 		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendor_stops ORDER BY id")).isEqualTo(stops);
@@ -293,6 +295,21 @@ class DatabaseMigrationTests {
 		assertThatThrownBy(() -> jdbc.update("UPDATE " + schema + ".vendor_menu_items SET availability_status = 'INVALID'"))
 				.isInstanceOf(DataIntegrityViolationException.class);
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".vendor_menu_items WHERE version = 0", Integer.class)).isEqualTo(2);
+	}
+
+	@Test
+	void scheduleVersionUpgradePreservesEveryExistingField() {
+		Flyway.configure().configuration(migrations(false).getConfiguration()).target("6").load().migrate();
+		long vendor = jdbc.queryForObject("INSERT INTO " + schema + ".vendors(name,category,location) VALUES ('Test','Food','CSUN') RETURNING id", Long.class);
+		jdbc.update("INSERT INTO " + schema + ".vendor_stops(vendor_id,venue_name,address,latitude,longitude,starts_at,ends_at,time_zone,status)"
+				+ " VALUES (?, 'Keep venue','Keep address',34,-118,'2030-01-02T00:00:00Z','2030-01-02T02:00:00Z','UTC','cancelled')", vendor);
+		var before = jdbc.queryForMap("SELECT * FROM " + schema + ".vendor_stops");
+		migrateAndValidate(migrations(false));
+		var after = jdbc.queryForMap("SELECT * FROM " + schema + ".vendor_stops");
+		assertThat(after.remove("version")).isEqualTo(0L);
+		assertThat(after).isEqualTo(before);
+		assertThatThrownBy(() -> jdbc.update("UPDATE " + schema + ".vendor_stops SET version=-1"))
+				.isInstanceOf(DataIntegrityViolationException.class);
 	}
 
 	private Flyway migrations(boolean development) {

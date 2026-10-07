@@ -44,7 +44,7 @@ async function csrfToken(): Promise<CsrfToken> {
   return response.json();
 }
 
-async function postWithCsrf<T>(path: string, body: object, fallback: string): Promise<T> {
+export async function postWithCsrf<T>(path: string, body: object, fallback: string): Promise<T> {
   const csrf = await csrfToken();
   const response = await fetch(path, {
     method: "POST",

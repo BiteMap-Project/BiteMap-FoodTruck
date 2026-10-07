@@ -149,3 +149,13 @@ code {
 .menu-items li > p { margin-top: 4px; font-size: 15px; }
 .unavailable { font-weight: 600; margin-top: 8px; color: var(--danger); }
 .not-found p { margin-bottom: 16px; }
+
+/* Public menus use the same palette as discovery and the operator journey. */
+body:has(.truck-profile) { background: #f8f8f3; }
+.truck-profile {
+  --text: #667268; --text-h: #263d33; --accent: #b74d27;
+  --border: #e3e6dc; --surface: #fff; --danger: #b12f2f;
+  color: var(--text); color-scheme: light;
+}
+.truck-profile h1, .truck-profile h2 { font-family: Georgia, serif; }
+.truck-profile .menu-items { background: var(--surface); }

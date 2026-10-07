@@ -2,6 +2,9 @@ package com.Bitemap.Backend.analytics;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -15,8 +18,11 @@ public class AnalyticsService {
 		this.jdbc = jdbc;
 	}
 
-	@Transactional(readOnly = true)
-	public TruckAnalytics truckMetrics() {
+	@Transactional
+	public TruckAnalytics truckMetrics(String email) {
+        long ownerId = jdbc.query("SELECT id FROM operators WHERE email = :email AND enabled = TRUE FOR SHARE",
+                Map.of("email", email), (rs, row) -> rs.getLong("id")).stream().findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "An enabled operator account is required."));
 		String query = """
 				WITH menu_metrics AS (
 				    SELECT vendor_id, count(*) AS menu_item_count,
@@ -43,9 +49,10 @@ public class AnalyticsService {
 				FROM vendors v
 				LEFT JOIN menu_metrics m ON m.vendor_id = v.id
 				LEFT JOIN stop_metrics s ON s.vendor_id = v.id
+				WHERE v.operator_id = :ownerId
 				ORDER BY v.name, v.id
 				""";
-		List<TruckAnalytics.TruckMetric> trucks = jdbc.query(query, (rs, row) -> {
+		List<TruckAnalytics.TruckMetric> trucks = jdbc.query(query, Map.of("ownerId", ownerId), (rs, row) -> {
 			Timestamp nextStop = rs.getTimestamp("next_stop_at");
 			return new TruckAnalytics.TruckMetric(
 					rs.getLong("id"), rs.getString("name"), rs.getString("category"),

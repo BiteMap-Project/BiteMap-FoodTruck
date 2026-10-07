@@ -1,30 +1,60 @@
-# Operational analytics
+# Operator business insights
 
-The truck analytics page at `/analytics` reads summary data from `GET /api/analytics/trucks`.
-It gives the team a simple reporting dataset without exposing operator accounts or password data.
+`/operator/analytics` reports only the signed-in operator's trucks. `/analytics`
+redirects to that page for old bookmarks. Anonymous visitors are sent to operator
+sign-in. Public discovery and public truck menus still require no account.
 
-Each truck row includes its category and location, menu totals, available menu items, average menu
-price, total stops, upcoming stops, and next stop time. Upcoming stops are scheduled or serving stops
-whose end time has not passed.
+## Access and data contract
 
-The endpoint is read-only and public because it uses the same public truck, menu, and schedule data
-as consumer discovery. The query keeps trucks with no menu items or stops, returning zero counts and
-null for missing averages and dates.
+GET `/api/operator/analytics/trucks` requires an enabled operator account and returns
+`Cache-Control: no-store`. The backend resolves the owner from the authenticated
+session and filters `vendors.operator_id`; it never accepts a caller-selected owner.
+The former public `/api/analytics/trucks` endpoint has been removed. Unowned sample
+trucks belong to no operator and do not appear in any operator's business report.
 
-## CSV export
+The page initially shows all owned trucks. Selecting one truck updates the cards,
+table, and CSV to that truck. A new operator starts with zero trucks and a prompt
+to create one. Creating a truck in `/operator` sets ownership on the server.
 
-The **Export CSV** button downloads the current truck-level report for analysis in Excel, Power BI,
-Tableau, or Python. Text values are quoted and escaped, and values that begin with spreadsheet formula
-characters are stored as text. Missing prices and dates remain blank instead of being changed to zero.
+These metrics describe menu and schedule activity. No orders, sales, revenue,
+profit, or customer analytics are collected or implied by this report.
 
-## Demo flow
+## Reporting dictionary
 
-1. Start BiteMap with `docker compose up -d --build`.
-2. Open the consumer homepage and show that the truck list comes from PostgreSQL.
-3. Search for `Taco`, open Taco Mobile, and show its menu and availability.
-4. Return home and open **Truck insights** from the sidebar.
-5. Explain the four live totals and one truck row.
-6. Select **Export CSV**, then open the file to show the same truck-level dataset.
+The response includes `trucks` (one row per owned truck), and totals:
+`totalTrucks`, `totalMenuItems`, `availableMenuItems`, `upcomingStops`.
 
-This flow demonstrates one complete path from stored data, through the Spring Boot API, to the React
-interface and an analysis-ready export.
+| Row field | Type | Meaning |
+| --- | --- | --- |
+| vendorId | integer | Truck primary key, not an operator ID |
+| name / category / location | text | Public truck profile fields |
+| menuItemCount | integer | All menu states counted once |
+| availableItemCount | integer | Items whose status is ACTIVE |
+| averageMenuPrice | decimal or null | Mean USD price of all menu items, rounded to two decimals; null if no menu |
+| totalStopCount | integer | All dated stops, including cancelled and ended |
+| upcomingStopCount | integer | Scheduled or serving stops with end time after the query time, including ongoing stops |
+| nextStopAt | UTC timestamp or null | Earliest start among those upcoming/ongoing stops; can be in the past for an ongoing stop |
+
+Menu and stop aggregates are calculated separately before joining so multiple
+stops cannot multiply menu counts or distort averages. Missing counts are zero;
+missing prices and times are null. No operator emails or password hashes are read
+into the report.
+
+## CSV
+
+Export uses the current owned-truck selection, not the public vendor list. Dates
+are UTC in the CSV; the page renders them in the viewer's local timezone. Missing
+prices and dates are blank. Text is CSV-escaped with formula-like prefixes guarded.
+Download and reopen the CSV in your usual browser and spreadsheet tool during the
+rehearsal; content tests alone do not prove every browser's download behavior.
+
+## Verification
+
+Analytics API tests cover two separate owners, unowned fixtures, anonymous and
+wrong-role access, disabled/deleted accounts, ignored owner query parameters,
+empty accounts, no-store headers, averages with repeated prices, and multiple stops.
+The operator walkthrough integration test registers an account, logs in, creates a
+truck, adds a menu item, reads it anonymously, checks private analytics, and logs out.
+All test writes use an isolated PostgreSQL database and are rolled back.
+
+See [the professor walkthrough](professor-demo.md) for the live demo and Jira updates.

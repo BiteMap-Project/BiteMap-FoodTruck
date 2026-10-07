@@ -33,3 +33,6 @@ body:has(.analytics-page) { background: #f8f8f3; }
 .analytics-state button { min-height:44px; margin-top:12px; padding:9px 16px; border:0; border-radius:9px; color:#fff; background:var(--rust); font:inherit; cursor:pointer; }
 @media (max-width:760px) { .analytics-summary { grid-template-columns:repeat(2,1fr); } .analytics-header { align-items:flex-start; gap:16px; } .analytics-table-section { padding:20px; } }
 @media (max-width:440px) { .analytics-summary { grid-template-columns:1fr; } .analytics-header>a:last-child { font-size:12px; } .analytics-table-heading { align-items:flex-start; flex-direction:column; } .analytics-export { width:100%; } }
+.analytics-filter { display: grid; gap: 8px; max-width: 360px; margin-top: 24px; color: var(--ink); font-weight: 600; }
+.analytics-filter select { padding: 10px; min-height: 44px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: white; font: inherit; }
+.analytics-page :is(a, select):focus-visible { outline: 3px solid var(--rust); outline-offset: 3px; }

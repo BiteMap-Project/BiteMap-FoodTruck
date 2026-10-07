@@ -104,6 +104,7 @@ it("restores an operator session and logs out with a fresh CSRF token", async ()
   );
 
   expect(await screen.findByRole("heading", { name: "Welcome, Food Truck Owner" })).toBeInTheDocument();
+  await screen.findByRole("heading", { name: "No trucks yet" });
   fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
   expect(await screen.findByText("Signed out")).toBeInTheDocument();
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));

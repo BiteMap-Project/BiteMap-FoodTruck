@@ -1,3 +1,5 @@
+import { AuthApiError } from "./auth";
+
 export type TruckMetric = {
   vendorId: number;
   name: string;
@@ -20,10 +22,12 @@ export type TruckAnalytics = {
 };
 
 export async function getTruckAnalytics(signal: AbortSignal): Promise<TruckAnalytics> {
-  const response = await fetch("/api/analytics/trucks", {
+  const response = await fetch("/api/operator/analytics/trucks", {
     signal,
+    credentials: "same-origin",
+    cache: "no-store",
     headers: { Accept: "application/json" },
   });
-  if (!response.ok) throw new Error("Unable to load analytics");
+  if (!response.ok) throw new AuthApiError(response.status, "Unable to load your analytics");
   return response.json();
 }

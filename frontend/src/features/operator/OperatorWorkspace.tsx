@@ -38,7 +38,7 @@ export default function OperatorWorkspace({ account, onSignOut, signingOut, logo
   return <div className="od-app ow-connected">
     <aside className="od-sidebar"><Link className="od-brand" to="/">BiteMap<span className="od-brand-dot">.</span></Link>
       <p className="od-sidebar-label">OWNER WORKSPACE</p><nav aria-label="Owner navigation">{(["Overview", "Menu", "Schedule", "Truck Details", "Orders"] as Tab[]).map(t => <button className={`od-nav-item ${tab === t ? "is-active" : ""}`} aria-current={tab === t ? "page" : undefined} key={t} onClick={() => { setTab(t); setCreating(false); }}>{t}</button>)}</nav>
-      <div className="od-sidebar-tip"><strong>Your kitchen, connected.</strong><p>Truck and menu changes are saved to BiteMap, not this browser.</p><Link to="/analytics">Public truck insights →</Link></div>
+      <div className="od-sidebar-tip"><strong>Your kitchen, connected.</strong><p>Truck and menu changes are saved to BiteMap, not this browser.</p><Link to="/operator/analytics">My business insights →</Link></div>
       <div className="od-owner"><div><strong>{account.displayName}</strong><p>{account.email}</p><button type="button" className="od-button od-button-secondary" disabled={signingOut} onClick={onSignOut}>{signingOut ? "Signing out…" : "Sign out"}</button></div></div>
     </aside>
     <div className="od-workspace"><header className="od-topbar"><span>Workspace / {tab}</span><Link to="/">Browse trucks →</Link></header>

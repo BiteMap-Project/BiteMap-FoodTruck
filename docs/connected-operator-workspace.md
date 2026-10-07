@@ -31,8 +31,8 @@ but neither is mounted on the live `/owner` route. This is the functional first
 integration, not a claim of pixel-for-pixel reproduction of every demo panel.
 
 Orders, revenue, schedule editing, and open/closed controls have no management
-integration here. They are not simulated as live business metrics. Public truck
-insights remain linked separately and are not owner-only financial analytics.
+integration here. They are not simulated as live business metrics. The workspace
+links to private operational metrics filtered to the signed-in operator's trucks.
 The current public menu exposes a boolean availability: INACTIVE and SOLD_OUT
 both appear unavailable, and inactive items remain listed.
 

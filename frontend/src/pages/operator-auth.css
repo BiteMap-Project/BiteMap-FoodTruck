@@ -181,13 +181,3 @@ body:has(.auth-page, .operator-page) { background: #f8f8f3; }
 .auth-page h1, .operator-page h1, .operator-page h2 { color: var(--text-h); font-family: Georgia, serif; }
 .operator-page a { color: var(--accent); }
 .operator-page .auth-success, .auth-page .auth-success { color: #176b36; }
-.operator-truck-form { display: grid; gap: 8px; margin-top: 20px; }
-.operator-truck-form input { width: 100%; box-sizing: border-box; padding: 10px; min-height: 44px; font: inherit; color: var(--text-h); background: white; border: 1px solid var(--border); border-radius: 9px; }
-.operator-truck-form label { font-weight: 600; color: var(--text-h); }
-.owned-trucks { list-style: none; padding: 0; }
-.owned-trucks li { border-top: 1px solid var(--border); padding: 20px 0; }
-.owned-trucks h3 { margin: 0; color: var(--text-h); }
-.operator-actions { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
-.operator-actions button { margin-top: 10px; }
-.operator-page .menu-item-form { margin-top: 16px; }
-.operator-page .menu-item-form button { color: white; }

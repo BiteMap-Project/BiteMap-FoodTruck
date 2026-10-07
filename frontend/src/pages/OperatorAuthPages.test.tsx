@@ -69,7 +69,7 @@ it("redirects an anonymous operator session to login", async () => {
 it("restores an operator session and logs out with a fresh CSRF token", async () => {
   fetchMock
     .mockResolvedValueOnce(response(200, { id: 2, displayName: "Food Truck Owner", email: "owner@example.com" }))
-    .mockResolvedValueOnce(response(200, { items: [], page: 0, totalPages: 0 }))
+    .mockResolvedValueOnce(response(200, { items: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }))
     .mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "logout-token" }))
     .mockResolvedValueOnce(response(204));
   render(
@@ -82,7 +82,7 @@ it("restores an operator session and logs out with a fresh CSRF token", async ()
   );
 
   expect(await screen.findByRole("heading", { name: "Welcome, Food Truck Owner" })).toBeInTheDocument();
-  await screen.findByText("No trucks yet. Add your first truck below.");
+  await screen.findByRole("heading", { name: "No trucks yet" });
   fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
   expect(await screen.findByText("Signed out")).toBeInTheDocument();
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));

@@ -13,7 +13,7 @@ function App() {
       <Route path="/" element={<DiscoverPage />} />
 
       <Route path="/trucks/:id" element={<TruckMenuPage />} />
-      <Route path="/owner" element={<Navigate to="/operator" replace />} />
+      <Route path="/owner" element={<OperatorHomePage />} />
       <Route path="/operator" element={<OperatorHomePage />} />
       <Route path="/operator/login" element={<OperatorLoginPage />} />
       <Route path="/operator/register" element={<OperatorRegisterPage />} />

@@ -22,10 +22,10 @@ localStorage prototype; the prototype's source files remain for the team to reus
 2. Return home, choose **Join as a truck owner**, and register a fresh test operator
    account with a passphrase of at least 15 characters. Do not reuse a real password.
 3. Sign in. The new workspace should show **No trucks yet**, not another user's trucks.
-4. Publish a truck named **Professor Tacos**, food category **Tacos**, location **CSUN**.
-   Explain that Publish immediately makes the profile visible to visitors.
-5. In the newly opened menu form, enter **Campus Taco**, price **4.50**, then choose
-   **Publish menu item**. Use **View published menu** to inspect the result.
+4. Choose **New truck** and create **Professor Tacos**, food category **Tacos**,
+   location **CSUN**. Explain that saving makes the profile visible to visitors.
+5. Open the **Menu** tab, choose **Add menu item**, enter **Campus Taco** with price
+   **4.50**, then save it. Use **View customer menu** to inspect the result.
 6. In the private visitor window, search for **Professor Tacos** and open its menu.
    The same item and price should appear without signing in.
 7. Back in the operator window, open **View my business insights**. Expect one truck,

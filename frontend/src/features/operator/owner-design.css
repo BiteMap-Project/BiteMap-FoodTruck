@@ -1,0 +1,1157 @@
+/* Preserved from Hayk's BiteMap-Owner-Readable.html; source HTML remains unchanged. */
+.od-app {
+                --od-bg: #f8f8f4;
+                --od-paper: #fff;
+                --od-ink: #26382e;
+                --od-muted: #737970;
+                --od-line: #e7e9e1;
+                --od-orange: #ba4d27;
+                color: var(--od-ink);
+                background: var(--od-bg);
+                min-height: 100vh;
+                display: flex;
+                font-family:
+                    Inter,
+                    ui-sans-serif,
+                    system-ui,
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    Segoe UI,
+                    sans-serif;
+                font-size: 14px;
+                line-height: 1.5;
+                text-align: left;
+            }
+            .od-app *,
+            .od-app *:before,
+            .od-app *:after {
+                box-sizing: border-box;
+            }
+            .od-app button,
+            .od-app input,
+            .od-app select,
+            .od-app textarea {
+                font: inherit;
+            }
+            .od-app button {
+                cursor: pointer;
+                letter-spacing: normal;
+                text-transform: none;
+            }
+            .od-app button:focus-visible,
+            .od-app input:focus-visible,
+            .od-app select:focus-visible,
+            .od-app textarea:focus-visible,
+            .od-skip:focus-visible {
+                outline: 3px solid #b44d26;
+                outline-offset: 4px;
+            }
+            .od-app h1,
+            .od-app h2,
+            .od-app h3,
+            .od-app p {
+                margin: 0;
+            }
+            .od-app button {
+                transition:
+                    background 0.15s,
+                    transform 0.15s;
+            }
+            .od-app button:hover {
+                filter: brightness(0.96);
+            }
+            .od-app svg {
+                flex-shrink: 0;
+            }
+            .od-sidebar {
+                width: 230px;
+                flex-shrink: 0;
+                min-height: 100vh;
+                background: #fff;
+                border-right: 1px solid var(--od-line);
+                padding: 32px 20px 20px;
+                display: flex;
+                flex-direction: column;
+                position: sticky;
+                top: 0;
+                height: 100vh;
+            }
+            .od-brand {
+                display: flex;
+                align-items: center;
+                font-size: 28px;
+                font-weight: 800;
+                letter-spacing: -1.3px;
+                padding: 0 7px;
+            }
+            .od-brand-icon {
+                display: grid;
+                place-items: center;
+                background: var(--od-orange);
+                color: #fff6e9;
+                width: 39px;
+                height: 39px;
+                border-radius: 12px;
+                margin-right: 9px;
+            }
+            .od-brand-dot {
+                color: var(--od-orange);
+            }
+            .od-sidebar-label {
+                color: #7c8277;
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 1.9px;
+                margin: 47px 13px 17px !important;
+            }
+            .od-sidebar nav {
+                display: grid;
+                gap: 8px;
+            }
+            .od-nav-item {
+                display: flex;
+                align-items: center;
+                gap: 13px;
+                width: 100%;
+                border: 0;
+                border-radius: 9px;
+                color: #60685e;
+                background: transparent;
+                padding: 13px;
+                text-align: left;
+                font-weight: 550 !important;
+            }
+            .od-nav-item.is-active {
+                color: #a73f1e;
+                background: #f9eee7;
+            }
+            .od-nav-count {
+                margin-left: auto;
+                border-radius: 5px;
+                background: #f1eee5;
+                color: #4b5849;
+                min-width: 22px;
+                text-align: center;
+                font-size: 11px;
+                padding: 1px 5px;
+            }
+            .od-sidebar-tip {
+                margin-top: auto;
+                padding: 22px 15px;
+                border-radius: 12px;
+                background: #f3f5eb;
+            }
+            .od-tip-symbol {
+                font-size: 26px;
+                color: #6e7e4d;
+                display: block;
+                margin-bottom: 9px;
+            }
+            .od-sidebar-tip strong {
+                display: block;
+                font-size: 13px;
+            }
+            .od-sidebar-tip p {
+                color: #737a67;
+                font-size: 12px;
+                margin-top: 8px;
+                line-height: 1.8;
+            }
+            .od-sidebar-tip button {
+                color: #485b37;
+                background: none;
+                border: 0;
+                padding: 0;
+                margin-top: 17px;
+                display: flex;
+                align-items: center;
+                gap: 9px;
+                font-size: 12px;
+                font-weight: 650;
+            }
+            .od-owner {
+                border-top: 1px solid var(--od-line);
+                margin-top: 24px;
+                padding: 20px 1px 0;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .od-avatar {
+                background: #ebdfce;
+                width: 35px;
+                height: 35px;
+                border-radius: 50%;
+                display: grid;
+                place-items: center;
+                font-size: 11px;
+                font-weight: 700;
+            }
+            .od-owner strong,
+            .od-owner small {
+                display: block;
+                font-size: 12px;
+            }
+            .od-owner small {
+                color: var(--od-muted);
+                font-size: 10px;
+                margin-top: 3px;
+            }
+            .od-workspace {
+                flex: 1;
+                min-width: 0;
+            }
+            .od-topbar {
+                height: 78px;
+                padding: 0 40px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 1px solid var(--od-line);
+                background: #fff;
+                font-size: 12px;
+            }
+            .od-breadcrumb {
+                color: #c2c6bd;
+                margin: 0 16px;
+            }
+            .od-muted {
+                color: var(--od-muted);
+            }
+            .od-demo-label {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                border: 1px solid #e7e6db;
+                border-radius: 20px;
+                padding: 6px 11px;
+                color: #69745e;
+                font-size: 11px;
+            }
+            .od-demo-label span {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: #839560;
+            }
+            .od-main {
+                max-width: 1400px;
+                margin: auto;
+                padding: 35px 40px 20px;
+            }
+            .od-page-heading {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 24px;
+                margin-bottom: 28px;
+            }
+            .od-eyebrow {
+                color: #878574;
+                letter-spacing: 1.8px;
+                font-size: 10px;
+                font-weight: 700;
+                margin-bottom: 9px !important;
+            }
+            .od-page-heading h1 {
+                font-family:
+                    Georgia,
+                    Times New Roman,
+                    serif;
+                font-weight: 500;
+                font-size: 34px;
+                line-height: 1.2;
+                letter-spacing: -1px;
+            }
+            .od-page-heading p:not(.od-eyebrow) {
+                color: var(--od-muted);
+                font-size: 12px;
+                margin-top: 10px;
+            }
+            .od-button {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 11px 17px;
+                border-radius: 8px;
+                font-weight: 600 !important;
+                font-size: 12px !important;
+                border: 1px solid transparent;
+                white-space: nowrap;
+            }
+            .od-button-primary {
+                background: var(--od-orange);
+                color: #fff;
+                box-shadow: 0 2px 3px #71331113;
+            }
+            .od-button-secondary {
+                background: #fff;
+                color: var(--od-ink);
+                border-color: var(--od-line);
+            }
+            .od-hero {
+                position: relative;
+                overflow: hidden;
+                border: 1px solid #efdfcd;
+                border-radius: 14px;
+                background: #faecd9;
+                min-height: 224px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 30px 34px;
+            }
+            .od-hero-copy {
+                position: relative;
+                z-index: 1;
+                max-width: 65%;
+            }
+            .od-label {
+                color: #9b6240;
+                font-size: 9px;
+                letter-spacing: 2px;
+                font-weight: 700;
+            }
+            .od-hero h2 {
+                font-family:
+                    Georgia,
+                    Times New Roman,
+                    serif;
+                font-size: 31px;
+                font-weight: 500;
+                margin-top: 9px;
+                letter-spacing: -0.5px;
+                overflow-wrap: anywhere;
+            }
+            .od-hero-copy > p {
+                color: #88725c;
+                font-size: 12px;
+                margin-top: 7px;
+            }
+            .od-hero-bottom {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 18px;
+                margin-top: 24px;
+            }
+            .od-open-toggle {
+                background: #fff9ee;
+                border: 1px solid #eadbc6;
+                padding: 8px 11px;
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                border-radius: 7px;
+                color: #695e50;
+                font-size: 10px !important;
+                font-weight: 600 !important;
+            }
+            .od-open-toggle.is-open {
+                color: #456042;
+            }
+            .od-toggle-track {
+                width: 26px;
+                height: 15px;
+                background: #999c95;
+                border-radius: 10px;
+                padding: 2px;
+            }
+            .od-toggle-track span {
+                display: block;
+                width: 11px;
+                height: 11px;
+                background: #fff;
+                border-radius: 50%;
+                transition: transform 0.15s;
+            }
+            .od-open-toggle.is-open .od-toggle-track {
+                background: #657b49;
+            }
+            .od-open-toggle.is-open .od-toggle-track span {
+                transform: translate(11px);
+            }
+            .od-hours {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 10px;
+                color: #8a7058;
+            }
+            .od-truck-art {
+                width: 320px;
+                position: absolute;
+                right: 16px;
+                bottom: 0;
+            }
+            .od-stats {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 18px;
+                margin: 22px 0;
+            }
+            .od-stat {
+                border: 1px solid var(--od-line);
+                background: #fff;
+                border-radius: 11px;
+                padding: 21px 24px;
+                position: relative;
+            }
+            .od-stat p {
+                color: #71796e;
+                font-size: 12px;
+                margin-bottom: 9px;
+            }
+            .od-stat > strong {
+                font-size: 29px;
+                line-height: 1.2;
+                letter-spacing: -1px;
+                font-weight: 600;
+                display: block;
+                font-variant-numeric: tabular-nums;
+            }
+            .od-stat > strong span {
+                color: #919689;
+                font-size: 19px;
+                font-weight: 400;
+            }
+            .od-stat small {
+                color: #7b8174;
+                font-size: 10px;
+                display: block;
+                margin-top: 12px;
+            }
+            .od-stat-icon {
+                position: absolute;
+                right: 18px;
+                top: 18px;
+                width: 34px;
+                height: 34px;
+                display: grid;
+                place-items: center;
+                border-radius: 9px;
+                background: #f2f4ea;
+                color: #78865c;
+            }
+            .od-stat:nth-child(2) .od-stat-icon {
+                background: #fff1e5;
+                color: #ba7b43;
+            }
+            .od-panel {
+                background: #fff;
+                border: 1px solid var(--od-line);
+                border-radius: 12px;
+                overflow: hidden;
+            }
+            .od-panel-heading {
+                padding: 23px 25px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 20px;
+            }
+            .od-panel h2 {
+                font-size: 15px;
+                font-weight: 650;
+            }
+            .od-panel-heading p {
+                color: var(--od-muted);
+                font-size: 11px;
+                margin-top: 5px;
+            }
+            .od-count {
+                font-family: inherit;
+                font-size: 10px;
+                border-radius: 5px;
+                padding: 3px 7px;
+                background: #f1f2e9;
+                color: #7b835f;
+                margin-left: 6px;
+                vertical-align: middle;
+            }
+            .od-text-button {
+                background: transparent;
+                border: 0;
+                color: #ac4d2b;
+                font-size: 11px !important;
+                font-weight: 600 !important;
+                padding: 6px 0;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                white-space: nowrap;
+            }
+            .od-table-wrap {
+                overflow-x: auto;
+                position: relative;
+            }
+            .od-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 11px;
+                white-space: nowrap;
+            }
+            .od-table th {
+                color: #84897d;
+                background: #fcfcf8;
+                font-weight: 500;
+                text-align: left;
+                padding: 11px 15px;
+                border-top: 1px solid #f0f0e9;
+                border-bottom: 1px solid #f0f0e9;
+                font-size: 10px;
+            }
+            .od-table td {
+                padding: 18px 15px;
+                border-bottom: 1px solid #f0f0e9;
+            }
+            .od-table tr:last-child td {
+                border-bottom: 0;
+            }
+            .od-table th:first-child,
+            .od-table td:first-child {
+                padding-left: 25px;
+            }
+            .od-table th:last-child,
+            .od-table td:last-child {
+                padding-right: 25px;
+            }
+            .od-table small {
+                display: block;
+                font-size: 9px;
+                color: #919589;
+                margin-top: 5px;
+            }
+            .od-customer {
+                font-weight: 500;
+                margin-left: 9px;
+                color: #737a6c;
+            }
+            .od-order-items {
+                color: #777e71;
+                white-space: normal;
+                min-width: 180px;
+                max-width: 280px;
+                font-size: 10px;
+            }
+            .od-badge {
+                display: inline-block;
+                padding: 4px 9px;
+                border-radius: 5px;
+                font-size: 9px;
+                font-weight: 600;
+            }
+            .od-status-new {
+                background: #fcedde;
+                color: #a76629;
+            }
+            .od-status-preparing {
+                background: #edf0f7;
+                color: #60749d;
+            }
+            .od-status-ready {
+                background: #eef2e5;
+                color: #5e7544;
+            }
+            .od-status-completed {
+                background: #f1f2ee;
+                color: #72796b;
+            }
+            .od-order-action {
+                border: 0;
+                background: transparent;
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                color: #536648;
+                padding: 6px 0;
+                font-size: 10px !important;
+                font-weight: 600 !important;
+            }
+            .od-bottom-grid {
+                display: grid;
+                grid-template-columns: 1.15fr 1fr;
+                gap: 20px;
+                margin-top: 22px;
+            }
+            .od-location {
+                padding: 24px;
+                display: flex;
+                align-items: center;
+                gap: 22px;
+            }
+            .od-location h2 {
+                margin-bottom: 8px;
+            }
+            .od-location p:not(.od-eyebrow) {
+                color: #777e71;
+                font-size: 10px;
+                overflow-wrap: anywhere;
+            }
+            .od-location .od-text-button {
+                margin-top: 15px;
+            }
+            .od-location-art {
+                width: 108px;
+                height: 125px;
+                background: #eaf0e1;
+                position: relative;
+                display: grid;
+                place-items: center;
+                border-radius: 9px;
+                overflow: hidden;
+                flex-shrink: 0;
+            }
+            .od-location-art svg {
+                z-index: 2;
+                background: #f8faf1;
+                border: 6px solid #f8faf1;
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                color: #728450;
+                box-shadow: 0 4px 10px #70815222;
+            }
+            .od-map-road {
+                position: absolute;
+                background: #fdfef8;
+                width: 16px;
+                height: 170px;
+                transform: rotate(35deg);
+            }
+            .od-road-one {
+                left: 18px;
+            }
+            .od-road-two {
+                right: 5px;
+                transform: rotate(-33deg);
+            }
+            .od-road-three {
+                transform: rotate(85deg);
+            }
+            .od-quick-menu .od-panel-heading {
+                padding-bottom: 12px;
+            }
+            .od-menu-line {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 9px 25px;
+                font-size: 11px;
+            }
+            .od-menu-line:last-child {
+                padding-bottom: 22px;
+            }
+            .od-menu-line strong {
+                margin-left: auto;
+                font-size: 10px;
+            }
+            .od-availability-dot {
+                width: 6px;
+                height: 6px;
+                background: #bdb8ad;
+                border-radius: 50%;
+            }
+            .od-availability-dot.is-available {
+                background: #97a376;
+            }
+            .od-footer {
+                display: flex;
+                justify-content: space-between;
+                gap: 16px;
+                color: #909587;
+                font-size: 9px;
+                padding: 27px 0 5px;
+            }
+            .od-menu-grid {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 18px;
+                padding: 0 25px 25px;
+            }
+            .od-menu-card {
+                border: 1px solid var(--od-line);
+                border-radius: 10px;
+                overflow: hidden;
+            }
+            .od-food-art {
+                height: 115px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 16px;
+                color: #97613d;
+                background:
+                    radial-gradient(circle at 25% 50%, #faebd8 0 28%, transparent 29%),
+                    #f2dfc3;
+            }
+            .od-food-art span {
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                font-size: 10px;
+            }
+            .od-food-drinks {
+                background: #e9eeda;
+                color: #718056;
+            }
+            .od-food-sides {
+                background: #f8e7d1;
+                color: #a26e45;
+            }
+            .od-food-desserts {
+                background: #f4e1de;
+                color: #a46c67;
+            }
+            .od-menu-card-body {
+                padding: 18px;
+            }
+            .od-menu-title {
+                display: flex;
+                gap: 9px;
+                justify-content: space-between;
+                align-items: baseline;
+            }
+            .od-menu-title h3 {
+                font-size: 14px;
+            }
+            .od-menu-title strong {
+                font-size: 12px;
+                color: #a5512e;
+            }
+            .od-menu-card-body > p {
+                color: #7c8176;
+                font-size: 11px;
+                min-height: 54px;
+                margin-top: 10px;
+            }
+            .od-menu-card-actions {
+                display: flex;
+                justify-content: space-between;
+                gap: 9px;
+                align-items: center;
+                margin-top: 18px;
+            }
+            .od-availability {
+                padding: 5px 0;
+                color: #887a65;
+                background: none;
+                border: 0;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 10px !important;
+            }
+            .od-availability span {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: currentColor;
+            }
+            .od-availability.is-available {
+                color: #607748;
+            }
+            .od-search input {
+                width: 200px;
+                padding: 10px 12px;
+                border: 1px solid var(--od-line);
+                border-radius: 7px;
+                background: #fcfcf9;
+                color: var(--od-ink);
+                font-size: 11px;
+            }
+            .od-filters {
+                display: flex;
+                gap: 8px;
+                padding: 0 25px 20px;
+                flex-wrap: wrap;
+            }
+            .od-filters button {
+                background: #f6f7f1;
+                color: #727966;
+                border: 1px solid transparent;
+                border-radius: 6px;
+                padding: 7px 13px;
+                font-size: 11px;
+            }
+            .od-filters button.is-active {
+                color: #a44d2b;
+                background: #fbede2;
+                border-color: #f0d5bf;
+            }
+            .od-empty {
+                padding: 50px 20px;
+                text-align: center;
+                color: #7a826e;
+            }
+            .od-empty h3 {
+                margin: 10px 0 5px;
+                color: var(--od-ink);
+            }
+            .od-empty p {
+                font-size: 12px;
+            }
+            .od-profile {
+                max-width: 760px;
+            }
+            .od-form {
+                display: grid;
+                gap: 19px;
+                padding: 0 25px 25px;
+            }
+            .od-form label {
+                font-size: 12px;
+                font-weight: 600;
+                display: grid;
+                gap: 7px;
+            }
+            .od-form input,
+            .od-form textarea,
+            .od-form select {
+                width: 100%;
+                background: #fcfcf9;
+                color: var(--od-ink);
+                border: 1px solid #dfe3d7;
+                border-radius: 7px;
+                padding: 11px 12px;
+                font-size: 13px;
+                font-weight: 400;
+            }
+            .od-form textarea {
+                resize: vertical;
+            }
+            .od-form > .od-button {
+                justify-self: start;
+            }
+            .od-form-hint {
+                color: #79816e;
+                font-size: 11px;
+            }
+            .od-form-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+            }
+            .od-dialog {
+                border: 1px solid #e7e2d8;
+                border-radius: 16px;
+                width: 480px;
+                max-width: calc(100vw - 32px);
+                padding: 0;
+                color: var(--od-ink);
+                background: #fff;
+                box-shadow: 0 24px 80px #23322633;
+            }
+            .od-dialog::backdrop {
+                background: #23302580;
+                backdrop-filter: blur(3px);
+            }
+            .od-dialog-heading {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 25px;
+            }
+            .od-dialog h2 {
+                font-family: Georgia, serif;
+                font-weight: 500;
+                font-size: 27px;
+            }
+            .od-icon-button {
+                background: none;
+                border: 0;
+                color: #697260;
+                font-size: 27px !important;
+                display: grid;
+                place-items: center;
+                min-width: 32px;
+                min-height: 32px;
+            }
+            .od-dialog-actions {
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+                margin-top: 8px;
+            }
+            .od-toast {
+                position: fixed;
+                z-index: 10;
+                bottom: 25px;
+                left: 50%;
+                transform: translate(-50%);
+                padding: 13px 20px;
+                border-radius: 9px;
+                background: #2e4838;
+                color: #fff;
+                box-shadow: 0 8px 30px #263a3325;
+                display: none;
+                align-items: center;
+                gap: 10px;
+                max-width: calc(100vw - 30px);
+                font-size: 12px;
+            }
+            .od-toast.is-visible {
+                display: flex;
+            }
+            .od-storage-warning {
+                padding: 14px;
+                background: #fff0d2;
+                border-radius: 8px;
+                margin-bottom: 20px !important;
+            }
+            .od-sr-only {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                padding: 0;
+                margin: -1px;
+                overflow: hidden;
+                clip: rect(0, 0, 0, 0);
+                white-space: nowrap;
+                border: 0;
+            }
+            .od-skip {
+                position: fixed;
+                top: -100px;
+                left: 15px;
+                background: #fff;
+                padding: 10px;
+                z-index: 20;
+            }
+            .od-skip:focus {
+                top: 10px;
+            }
+            @media (min-width: 1500px) {
+                .od-main {
+                    padding-top: 45px;
+                }
+                .od-hero {
+                    min-height: 250px;
+                }
+                .od-truck-art {
+                    width: 360px;
+                    right: 40px;
+                }
+            }
+            @media (max-width: 1150px) {
+                .od-sidebar {
+                    width: 195px;
+                    padding: 25px 14px 18px;
+                }
+                .od-main {
+                    padding: 28px 25px 15px;
+                }
+                .od-topbar {
+                    padding: 0 25px;
+                }
+                .od-truck-art {
+                    width: 265px;
+                    right: -12px;
+                }
+                .od-page-heading h1 {
+                    font-size: 29px;
+                }
+                .od-hero {
+                    padding: 26px;
+                }
+                .od-hero h2 {
+                    font-size: 27px;
+                }
+                .od-stats {
+                    gap: 12px;
+                }
+                .od-stat {
+                    padding: 19px;
+                }
+                .od-stat-icon {
+                    width: 28px;
+                    height: 28px;
+                    right: 12px;
+                }
+                .od-bottom-grid {
+                    grid-template-columns: 1fr 1fr;
+                    gap: 14px;
+                }
+                .od-location {
+                    gap: 14px;
+                    padding: 19px;
+                }
+                .od-location-art {
+                    width: 75px;
+                }
+                .od-menu-grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+            }
+            @media (max-width: 850px) {
+                .od-app {
+                    display: block;
+                }
+                .od-sidebar {
+                    position: static;
+                    height: auto;
+                    min-height: 0;
+                    width: 100%;
+                    padding: 17px 20px 12px;
+                    border-right: 0;
+                    border-bottom: 1px solid var(--od-line);
+                }
+                .od-brand {
+                    font-size: 24px;
+                }
+                .od-brand-icon {
+                    width: 33px;
+                    height: 33px;
+                }
+                .od-sidebar-label,
+                .od-sidebar-tip,
+                .od-owner {
+                    display: none;
+                }
+                .od-sidebar nav {
+                    display: flex;
+                    margin-top: 17px;
+                    gap: 5px;
+                }
+                .od-nav-item {
+                    width: auto;
+                    flex: 1;
+                    justify-content: center;
+                    padding: 10px 7px;
+                    font-size: 12px !important;
+                    gap: 7px;
+                }
+                .od-nav-count {
+                    margin-left: 0;
+                }
+                .od-topbar {
+                    height: 55px;
+                }
+                .od-page-heading {
+                    align-items: flex-start;
+                }
+                .od-hero-copy {
+                    max-width: 65%;
+                }
+            }
+            @media (max-width: 600px) {
+                .od-main {
+                    padding: 25px 16px 15px;
+                }
+                .od-topbar {
+                    padding: 0 18px;
+                }
+                .od-sidebar {
+                    padding: 16px 12px 10px;
+                }
+                .od-nav-item svg {
+                    width: 16px;
+                }
+                .od-nav-count {
+                    display: none;
+                }
+                .od-page-heading {
+                    flex-wrap: wrap;
+                    gap: 17px;
+                    margin-bottom: 20px;
+                }
+                .od-page-heading h1 {
+                    font-size: 29px;
+                }
+                .od-hero {
+                    min-height: 295px;
+                    align-items: flex-start;
+                    padding: 24px;
+                }
+                .od-hero-copy {
+                    max-width: 100%;
+                }
+                .od-hero h2 {
+                    font-size: 27px;
+                }
+                .od-truck-art {
+                    width: 195px;
+                    right: 0;
+                    bottom: -9px;
+                    opacity: 0.8;
+                }
+                .od-hero-bottom {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 12px;
+                    margin-top: 19px;
+                }
+                .od-hours {
+                    max-width: 170px;
+                }
+                .od-stats {
+                    gap: 9px;
+                    margin: 16px 0;
+                }
+                .od-stat {
+                    padding: 15px 11px;
+                }
+                .od-stat-icon {
+                    position: static;
+                    margin-bottom: 12px;
+                }
+                .od-stat p {
+                    font-size: 10px;
+                    min-height: 30px;
+                }
+                .od-stat > strong {
+                    font-size: 23px;
+                }
+                .od-stat small {
+                    font-size: 9px;
+                    min-height: 28px;
+                }
+                .od-stat > strong span {
+                    font-size: 14px;
+                }
+                .od-panel-heading {
+                    padding: 19px 17px;
+                    gap: 12px;
+                    flex-wrap: wrap;
+                }
+                .od-panel-heading p {
+                    font-size: 10px;
+                }
+                .od-bottom-grid {
+                    grid-template-columns: 1fr;
+                    margin-top: 16px;
+                }
+                .od-location-art {
+                    width: 100px;
+                    height: 100px;
+                }
+                .od-footer {
+                    flex-direction: column;
+                    gap: 7px;
+                }
+                .od-menu-grid {
+                    grid-template-columns: 1fr;
+                    padding: 0 17px 17px;
+                }
+                .od-search,
+                .od-search input {
+                    width: 100%;
+                }
+                .od-form {
+                    padding: 0 18px 22px;
+                }
+                .od-filters {
+                    padding: 0 17px 17px;
+                }
+                .od-table {
+                    min-width: 700px;
+                }
+                .od-dialog-heading {
+                    padding: 23px 18px;
+                }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .od-app * {
+                    transition: none !important;
+                }
+            }

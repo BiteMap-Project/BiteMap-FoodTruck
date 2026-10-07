@@ -1,0 +1,39 @@
+/* The owner workspace is a full-window, light-themed application shell. */
+body:has(.ow-connected) { background: #f8f8f4; }
+#root:has(.ow-connected) { width: 100%; }
+.ow-connected { width: 100%; color-scheme: light; }
+.ow-connected h1,
+.ow-connected h2,
+.ow-connected h3 { color: var(--od-ink); }
+
+.ow-connected a { color: #98401f; }
+.ow-connected .od-brand { color: var(--od-ink); text-decoration: none; }
+.ow-connected .od-owner { overflow-wrap: anywhere; }
+.ow-connected .od-owner { display: flex; }
+.ow-connected .od-sidebar nav { flex-wrap: wrap; }
+.ow-connected .ow-toolbar > label { min-width: 0; max-width: 100%; }
+.ow-connected .ow-toolbar select { width: 260px; max-width: 100%; }
+.ow-connected .od-owner button { margin-top: 12px; }
+.ow-connected .od-sidebar-tip { margin-top: 32px; }
+.ow-connected .od-main { padding-bottom: 48px; }
+.ow-connected .ow-panel { padding: 24px; border: 1px solid var(--od-line); border-radius: 12px; background: var(--od-paper); margin-top: 24px; }
+.ow-connected .ow-panel h2 { font-size: 22px; margin-bottom: 12px; }
+.ow-connected .ow-panel p { margin: 12px 0; }
+.ow-connected .ow-toolbar { display: flex; gap: 14px; flex-wrap: wrap; align-items: end; margin-bottom: 18px; }
+.ow-connected label { display: grid; gap: 6px; color: #45513f; }
+.ow-connected input, .ow-connected textarea, .ow-connected select { min-width: 0; max-width: 100%; background: #fff; color: #26382e; border: 1px solid #cbd1c6; border-radius: 7px; padding: 11px; }
+.ow-connected textarea { min-height: 90px; resize: vertical; }
+.ow-connected .ow-form { max-width: 600px; }
+.ow-connected fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 16px; min-width: 0; }
+.ow-connected button:not(.od-nav-item):not(.od-button) { padding: 10px 14px; border-radius: 7px; border: 1px solid var(--od-line); color: var(--od-ink); background: #f3f5eb; }
+.ow-connected button:disabled { opacity: .55; cursor: not-allowed; }
+.ow-connected .ow-menu-row { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 20px 0; border-top: 1px solid var(--od-line); }
+.ow-connected .ow-menu-row > div { min-width: 0; overflow-wrap: anywhere; }
+.ow-connected .ow-item-actions { display: grid; gap: 10px; }
+.ow-connected .ow-pagination { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 20px 0; }
+.ow-connected .ow-editor { background: #f8f8f4; border-radius: 10px; padding: 20px; margin: 20px 0; }
+.ow-connected .ow-editor h3 { margin-bottom: 15px; }
+.ow-connected .ow-error { color: #a32d25; padding: 12px; background: #fff0eb; margin: 16px 0; }
+.ow-connected .ow-message { color: #3a602e; padding: 12px; margin: 12px 0; }
+.ow-connected .od-hero-copy { max-width: 100%; }
+@media(max-width: 700px) { .ow-connected .od-sidebar { position: static; height: auto; min-height: 0; } .ow-connected .od-sidebar-tip { display: none; } .ow-connected .od-topbar { padding: 16px; } .ow-connected .od-main { padding: 20px 16px; } .ow-connected .od-hero { padding: 22px; min-height: 160px; } .ow-connected .ow-panel { padding: 16px; } .ow-connected input, .ow-connected select, .ow-connected textarea { font-size: 16px; } }

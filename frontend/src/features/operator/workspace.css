@@ -36,4 +36,6 @@ body:has(.ow-connected) { background: #f8f8f4; }
 .ow-connected .ow-error { color: #a32d25; padding: 12px; background: #fff0eb; margin: 16px 0; }
 .ow-connected .ow-message { color: #3a602e; padding: 12px; margin: 12px 0; }
 .ow-connected .od-hero-copy { max-width: 100%; }
+.ow-connected .ow-cancel-confirm { flex-basis: 100%; }
+.ow-connected .ow-cancel-confirm button { margin: 0 8px 8px 0; }
 @media(max-width: 700px) { .ow-connected .od-sidebar { position: static; height: auto; min-height: 0; } .ow-connected .od-sidebar-tip { display: none; } .ow-connected .od-topbar { padding: 16px; } .ow-connected .od-main { padding: 20px 16px; } .ow-connected .od-hero { padding: 22px; min-height: 160px; } .ow-connected .ow-panel { padding: 16px; } .ow-connected input, .ow-connected select, .ow-connected textarea { font-size: 16px; } }

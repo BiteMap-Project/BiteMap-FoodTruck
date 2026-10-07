@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthApiError, loginOperator } from "../services/auth";
+import PasswordInput from "../components/PasswordInput";
 import "./operator-auth.css";
 
 type RegistrationState = { registered?: boolean; email?: string } | null;
@@ -30,8 +31,13 @@ function OperatorLoginPage() {
 
   return (
     <main className="auth-page">
+      <aside className="auth-story" aria-label="Owner workspace introduction">
+        <Link className="auth-brand" to="/trucks">BiteMap<span>.</span></Link>
+        <div><p className="auth-eyebrow">YOUR KITCHEN. YOUR COMMUNITY.</p><h2>Good food.<br />Great places.<br /><em>Your next chapter.</em></h2><p>Keep your menu fresh and let people know where you’re headed. Your kitchen on wheels, all in one workspace.</p></div>
+        <p className="auth-story-foot">Made for the people who bring the flavor.</p>
+      </aside>
       <section className="auth-card" aria-labelledby="login-heading">
-        <Link className="auth-brand" to="/">BiteMap</Link>
+        <p className="auth-eyebrow">WELCOME BACK</p>
         <h1 id="login-heading">Operator sign in</h1>
         <p className="auth-intro">Sign in to manage your food trucks and menus.</p>
         {registration?.registered && (
@@ -50,9 +56,8 @@ function OperatorLoginPage() {
             onChange={(event) => setEmail(event.target.value)}
           />
           <label htmlFor="login-password">Password</label>
-          <input
+          <PasswordInput
             id="login-password"
-            type="password"
             autoComplete="current-password"
             maxLength={128}
             required
@@ -64,6 +69,7 @@ function OperatorLoginPage() {
           </button>
         </form>
         <p className="auth-switch">New operator? <Link to="/operator/register">Create an account</Link></p>
+        <Link className="auth-back" to="/trucks">← Just browsing? Find a food truck</Link>
       </section>
     </main>
   );

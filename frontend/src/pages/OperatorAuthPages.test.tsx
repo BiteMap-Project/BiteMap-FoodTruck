@@ -17,6 +17,28 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
 });
 
+it("toggles password visibility without changing its value or submitting", () => {
+  render(<MemoryRouter><OperatorLoginPage /></MemoryRouter>);
+  const password = screen.getByLabelText("Password");
+  fireEvent.change(password, { target: { value: "test-only password" } });
+  expect(password).toHaveAttribute("type", "password");
+  fireEvent.click(screen.getByRole("button", { name: "Show password" }));
+  expect(password).toHaveAttribute("type", "text");
+  expect(password).toHaveValue("test-only password");
+  expect(password).toHaveAttribute("autoComplete", "current-password");
+  fireEvent.click(screen.getByRole("button", { name: "Hide password" }));
+  expect(password).toHaveAttribute("type", "password");
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it("keeps registration password visibility controls independent", () => {
+  render(<MemoryRouter><OperatorRegisterPage /></MemoryRouter>);
+  fireEvent.click(screen.getAllByRole("button", { name: "Show password" })[0]);
+  expect(screen.getByLabelText("Password")).toHaveAttribute("type", "text");
+  expect(screen.getByLabelText("Confirm password")).toHaveAttribute("type", "password");
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
 it("logs in and opens the operator route", async () => {
   fetchMock
     .mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "token" }))

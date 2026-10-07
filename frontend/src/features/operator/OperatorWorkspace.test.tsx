@@ -25,6 +25,13 @@ beforeEach(() => {
 function show(path = "/owner") {
   render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/owner" element={<OperatorHomePage />} /><Route path="/operator/login" element={<p>Login screen</p>} /></Routes></MemoryRouter>);
 }
+it("opens the Schedule tab for the selected owned truck", async () => {
+  show(); await screen.findByRole("heading", { name: "Spicy Food" });
+  fetchMock.mockResolvedValueOnce(response(200, page([])));
+  fireEvent.click(screen.getByRole("button", { name: "Schedule" }));
+  expect(await screen.findByText(/No stops on this page/)).toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/stops?page=0&size=20", expect.objectContaining({ credentials: "same-origin" }));
+});
 async function openMenu() {
   show();
   await screen.findByRole("heading", { name: "Spicy Food" });

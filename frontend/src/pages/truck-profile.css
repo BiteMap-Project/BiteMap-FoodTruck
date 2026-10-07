@@ -1,0 +1,25 @@
+body:has(.truck-site) { background: #f8f8f4; }
+#root:has(.truck-site) { width: 100%; }
+.truck-site { --text-h: #293c31; --text: #626b60; --accent: #a54120; --border: #e1e4da; --surface: #fff; --danger: #a32d25; color: var(--text); color-scheme: light; background: #f8f8f4; min-height: 100svh; }
+.truck-site-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px clamp(20px, 5vw, 80px); background: #fff; border-bottom: 1px solid var(--border); }
+.truck-site-brand { font-size: 32px; font-weight: 800; letter-spacing: -1.5px; color: #293c31; text-decoration: none; }
+.truck-site-brand span { color: #b64923; }
+.truck-site-header nav { display: flex; gap: 28px; flex-wrap: wrap; }
+.truck-site-header nav a { color: #455b49; font-size: 14px; text-decoration: none; padding: 10px 0; }
+.truck-site .truck-profile { max-width: 1180px; padding: 32px clamp(20px, 4vw, 64px) 64px; }
+.truck-profile-hero { position: relative; padding: clamp(28px, 5vw, 64px); margin-top: 24px; border-radius: 20px; border: 1px solid #efddc6; background: #fbead6; }
+.truck-eyebrow { font-size: 11px; letter-spacing: 2px; font-weight: 750; color: #855031; }
+.truck-site .truck-profile-hero h1 { font: 500 clamp(36px, 5vw, 62px)/1.1 Georgia, serif; margin: 22px 0; color: #293c31; }
+.truck-profile-hero > p:not(.truck-eyebrow) { margin-top: 8px; }
+.truck-menu-jump { display: inline-block; margin-top: 28px; padding: 13px 20px; background: #b64923; color: white; border-radius: 9px; font-size: 14px; font-weight: 650; text-decoration: none; }
+.truck-site .truck-profile section { margin-top: 40px; }
+.truck-site .truck-profile h2 { font: 500 32px/1.2 Georgia, serif; color: #293c31; }
+.truck-site .menu-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 24px; border: 0; }
+.truck-site .menu-items li { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+.truck-site .menu-item-heading { gap: 12px; }
+.truck-site .menu-item-heading span { color: #a54120; }
+.truck-site .menu-items li > p { margin-top: 14px; line-height: 1.7; }
+.truck-site .unavailable { display: inline-block; padding: 3px 10px; border-radius: 6px; background: #fff0e8; }
+.truck-site-footer { text-align: center; border-top: 1px solid var(--border); padding: 28px 20px; font-size: 13px; }
+.truck-site a:focus-visible, .truck-site button:focus-visible { outline: 3px solid #b64923; outline-offset: 4px; }
+@media(max-width: 650px) { .truck-site-header { align-items: flex-start; flex-direction: column; gap: 10px; } .truck-site-header nav { gap: 20px; } .truck-site .menu-items { grid-template-columns: 1fr; } }

@@ -18,6 +18,7 @@ beforeEach(() => {
 });
 
 it("toggles password visibility without changing its value or submitting", () => {
+  fetchMock.mockResolvedValue(response(401));
   render(<MemoryRouter><OperatorLoginPage /></MemoryRouter>);
   const password = screen.getByLabelText("Password");
   fireEvent.change(password, { target: { value: "test-only password" } });
@@ -28,7 +29,8 @@ it("toggles password visibility without changing its value or submitting", () =>
   expect(password).toHaveAttribute("autoComplete", "current-password");
   fireEvent.click(screen.getByRole("button", { name: "Hide password" }));
   expect(password).toHaveAttribute("type", "password");
-  expect(fetchMock).not.toHaveBeenCalled();
+  // Only the "already signed in?" check runs; nothing is submitted.
+  expect(fetchMock.mock.calls.every(([url, init]) => url === "/api/auth/me" && !init?.method)).toBe(true);
 });
 
 it("keeps registration password visibility controls independent", () => {
@@ -40,9 +42,12 @@ it("keeps registration password visibility controls independent", () => {
 });
 
 it("logs in and opens the operator route", async () => {
-  fetchMock
-    .mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "token" }))
-    .mockResolvedValueOnce(response(200, { id: 2, displayName: "Owner", email: "owner@example.com" }));
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url === "/api/auth/me") return response(401);
+    if (url === "/api/auth/csrf") return response(200, { headerName: "X-CSRF-TOKEN", token: "token" });
+    if (url === "/api/auth/login") return response(200, { id: 2, displayName: "Owner", email: "owner@example.com" });
+    return response(500);
+  });
   render(
     <MemoryRouter initialEntries={["/operator/login"]}>
       <Routes>
@@ -57,6 +62,39 @@ it("logs in and opens the operator route", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
   expect(await screen.findByText("Operator route")).toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledWith("/api/auth/login", expect.objectContaining({ method: "POST" }));
+});
+
+it("sends an already signed-in operator from the login page to the workspace", async () => {
+  fetchMock.mockImplementation(async (url: string) =>
+    url === "/api/auth/me" ? response(200, { id: 2, displayName: "Owner", email: "owner@example.com" }) : response(500));
+  render(
+    <MemoryRouter initialEntries={["/operator/login"]}>
+      <Routes>
+        <Route path="/operator/login" element={<OperatorLoginPage />} />
+        <Route path="/operator" element={<p>Operator route</p>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  expect(await screen.findByText("Operator route")).toBeInTheDocument();
+  expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
+});
+
+it("keeps the login form when the session check fails", async () => {
+  fetchMock.mockRejectedValue(new Error("offline"));
+  render(
+    <MemoryRouter initialEntries={["/operator/login"]}>
+      <Routes>
+        <Route path="/operator/login" element={<OperatorLoginPage />} />
+        <Route path="/operator" element={<p>Operator route</p>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+  expect(screen.getByRole("heading", { name: "Operator sign in" })).toBeInTheDocument();
+  expect(screen.queryByText("Operator route")).not.toBeInTheDocument();
 });
 
 it("shows a local confirmation error without sending the passwords", async () => {

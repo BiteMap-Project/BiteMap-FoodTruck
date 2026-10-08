@@ -6,5 +6,10 @@ OVERRIDING SYSTEM VALUE
 VALUES
     (-1, 'Soup Stop', 'Soup', 'CSUN'),
     (-2, 'Taco Mobile', 'Tacos', 'Northridge'),
-    (-3, 'Coffee Cart', 'Coffee', 'Reseda')
+    (-3, 'Coffee Cart', 'Coffee', 'Reseda'),
+    (-4, 'Griddle & Grain', 'Burgers', 'CSUN'),
+    (-5, 'Seoul Street Bowls', 'Korean', 'Granada Hills'),
+    (-6, 'Curry in a Hurry', 'Indian', 'Van Nuys'),
+    (-7, 'Pacific Poke', 'Hawaiian', 'Encino'),
+    (-8, 'Sweet Route', 'Desserts', 'Sherman Oaks')
 ON CONFLICT (id) DO NOTHING;

@@ -1,6 +1,6 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { AuthApiError, loginOperator } from "../services/auth";
+import { AuthApiError, getCurrentOperator, loginOperator } from "../services/auth";
 import PasswordInput from "../components/PasswordInput";
 import "./operator-auth.css";
 
@@ -14,6 +14,19 @@ function OperatorLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Already signed in? Skip the form and go straight to the workspace.
+  // If the check fails or the visitor is signed out, the form simply stays.
+  useEffect(() => {
+    const controller = new AbortController();
+    getCurrentOperator(controller.signal).then(
+      (account) => {
+        if (account && !controller.signal.aborted) navigate("/operator", { replace: true });
+      },
+      () => {},
+    );
+    return () => controller.abort();
+  }, [navigate]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

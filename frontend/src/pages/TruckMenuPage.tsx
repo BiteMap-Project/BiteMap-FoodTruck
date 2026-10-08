@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { getVendor, type VendorProfile } from "../services/vendors";
 import { EmptyState, ErrorState, LoadingState } from "../components/StatusViews";
 import "./truck-profile.css";
 import { addCartItem, cartItemCount, readCart } from "../features/cart/cart";
+import { ownerBackLink, readOwnerReturn } from "../features/operator/ownerReturn";
 
 type Result =
   | { status: "loading"; id: string }
@@ -15,6 +16,9 @@ const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "U
 
 function TruckMenuPage() {
   const { id = "" } = useParams();
+  // Set only when an owner opens this page from their dashboard or insights.
+  const ownerReturn = readOwnerReturn(useLocation().state);
+  const back = ownerReturn ? ownerBackLink(ownerReturn) : null;
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<Result>({ status: "loading", id });
   const [cartCount, setCartCount] = useState(() => cartItemCount(readCart()));
@@ -40,9 +44,16 @@ function TruckMenuPage() {
 
   return (
     <div className="truck-site">
-      <header className="truck-site-header"><Link className="truck-site-brand" to="/trucks">BiteMap<span>.</span></Link><nav aria-label="Truck page navigation"><Link to="/trucks">Discover trucks</Link><Link to="/cart">Cart ({cartCount})</Link><Link to="/operator/login">Owner workspace →</Link></nav></header>
+      <header className="truck-site-header"><Link className="truck-site-brand" to="/trucks">BiteMap<span>.</span></Link><nav aria-label="Truck page navigation"><Link to="/trucks">Discover trucks</Link><Link to="/cart">Cart ({cartCount})</Link><Link to="/operator">Owner workspace →</Link></nav></header>
     <main className="truck-profile">
-      <Link to="/trucks">← Back to trucks</Link>
+      {back ? (
+        <>
+          <Link to={back.to} state={back.state}>{back.label}</Link>
+          <p className="owner-preview-note" role="note">You’re previewing this menu the way customers see it.</p>
+        </>
+      ) : (
+        <Link to="/trucks">← Back to trucks</Link>
+      )}
       {current.status === "loading" && <LoadingState label="Loading truck…" />}
       {current.status === "missing" && (
         <>

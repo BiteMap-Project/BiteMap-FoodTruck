@@ -4,6 +4,7 @@ import { AuthApiError } from "../services/auth";
 import { PinIcon } from "../components/icons";
 import { downloadAnalyticsCsv } from "../features/analytics/exportCsv";
 import { getTruckAnalytics, type TruckAnalytics } from "../services/analytics";
+import { previewState } from "../features/operator/ownerReturn";
 import "./analytics.css";
 
 const price = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -90,7 +91,7 @@ export default function AnalyticsPage() {
                     <tbody>
                       {report.trucks.map((truck) => (
                         <tr key={truck.vendorId}>
-                          <th scope="row"><Link to={`/trucks/${truck.vendorId}`}>{truck.name}</Link><small>{truck.category} · {truck.location}</small></th>
+                          <th scope="row"><Link to={`/trucks/${truck.vendorId}`} state={previewState({ from: "analytics" })}>{truck.name}</Link><small>{truck.category} · {truck.location}</small></th>
                           <td>{truck.availableItemCount} of {truck.menuItemCount} available</td>
                           <td>{truck.averageMenuPrice === null ? "—" : price.format(truck.averageMenuPrice)}</td>
                           <td>{truck.upcomingStopCount} upcoming<small>{truck.totalStopCount} total</small></td>

@@ -6,6 +6,7 @@ import OperatorHomePage from "./pages/OperatorHomePage";
 import OperatorLoginPage from "./pages/OperatorLoginPage";
 import OperatorRegisterPage from "./pages/OperatorRegisterPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import CartPage from "./pages/CartPage";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
       <Route path="/trucks" element={<DiscoverPage />} />
 
       <Route path="/trucks/:id" element={<TruckMenuPage />} />
+      <Route path="/cart" element={<CartPage />} />
       <Route path="/owner" element={<OperatorHomePage />} />
       <Route path="/operator" element={<OperatorHomePage />} />
       <Route path="/operator/login" element={<OperatorLoginPage />} />

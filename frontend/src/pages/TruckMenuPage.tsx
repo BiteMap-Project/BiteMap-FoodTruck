@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { getVendor, type VendorProfile } from "../services/vendors";
 import { EmptyState, ErrorState, LoadingState } from "../components/StatusViews";
 import "./truck-profile.css";
+import { addCartItem, cartItemCount, readCart } from "../features/cart/cart";
 
 type Result =
   | { status: "loading"; id: string }
@@ -16,6 +17,8 @@ function TruckMenuPage() {
   const { id = "" } = useParams();
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<Result>({ status: "loading", id });
+  const [cartCount, setCartCount] = useState(() => cartItemCount(readCart()));
+  const [cartMessage, setCartMessage] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -37,7 +40,7 @@ function TruckMenuPage() {
 
   return (
     <div className="truck-site">
-      <header className="truck-site-header"><Link className="truck-site-brand" to="/trucks">BiteMap<span>.</span></Link><nav aria-label="Truck page navigation"><Link to="/trucks">Discover trucks</Link><Link to="/operator/login">Owner workspace →</Link></nav></header>
+      <header className="truck-site-header"><Link className="truck-site-brand" to="/trucks">BiteMap<span>.</span></Link><nav aria-label="Truck page navigation"><Link to="/trucks">Discover trucks</Link><Link to="/cart">Cart ({cartCount})</Link><Link to="/operator/login">Owner workspace →</Link></nav></header>
     <main className="truck-profile">
       <Link to="/trucks">← Back to trucks</Link>
       {current.status === "loading" && <LoadingState label="Loading truck…" />}
@@ -67,6 +70,7 @@ function TruckMenuPage() {
           </div>
           <section aria-labelledby="menu-heading">
             <h2 id="menu-heading">Menu</h2>
+            {cartMessage && <p className="cart-message" role="status">{cartMessage}</p>}
             {current.truck.menu.length === 0 ? (
               <EmptyState title="No menu available yet." hint="This truck hasn't posted its menu. Check back later." />
             ) : (
@@ -78,7 +82,11 @@ function TruckMenuPage() {
                       <span>{dollars.format(item.price)}</span>
                     </div>
                     {item.description && <p>{item.description}</p>}
-                    {!item.available && <p className="unavailable">Currently unavailable</p>}
+                    {item.available ? <button className="add-to-cart" type="button" onClick={() => {
+                      const next = addCartItem(current.truck.id, current.truck.name, { id: item.id, name: item.name, price: item.price });
+                      if (!next) setCartMessage("Your cart contains items from another truck. Clear that cart before starting a new order.");
+                      else { setCartCount(cartItemCount(next)); setCartMessage(`${item.name} added to your cart.`); }
+                    }}>Add {item.name} to cart</button> : <p className="unavailable">Currently unavailable</p>}
                   </li>
                 ))}
               </ul>

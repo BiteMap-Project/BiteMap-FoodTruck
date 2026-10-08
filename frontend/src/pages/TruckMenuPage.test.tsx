@@ -15,6 +15,15 @@ const open = (id = "-2") => render(<MemoryRouter initialEntries={[`/trucks/${id}
 beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
+  sessionStorage.clear();
+});
+
+it("adds an available database menu item to the customer cart", async () => {
+  fetchMock.mockResolvedValue(response({ ...truck, menu: [{ ...truck.menu[0], available: true }] }));
+  open();
+  fireEvent.click(await screen.findByRole("button", { name: "Add Veggie Taco to cart" }));
+  expect(screen.getByRole("status")).toHaveTextContent("Veggie Taco added");
+  expect(screen.getByRole("link", { name: "Cart (1)" })).toHaveAttribute("href", "/cart");
 });
 
 it("opens the styled discovery page at /trucks", async () => {

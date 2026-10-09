@@ -28,6 +28,7 @@ class OperatorDemoTests {
                 .content("{\"email\":\"demo-walkthrough@example.com\",\"password\":\"A demo test passphrase 2026!\"}"))
                 .andExpect(status().isOk()).andReturn();
         var session = (MockHttpSession) login.getRequest().getSession(false);
+        mvc.perform(post("/api/auth/become-operator").session(session).with(csrf())).andExpect(status().isOk());
         var created = mvc.perform(post("/api/operator/vendors").session(session).with(csrf()).contentType("application/json")
                 .content("{\"name\":\"Professor Tacos\",\"category\":\"Tacos\",\"location\":\"CSUN\"}"))
                 .andExpect(status().isCreated()).andReturn();

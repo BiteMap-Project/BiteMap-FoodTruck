@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class RegistrationErrorTests {
 	@Autowired private MockMvc mvc;
-	@MockitoBean private OperatorRegistrationService registration;
+	@MockitoBean private AccountRegistrationService registration;
 
 	@Test
 	void databaseFailureDoesNotExposeSqlOrCredentials() throws Exception {

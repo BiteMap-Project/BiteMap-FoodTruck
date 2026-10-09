@@ -32,12 +32,12 @@ public class RegistrationExceptionHandler {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Provide a valid JSON registration request.");
 	}
 
-	@ExceptionHandler(OperatorRegistrationService.EmailAlreadyRegisteredException.class)
+	@ExceptionHandler(AccountRegistrationService.EmailAlreadyRegisteredException.class)
 	ProblemDetail duplicateEmail() {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "An account with this email already exists.");
 	}
 
-	@ExceptionHandler(DataAccessException.class)
+	@ExceptionHandler({DataAccessException.class, org.springframework.transaction.TransactionException.class})
 	ProblemDetail databaseUnavailable() {
 		// JDBC exception messages may contain SQL parameters; never log them here.
 		return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,

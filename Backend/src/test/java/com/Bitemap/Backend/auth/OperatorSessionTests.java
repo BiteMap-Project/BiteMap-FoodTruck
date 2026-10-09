@@ -39,7 +39,7 @@ class OperatorSessionTests {
 	void createOperator() {
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM operators", Integer.class))
 				.as("Use the isolated test database without development fixtures").isZero();
-		jdbc.update("INSERT INTO operators(display_name,email,password_hash) VALUES (?,?,?)",
+		com.Bitemap.Backend.TestAccounts.operator(jdbc,
 				"Test Operator", "owner@example.com", encoder.encode(PASSWORD));
 	}
 
@@ -80,7 +80,7 @@ class OperatorSessionTests {
 				.andExpect(status().isUnauthorized()).andReturn().getResponse().getContentAsString();
 		String unknown = mvc.perform(login("unknown@example.com", PASSWORD).with(csrf()))
 				.andExpect(status().isUnauthorized()).andReturn().getResponse().getContentAsString();
-		jdbc.update("UPDATE operators SET enabled = FALSE");
+		jdbc.update("UPDATE app_users SET enabled = FALSE");
 		var disabled = mvc.perform(login("owner@example.com", PASSWORD).with(csrf()))
 				.andExpect(status().isUnauthorized()).andReturn();
 		assertThat(disabled.getResponse().getContentAsString()).isEqualTo(wrong).isEqualTo(unknown)
@@ -140,7 +140,7 @@ class OperatorSessionTests {
 	void disabledAccountCannotReadMe() throws Exception {
 		var result = mvc.perform(login("owner@example.com", PASSWORD).with(csrf())).andReturn();
 		var session = (MockHttpSession) result.getRequest().getSession(false);
-		jdbc.update("UPDATE operators SET enabled = FALSE");
+		jdbc.update("UPDATE app_users SET enabled = FALSE");
 		mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isUnauthorized());
 	}
 

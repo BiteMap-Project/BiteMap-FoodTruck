@@ -79,7 +79,7 @@ class DatabaseMigrationTests {
 
 	@Test
 	void operatorsOwnMultipleVendorsAndEmailsAreCaseInsensitive() {
-		migrateAndValidate(migrations(false));
+		Flyway.configure().configuration(migrations(false).getConfiguration()).target("7").load().migrate();
 		Long operatorId = jdbc.queryForObject("INSERT INTO " + schema
 				+ ".operators (display_name, email, password_hash) "
 				+ "VALUES ('Test Operator', 'owner@example.com', '$2a$10$example') RETURNING id",
@@ -313,6 +313,32 @@ class DatabaseMigrationTests {
 		assertThatThrownBy(() -> jdbc.update("UPDATE " + schema + ".vendor_stops SET version=-1"))
 				.isInstanceOf(DataIntegrityViolationException.class);
 	}
+
+    @Test
+    void identityUpgradePreservesHashesIdsOwnershipAndDisabledState() {
+        Flyway.configure().configuration(migrations(false).getConfiguration()).target("7").load().migrate();
+        long owner = jdbc.queryForObject("INSERT INTO " + schema
+                + ".operators(display_name,email,password_hash) VALUES ('Owner','owner@example.com','{pbkdf2-sha256-600k}unchanged') RETURNING id", Long.class);
+        long disabled = jdbc.queryForObject("INSERT INTO " + schema
+                + ".operators(display_name,email,password_hash,enabled) VALUES ('Disabled','disabled@example.com','unchanged-too',FALSE) RETURNING id", Long.class);
+        jdbc.update("INSERT INTO " + schema + ".vendors(name,category,location,operator_id) VALUES ('Keep truck','Food','CSUN',?)", owner);
+        var oldAccounts = jdbc.queryForList("SELECT id,display_name,email,password_hash,enabled,created_at,updated_at FROM " + schema + ".operators ORDER BY id");
+        var oldVendors = jdbc.queryForList("SELECT * FROM " + schema + ".vendors");
+        migrateAndValidate(migrations(false));
+        assertThat(jdbc.queryForList("SELECT id,display_name,email,password_hash,enabled,created_at,updated_at FROM " + schema + ".app_users ORDER BY id")).isEqualTo(oldAccounts);
+        assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendors")).isEqualTo(oldVendors);
+        assertThat(jdbc.queryForObject("SELECT user_id FROM " + schema + ".operators WHERE id=?", Long.class, owner)).isEqualTo(owner);
+        assertThat(jdbc.queryForObject("SELECT enabled FROM " + schema + ".app_users WHERE id=?", Boolean.class, disabled)).isFalse();
+        assertThat(jdbc.queryForList("SELECT role FROM " + schema + ".app_user_roles WHERE user_id=? ORDER BY role", String.class, owner))
+                .containsExactly("CUSTOMER", "OPERATOR");
+        long customer = jdbc.queryForObject("INSERT INTO " + schema + ".app_users(display_name,email,password_hash) VALUES ('New','new@example.com','new-hash') RETURNING id", Long.class);
+        assertThat(customer).isGreaterThan(disabled);
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO " + schema + ".app_users(display_name,email,password_hash) VALUES ('Dup','OWNER@EXAMPLE.COM','hash')"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO " + schema + ".app_user_roles(user_id,role) VALUES (?, 'ADMIN')", customer))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThat(migrations(false).migrate().migrationsExecuted).isZero();
+    }
 
 	private Flyway migrations(boolean development) {
 		String[] locations = development

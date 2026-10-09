@@ -24,13 +24,15 @@ class MenuConcurrencyTests {
     @Test
     void locksPreventOwnerChangesAndVersionPreventsConcurrentLostUpdate() {
         String email = "menu-race-" + UUID.randomUUID() + "@example.com";
-        long owner = jdbc.queryForObject("INSERT INTO operators(display_name,email,password_hash) VALUES ('Race test',?,'unused') RETURNING id", Long.class, email);
+        long owner = com.Bitemap.Backend.TestAccounts.operator(jdbc, "Race test", email, "unused");
         long vendor = jdbc.queryForObject("INSERT INTO vendors(name,category,location,operator_id) VALUES ('Race test','Food','Test',?) RETURNING id", Long.class, owner);
         try {
             var tx = new TransactionTemplate(transactions);
             var first = tx.execute(status -> {
                 var item = service.create(email, vendor, new CreateMenuItemRequest("Original", null, BigDecimal.ONE, MenuAvailability.ACTIVE));
                 assertBlocked("UPDATE operators SET enabled = FALSE WHERE id = ?", owner);
+                assertBlocked("UPDATE app_users SET enabled=FALSE WHERE id=(SELECT user_id FROM operators WHERE id=?)", owner);
+                assertBlocked("DELETE FROM app_user_roles WHERE role='OPERATOR' AND user_id=(SELECT user_id FROM operators WHERE id=?)", owner);
                 assertBlocked("UPDATE vendors SET operator_id = NULL WHERE id = ?", vendor);
                 return item;
             });
@@ -49,7 +51,7 @@ class MenuConcurrencyTests {
         } finally {
             jdbc.update("DELETE FROM vendor_menu_items WHERE vendor_id = ?", vendor);
             jdbc.update("DELETE FROM vendors WHERE id = ?", vendor);
-            jdbc.update("DELETE FROM operators WHERE id = ?", owner);
+            com.Bitemap.Backend.TestAccounts.deleteOperator(jdbc, owner);
         }
     }
 

@@ -6,7 +6,8 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record RegisterOperatorRequest(
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
+public record RegisterAccountRequest(
 		@NotBlank(message = "Display name is required.")
 		@Size(max = 120, message = "Display name must be 120 characters or fewer.")
 		String displayName,
@@ -18,7 +19,7 @@ public record RegisterOperatorRequest(
 		@Size(min = 15, max = 128, message = "Password must be between 15 and 128 characters.")
 		String password) {
 
-	public RegisterOperatorRequest {
+	public RegisterAccountRequest {
 		displayName = displayName == null ? null : displayName.strip();
 		email = email == null ? null : email.strip().toLowerCase(Locale.ROOT);
 		// Passwords must be hashed exactly as entered, including spaces.
@@ -26,6 +27,6 @@ public record RegisterOperatorRequest(
 
 	@Override
 	public String toString() {
-		return "RegisterOperatorRequest[redacted]";
+		return "RegisterAccountRequest[redacted]";
 	}
 }

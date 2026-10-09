@@ -12,8 +12,10 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
     // for the service transaction. No entity graph or per-item ownership query.
     @Query(value = """
             SELECT v.id FROM vendors v JOIN operators o ON o.id = v.operator_id
-            WHERE v.id = :vendorId AND o.email = :email AND o.enabled = TRUE
-            FOR SHARE OF o, v
+            JOIN app_users u ON u.id=o.user_id
+            JOIN app_user_roles r ON r.user_id=u.id AND r.role='OPERATOR'
+            WHERE v.id = :vendorId AND u.email = :email AND u.enabled AND o.enabled
+            FOR SHARE OF u, r, o, v
             """, nativeQuery = true)
     Optional<Long> lockOwnedVendor(@Param("vendorId") long vendorId, @Param("email") String email);
 

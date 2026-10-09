@@ -1,5 +1,8 @@
 # Operator login, session, and logout — SCRUM-46
 
+> Historical ticket guide. Authentication now uses unified accounts and returns session roles.
+> Follow [unified accounts](unified-accounts.md) for the current contract and CSRF requirements after onboarding.
+
 This adds backend authentication for registered operators. No frontend login
 screen, vendor assignment, ownership permissions, JWT, or new migration is included.
 The existing password hashes and `operators` table are reused. Generated Spring

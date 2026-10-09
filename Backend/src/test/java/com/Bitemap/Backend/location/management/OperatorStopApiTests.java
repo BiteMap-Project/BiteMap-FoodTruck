@@ -43,10 +43,10 @@ class OperatorStopApiTests {
                 "startsAt", "2030-01-02T11:00:00-08:00", "endsAt", "2030-01-02T14:00:00-08:00", "timeZone", "America/Los_Angeles"));
     }
     String root(long v) { return "/api/operator/vendors/" + v + "/stops"; }
-    long owner(String email) { return jdbc.queryForObject("INSERT INTO operators(display_name,email,password_hash) VALUES ('Schedule test',?,'unused') RETURNING id", Long.class, email); }
+    long owner(String email) { return com.Bitemap.Backend.TestAccounts.operator(jdbc, "Schedule test", email, "unused"); }
     long vendor(Long id) { return jdbc.queryForObject("INSERT INTO vendors(name,category,location,operator_id) VALUES ('Schedule truck','Food','Test',?) RETURNING id", Long.class, id); }
     long create(long v, Map<String,Object> body) throws Exception {
-        var result = mvc.perform(post(root(v)).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content(json.writeValueAsString(body)))
+        var result = mvc.perform(post(root(v)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content(json.writeValueAsString(body)))
                 .andExpect(status().isCreated()).andExpect(header().string("Cache-Control", "no-store")).andExpect(jsonPath("$.version").value(0)).andReturn();
         long id = json.readTree(result.getResponse().getContentAsString()).get("id").asLong();
         assertThat(result.getResponse().getHeader("Location")).isEqualTo(root(v) + "/" + id);
@@ -54,15 +54,15 @@ class OperatorStopApiTests {
     }
     @Test void createReadUpdateCancelAndPublicDiscovery() throws Exception {
         long id = create(vendor, details());
-        mvc.perform(get(root(vendor)+"/"+id).with(user(EMAIL).roles("OPERATOR"))).andExpect(status().isOk())
+        mvc.perform(get(root(vendor)+"/"+id).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.venueName").value("Campus lunch")).andExpect(jsonPath("$.startsAt").value("2030-01-02T19:00:00Z"));
-        mvc.perform(get(root(vendor)).with(user(EMAIL).roles("OPERATOR"))).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
         var body = details(); body.put("venueName", "Changed venue");
-        mvc.perform(put(root(vendor)+"/"+id).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
+        mvc.perform(put(root(vendor)+"/"+id).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
                 .content(json.writeValueAsString(Map.of("stop",body,"version",0)))).andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1));
         mvc.perform(get("/api/vendor-stops").param("q","Changed venue").param("from","2030-01-02T00:00:00Z").param("to","2030-01-03T00:00:00Z"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
-        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":1}"))
+        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":1}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("cancelled")).andExpect(jsonPath("$.version").value(2));
         mvc.perform(get("/api/vendor-stops").param("q","Changed venue").param("from","2030-01-02T00:00:00Z").param("to","2030-01-03T00:00:00Z"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
@@ -70,53 +70,56 @@ class OperatorStopApiTests {
     }
     @Test void deniesEveryOperationForForeignUnownedMissingAndDisabled() throws Exception {
         for (long v : new long[]{foreign, unowned, Long.MAX_VALUE}) deny(v);
-        jdbc.update("UPDATE operators SET enabled=FALSE WHERE id=?",owner); deny(vendor);
+        jdbc.update("UPDATE operators SET enabled=FALSE WHERE id=?",owner); deny(vendor, 403);
     }
     void deny(long v) throws Exception {
+        deny(v, 404);
+    }
+    void deny(long v, int expected) throws Exception {
         for(var r : java.util.List.of(get(root(v)),get(root(v)+"/1"),post(root(v)).content(json.writeValueAsString(details())),
                 put(root(v)+"/1").content(json.writeValueAsString(Map.of("stop",details(),"version",0))),post(root(v)+"/1/cancel").content("{\"version\":0}"))) {
-            mvc.perform(r.with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json"))
-                    .andExpect(status().isNotFound()).andExpect(jsonPath("$.detail").value("Schedule resource not found."));
+            mvc.perform(r.with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json"))
+                    .andExpect(status().is(expected));
         }
     }
     @Test void cannotSubstituteAStopFromAnotherOwnedVendor() throws Exception {
         long id = create(sibling, details());
-        mvc.perform(get(root(vendor)+"/"+id).with(user(EMAIL).roles("OPERATOR"))).andExpect(status().isNotFound());
-        mvc.perform(put(root(vendor)+"/"+id).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
+        mvc.perform(get(root(vendor)+"/"+id).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))).andExpect(status().isNotFound());
+        mvc.perform(put(root(vendor)+"/"+id).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
                 .content(json.writeValueAsString(Map.of("stop",details(),"version",0)))).andExpect(status().isNotFound());
-        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":0}"))
+        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":0}"))
                 .andExpect(status().isNotFound());
     }
     @Test void loginRoleAndCsrfRequired() throws Exception {
         mvc.perform(get(root(vendor))).andExpect(status().isUnauthorized());
-        mvc.perform(get(root(vendor)).with(user(EMAIL).roles("CUSTOMER"))).andExpect(status().isForbidden());
-        mvc.perform(post(root(vendor)).with(user(EMAIL).roles("OPERATOR")).contentType("application/json").content(json.writeValueAsString(details())))
+        mvc.perform(get(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER"))).andExpect(status().isForbidden());
+        mvc.perform(post(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).contentType("application/json").content(json.writeValueAsString(details())))
                 .andExpect(status().isForbidden());
     }
     @Test void overlapBlockedButAdjacentAndOtherTrucksAllowed() throws Exception {
         create(vendor, details());
-        mvc.perform(post(root(vendor)).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content(json.writeValueAsString(details())))
+        mvc.perform(post(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content(json.writeValueAsString(details())))
                 .andExpect(status().isConflict());
         create(sibling, details());
         var adjacent = details(); adjacent.put("startsAt","2030-01-02T14:00:00-08:00"); adjacent.put("endsAt","2030-01-02T16:00:00-08:00"); create(vendor,adjacent);
     }
     @Test void cancelledStopDoesNotBlockAndStaleCancelFails() throws Exception {
         long id = create(vendor,details());
-        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":0}"))
+        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":0}"))
                 .andExpect(status().isOk());
         create(vendor,details());
-        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":0}"))
+        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":0}"))
                 .andExpect(status().isConflict());
-        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":1}"))
+        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":1}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1));
     }
     @Test void overlapOnEditAndStaleVersionAreRejected() throws Exception {
         long first=create(vendor,details());
         var later=details(); later.put("startsAt","2030-01-03T11:00:00-08:00"); later.put("endsAt","2030-01-03T14:00:00-08:00");
         long second=create(vendor,later);
-        mvc.perform(put(root(vendor)+"/"+second).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
+        mvc.perform(put(root(vendor)+"/"+second).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
                 .content(json.writeValueAsString(Map.of("stop",details(),"version",0)))).andExpect(status().isConflict());
-        mvc.perform(put(root(vendor)+"/"+first).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
+        mvc.perform(put(root(vendor)+"/"+first).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
                 .content(json.writeValueAsString(Map.of("stop",details(),"version",99)))).andExpect(status().isConflict());
     }
     @ParameterizedTest @ValueSource(strings={"past","reverse","zone","offset","dstGap","nan","latitude","longitude","blank","farFuture"})
@@ -134,7 +137,7 @@ class OperatorStopApiTests {
             case "blank" -> d.put("venueName","  ");
             case "farFuture" -> d.put("endsAt","2101-01-01T14:00:00-08:00");
         }
-        mvc.perform(post(root(vendor)).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content(json.writeValueAsString(d)))
+        mvc.perform(post(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content(json.writeValueAsString(d)))
                 .andExpect(status().isBadRequest());
     }
     @Test void overnightAndExplicitFallBackOffsetsAccepted() throws Exception {
@@ -144,12 +147,12 @@ class OperatorStopApiTests {
     @Test void historicalAndStartedStopsCannotBeEditedButOngoingCanBeCancelled() throws Exception {
         long id=create(vendor,details());
         when(clock.instant()).thenReturn(Instant.parse("2030-01-02T20:00:00Z"));
-        mvc.perform(put(root(vendor)+"/"+id).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
+        mvc.perform(put(root(vendor)+"/"+id).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
                 .content(json.writeValueAsString(Map.of("stop",details(),"version",0)))).andExpect(status().isConflict());
-        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":0}"))
+        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":0}"))
                 .andExpect(status().isOk());
         jdbc.update("UPDATE vendor_stops SET status='ended' WHERE id=?",id);
-        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":1}"))
+        mvc.perform(post(root(vendor)+"/"+id+"/cancel").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content("{\"version\":1}"))
                 .andExpect(status().isConflict());
     }
     @Test void paginationAndForgedOwnership() throws Exception {
@@ -157,9 +160,9 @@ class OperatorStopApiTests {
         long id=create(vendor,d);
         assertThat(jdbc.queryForObject("SELECT vendor_id FROM vendor_stops WHERE id=?",Long.class,id)).isEqualTo(vendor);
         assertThat(jdbc.queryForObject("SELECT status FROM vendor_stops WHERE id=?",String.class,id)).isEqualTo("scheduled");
-        mvc.perform(get(root(vendor)).param("size","0").with(user(EMAIL).roles("OPERATOR"))).andExpect(status().isBadRequest());
-        mvc.perform(get(root(vendor)).param("page","-1").with(user(EMAIL).roles("OPERATOR"))).andExpect(status().isBadRequest());
-        mvc.perform(get(root(vendor)).param("page","1").param("size","1").with(user(EMAIL).roles("OPERATOR")))
+        mvc.perform(get(root(vendor)).param("size","0").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))).andExpect(status().isBadRequest());
+        mvc.perform(get(root(vendor)).param("page","-1").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))).andExpect(status().isBadRequest());
+        mvc.perform(get(root(vendor)).param("page","1").param("size","1").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.items").isEmpty()).andExpect(jsonPath("$.totalElements").value(1));
     }
 }

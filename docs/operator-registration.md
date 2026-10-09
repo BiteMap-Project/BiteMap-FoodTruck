@@ -1,5 +1,8 @@
 # Operator registration — SCRUM-45
 
+> Historical ticket guide. V8 supersedes the model below: registration creates CUSTOMER only.
+> Follow [unified accounts](unified-accounts.md) for current roles, onboarding, and rollout instructions.
+
 ## Scope
 
 Creates an enabled operator in the existing `operators` table from migration V5.

@@ -23,7 +23,7 @@ class OperatorVendorTransactionTests {
 	@Test
 	void accountDisableWaitsForVendorTransactionAndBlocksSubsequentWrites() {
 		String email = "ownership-lock-" + UUID.randomUUID() + "@example.com";
-		long owner = jdbc.queryForObject("INSERT INTO operators(display_name,email,password_hash) VALUES ('Lock test', ?, 'not-used') RETURNING id", Long.class, email);
+		long owner = com.Bitemap.Backend.TestAccounts.operator(jdbc, "Lock test", email, "not-used");
 		try {
 			new TransactionTemplate(transactions).executeWithoutResult(transaction -> {
 				service.create(email, new OperatorVendorRequest("Lock test", "Food", "Test"));
@@ -51,7 +51,7 @@ class OperatorVendorTransactionTests {
 		} finally {
 			// Clean only this test's generated owner and vendors, never unrelated rows.
 			jdbc.update("DELETE FROM vendors WHERE operator_id = ?", owner);
-			jdbc.update("DELETE FROM operators WHERE id = ?", owner);
+			com.Bitemap.Backend.TestAccounts.deleteOperator(jdbc, owner);
 		}
 	}
 }

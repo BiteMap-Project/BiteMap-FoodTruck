@@ -18,7 +18,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class SessionErrorTests {
 	@Autowired MockMvc mvc;
-	@MockitoBean OperatorAccountService accounts;
+	@MockitoBean AccountService onboarding;
+	@MockitoBean AccountDetailsService accounts;
 
 	@Test
 	void databaseFailureIsSafeAndDoesNotLookLikeWrongPassword() throws Exception {

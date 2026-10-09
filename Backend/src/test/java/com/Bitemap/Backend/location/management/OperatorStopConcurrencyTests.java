@@ -19,7 +19,7 @@ class OperatorStopConcurrencyTests {
     @Autowired PlatformTransactionManager transactions;
     @Test void concurrentSameTruckCreatesHaveOneWinnerWhileSiblingTruckIsIndependent() throws Exception {
         String email="schedule-race-"+UUID.randomUUID()+"@example.com";
-        long owner=jdbc.queryForObject("INSERT INTO operators(display_name,email,password_hash) VALUES ('Schedule race',?,'unused') RETURNING id",Long.class,email);
+        long owner=com.Bitemap.Backend.TestAccounts.operator(jdbc, "Schedule race", email, "unused");
         long vendor=vendor(owner), sibling=vendor(owner);
         var start=OffsetDateTime.now(ZoneOffset.UTC).plusDays(2).withNano(0);
         var details=new StopRequests.Details("Race","Test",34.0,-118.0,start,start.plusHours(2),"UTC");
@@ -48,7 +48,7 @@ class OperatorStopConcurrencyTests {
         } finally {
             jdbc.update("DELETE FROM vendor_stops WHERE vendor_id IN (?,?)",vendor,sibling);
             jdbc.update("DELETE FROM vendors WHERE id IN (?,?)",vendor,sibling);
-            jdbc.update("DELETE FROM operators WHERE id=?",owner);
+            com.Bitemap.Backend.TestAccounts.deleteOperator(jdbc, owner);
         }
     }
     long vendor(long owner) { return jdbc.queryForObject("INSERT INTO vendors(name,category,location,operator_id) VALUES ('Schedule race','Food','Test',?) RETURNING id",Long.class,owner); }

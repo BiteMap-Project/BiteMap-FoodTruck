@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SecurityConfiguration.class)
 class VendorErrorTests {
 	@MockitoBean
-	private com.Bitemap.Backend.auth.OperatorAccountService accounts;
+	private com.Bitemap.Backend.auth.AccountDetailsService accounts;
 
 	@Autowired
 	private MockMvc mvc;

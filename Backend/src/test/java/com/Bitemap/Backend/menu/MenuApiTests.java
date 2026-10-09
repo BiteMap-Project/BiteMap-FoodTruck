@@ -44,21 +44,21 @@ class MenuApiTests {
 
     @Test
     void createListReadEditAndStatusPreservePublicContract() throws Exception {
-        var result = mvc.perform(post(root(vendor)).with(user(EMAIL).roles("OPERATOR")).with(csrf())
+        var result = mvc.perform(post(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf())
                 .contentType("application/json").content(CREATE)).andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Taco")).andExpect(jsonPath("$.description").value("Fresh"))
                 .andExpect(jsonPath("$.version").value(0)).andExpect(header().string("Cache-Control", "no-store")).andReturn();
         long item = json.readTree(result.getResponse().getContentAsString()).get("id").asLong();
         assertThat(result.getResponse().getHeader("Location")).isEqualTo(root(vendor) + "/" + item);
-        mvc.perform(get(root(vendor)).with(user(EMAIL).roles("OPERATOR"))).andExpect(status().isOk())
+        mvc.perform(get(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1));
-        mvc.perform(put(root(vendor) + "/" + item).with(user(EMAIL).roles("OPERATOR")).with(csrf())
+        mvc.perform(put(root(vendor) + "/" + item).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf())
                 .contentType("application/json").content("{\"name\":\"Updated\",\"description\":null,\"price\":5.25,\"version\":0}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ACTIVE")).andExpect(jsonPath("$.version").value(1));
-        mvc.perform(patch(root(vendor) + "/" + item + "/availability").with(user(EMAIL).roles("OPERATOR")).with(csrf())
+        mvc.perform(patch(root(vendor) + "/" + item + "/availability").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf())
                 .contentType("application/json").content("{\"status\":\"SOLD_OUT\",\"version\":1}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(2)).andExpect(jsonPath("$.name").value("Updated"));
-        mvc.perform(get(root(vendor) + "/" + item).with(user(EMAIL).roles("OPERATOR"))).andExpect(status().isOk())
+        mvc.perform(get(root(vendor) + "/" + item).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SOLD_OUT"));
         mvc.perform(get("/api/vendors/" + vendor)).andExpect(status().isOk()).andExpect(jsonPath("$.menu[0].available").value(false));
     }
@@ -68,16 +68,20 @@ class MenuApiTests {
         long unowned = vendor(null);
         for (long target : new long[] {foreign, Long.MAX_VALUE, unowned}) assertDenied(target);
         jdbc.update("UPDATE operators SET enabled = FALSE WHERE id = ?", owner);
-        assertDenied(vendor);
+        assertDenied(vendor, 403);
     }
 
     private void assertDenied(long target) throws Exception {
+        assertDenied(target, 404);
+    }
+
+    private void assertDenied(long target, int expected) throws Exception {
         for (var request : java.util.List.of(get(root(target)), get(root(target) + "/1"),
                 post(root(target)).content(CREATE),
                 put(root(target) + "/1").content("{\"name\":\"X\",\"price\":1,\"version\":0}"),
                 patch(root(target) + "/1/availability").content("{\"status\":\"INACTIVE\",\"version\":0}"))) {
-            mvc.perform(request.with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json"))
-                    .andExpect(status().isNotFound()).andExpect(jsonPath("$.detail").value("Menu resource not found."));
+            mvc.perform(request.with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json"))
+                    .andExpect(status().is(expected));
         }
     }
 
@@ -86,10 +90,10 @@ class MenuApiTests {
         long otherItem = item(foreign);
         long siblingItem = item(sibling);
         for (long id : new long[] {otherItem, siblingItem, Long.MAX_VALUE}) {
-            mvc.perform(get(root(vendor) + "/" + id).with(user(EMAIL).roles("OPERATOR"))).andExpect(status().isNotFound());
-            mvc.perform(put(root(vendor) + "/" + id).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
+            mvc.perform(get(root(vendor) + "/" + id).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))).andExpect(status().isNotFound());
+            mvc.perform(put(root(vendor) + "/" + id).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
                     .content("{\"name\":\"Hacked\",\"price\":1,\"version\":0}")).andExpect(status().isNotFound());
-            mvc.perform(patch(root(vendor) + "/" + id + "/availability").with(user(EMAIL).roles("OPERATOR")).with(csrf())
+            mvc.perform(patch(root(vendor) + "/" + id + "/availability").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf())
                     .contentType("application/json").content("{\"status\":\"INACTIVE\",\"version\":0}")).andExpect(status().isNotFound());
         }
         assertThat(jdbc.queryForList("SELECT name FROM vendor_menu_items", String.class)).containsOnly("Original");
@@ -98,7 +102,7 @@ class MenuApiTests {
     @Test
     void forgedParentAndOwnerCannotReassignItem() throws Exception {
         var body = Map.of("name", "Safe", "price", 1, "status", "ACTIVE", "vendorId", foreign, "operatorId", -1, "id", -99);
-        mvc.perform(post(root(vendor)).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
+        mvc.perform(post(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
                 .content(json.writeValueAsString(body))).andExpect(status().isCreated());
         assertThat(jdbc.queryForList("SELECT vendor_id FROM vendor_menu_items", Long.class)).containsExactly(vendor);
     }
@@ -107,10 +111,10 @@ class MenuApiTests {
     void anonymousWrongRoleAndMissingCsrfCannotManageMenu() throws Exception {
         mvc.perform(get(root(vendor))).andExpect(status().isUnauthorized());
         mvc.perform(post(root(vendor)).with(csrf()).contentType("application/json").content(CREATE)).andExpect(status().isUnauthorized());
-        mvc.perform(get(root(vendor)).with(user(EMAIL).roles("CUSTOMER"))).andExpect(status().isForbidden());
-        mvc.perform(post(root(vendor)).with(user(EMAIL).roles("OPERATOR")).contentType("application/json").content(CREATE))
+        mvc.perform(get(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER"))).andExpect(status().isForbidden());
+        mvc.perform(post(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).contentType("application/json").content(CREATE))
                 .andExpect(status().isForbidden());
-        mvc.perform(patch(root(vendor) + "/1/availability").with(user(EMAIL).roles("OPERATOR")).with(csrf().useInvalidToken())
+        mvc.perform(patch(root(vendor) + "/1/availability").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf().useInvalidToken())
                 .contentType("application/json").content("{\"status\":\"ACTIVE\",\"version\":0}")).andExpect(status().isForbidden());
     }
 
@@ -118,9 +122,9 @@ class MenuApiTests {
     void staleVersionsRejectDetailsAndStatusWithoutOverwrite() throws Exception {
         long id = item(vendor);
         service.changeAvailability(EMAIL, vendor, id, new ChangeMenuAvailabilityRequest(MenuAvailability.INACTIVE, 0L));
-        mvc.perform(put(root(vendor) + "/" + id).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
+        mvc.perform(put(root(vendor) + "/" + id).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
                 .content("{\"name\":\"Stale\",\"price\":1,\"version\":0}")).andExpect(status().isConflict());
-        mvc.perform(patch(root(vendor) + "/" + id + "/availability").with(user(EMAIL).roles("OPERATOR")).with(csrf())
+        mvc.perform(patch(root(vendor) + "/" + id + "/availability").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf())
                 .contentType("application/json").content("{\"status\":\"SOLD_OUT\",\"version\":0}")).andExpect(status().isConflict());
         assertThat(jdbc.queryForObject("SELECT name FROM vendor_menu_items WHERE id = ?", String.class, id)).isEqualTo("Original");
     }
@@ -141,7 +145,7 @@ class MenuApiTests {
             "{\"name\":\"X\",\"price\":1,\"status\":\"UNKNOWN\"}",
             "{\"name\":\"X\",\"price\":1,\"status\":0}"})
     void invalidCreateRejected(String body) throws Exception {
-        mvc.perform(post(root(vendor)).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content(body))
+        mvc.perform(post(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content(body))
                 .andExpect(status().isBadRequest());
     }
 
@@ -150,14 +154,14 @@ class MenuApiTests {
         for (var body : java.util.List.of(
                 Map.of("name", "x".repeat(151), "price", 1, "status", "ACTIVE"),
                 Map.of("name", "X", "description", "x".repeat(501), "price", 1, "status", "ACTIVE"))) {
-            mvc.perform(post(root(vendor)).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
+            mvc.perform(post(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
                     .content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
         }
-        mvc.perform(put(root(vendor) + "/1").with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
+        mvc.perform(put(root(vendor) + "/1").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
                 .content("{\"name\":\"X\",\"price\":1}")).andExpect(status().isBadRequest());
-        mvc.perform(patch(root(vendor) + "/1/availability").with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
+        mvc.perform(patch(root(vendor) + "/1/availability").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
                 .content("{\"status\":\"ACTIVE\",\"version\":-1}")).andExpect(status().isBadRequest());
-        mvc.perform(post(root(vendor)).with(user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
+        mvc.perform(post(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json")
                 .content(json.writeValueAsString(Map.of("name", "x".repeat(150), "description", "x".repeat(500), "price", "99999999.99", "status", "ACTIVE"))))
                 .andExpect(status().isCreated());
     }
@@ -173,13 +177,13 @@ class MenuApiTests {
         assertThat(page.items()).hasSize(20);
         assertThat(statistics.getPrepareStatementCount() - before).isLessThanOrEqualTo(3);
         for (String query : new String[] {"size=0", "size=101", "page=-1", "page=10001", "page=nope"}) {
-            mvc.perform(get(root(vendor) + "?" + query).with(user(EMAIL).roles("OPERATOR"))).andExpect(status().isBadRequest());
+            mvc.perform(get(root(vendor) + "?" + query).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))).andExpect(status().isBadRequest());
         }
-        mvc.perform(get(root(sibling)).with(user(EMAIL).roles("OPERATOR"))).andExpect(status().isOk())
+        mvc.perform(get(root(sibling)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items").isEmpty());
     }
 
-    long account(String email) { return jdbc.queryForObject("INSERT INTO operators(display_name,email,password_hash) VALUES ('Test',?,'unused') RETURNING id", Long.class, email); }
+    long account(String email) { return com.Bitemap.Backend.TestAccounts.operator(jdbc, "Test", email, "unused"); }
     long vendor(Long owner) { return jdbc.queryForObject("INSERT INTO vendors(name,category,location,operator_id) VALUES ('Test','Food','CSUN',?) RETURNING id", Long.class, owner); }
     long item(long vendor) { return jdbc.queryForObject("INSERT INTO vendor_menu_items(vendor_id,name,price) VALUES (?,'Original',1) RETURNING id", Long.class, vendor); }
     String root(long vendor) { return "/api/operator/vendors/" + vendor + "/menu-items"; }

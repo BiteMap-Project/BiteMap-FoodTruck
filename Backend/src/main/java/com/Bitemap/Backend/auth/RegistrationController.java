@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 public class RegistrationController {
-	private final OperatorRegistrationService registration;
+	private final AccountRegistrationService registration;
 
-	public RegistrationController(OperatorRegistrationService registration) {
+	public RegistrationController(AccountRegistrationService registration) {
 		this.registration = registration;
 	}
 
@@ -28,8 +28,8 @@ public class RegistrationController {
 	}
 
 	@PostMapping("/register")
-	ResponseEntity<OperatorRegistrationService.OperatorAccount> register(
-			@Valid @RequestBody RegisterOperatorRequest request) {
+	ResponseEntity<AccountResponse> register(
+			@Valid @RequestBody RegisterAccountRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED).cacheControl(CacheControl.noStore())
 				.body(registration.register(request));
 	}

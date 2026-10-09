@@ -25,7 +25,8 @@ public class SessionExceptionHandler {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Provide a valid email and password.");
 	}
 
-	@ExceptionHandler({DataAccessException.class, InternalAuthenticationServiceException.class})
+	@ExceptionHandler({DataAccessException.class, InternalAuthenticationServiceException.class,
+            org.springframework.transaction.TransactionException.class})
 	ProblemDetail unavailable() {
 		// Never expose or log JDBC exception messages, which may contain credentials.
 		return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "Authentication is temporarily unavailable. Please try again later.");

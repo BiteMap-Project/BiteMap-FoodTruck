@@ -89,7 +89,7 @@ public class OperatorStopService {
 
     private void ownedVendor(String email, long vendorId, boolean write) {
         // Consistent account-then-vendor lock ordering. Account lock prevents a racing disable.
-        var owners = jdbc.query("SELECT id FROM operators WHERE email=? AND enabled=TRUE FOR SHARE",
+        var owners = jdbc.query(com.Bitemap.Backend.auth.OperatorOwnership.SQL,
                 (r, i) -> r.getLong(1), email);
         if (owners.isEmpty()) throw missing();
         String lock = write ? " FOR UPDATE" : " FOR SHARE";

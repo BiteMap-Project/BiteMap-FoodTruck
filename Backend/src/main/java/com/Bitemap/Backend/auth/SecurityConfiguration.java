@@ -25,6 +25,7 @@ import org.springframework.security.web.authentication.session.CompositeSessionA
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 
 @Configuration
+@org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 public class SecurityConfiguration {
 
 	@Bean
@@ -36,7 +37,7 @@ public class SecurityConfiguration {
 	}
 
 	@Bean
-	AuthenticationManager authenticationManager(OperatorAccountService accounts, PasswordEncoder encoder) {
+	AuthenticationManager authenticationManager(AccountDetailsService accounts, PasswordEncoder encoder) {
 		var provider = new DaoAuthenticationProvider(accounts);
 		provider.setPasswordEncoder(encoder);
 		return new ProviderManager(provider);
@@ -62,13 +63,14 @@ public class SecurityConfiguration {
 
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityContextRepository contexts,
-			CsrfTokenRepository csrf) throws Exception {
+			CsrfTokenRepository csrf, AccountDetailsService accounts) throws Exception {
 		http.authorizeHttpRequests(authorize -> authorize
 				.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/logout").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/vendors", "/api/vendors/{id}", "/api/vendor-stops", "/actuator/health", "/actuator/health/**").permitAll()
 				.requestMatchers("/api/operator/**").hasRole("OPERATOR")
+                .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
 				.anyRequest().authenticated())
 				.securityContext(context -> context.securityContextRepository(contexts))
 				.csrf(config -> config.csrfTokenRepository(csrf))
@@ -82,6 +84,8 @@ public class SecurityConfiguration {
 					response.getWriter().write("{\"status\":401,\"title\":\"Unauthorized\",\"detail\":\"Sign in to continue.\"}");
 				}));
 		// JSON controller endpoints handle login/logout; CSRF and security headers remain enabled.
+        http.addFilterBefore(new AccountSessionFilter(accounts, contexts),
+                org.springframework.security.web.access.intercept.AuthorizationFilter.class);
 		return http.build();
 	}
 }

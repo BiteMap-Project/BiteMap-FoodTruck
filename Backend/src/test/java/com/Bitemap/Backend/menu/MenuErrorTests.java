@@ -1,6 +1,6 @@
 package com.Bitemap.Backend.menu;
 
-import com.Bitemap.Backend.auth.OperatorAccountService;
+import com.Bitemap.Backend.auth.AccountDetailsService;
 import com.Bitemap.Backend.auth.SecurityConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,15 +22,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class MenuErrorTests {
     @Autowired MockMvc mvc;
     @MockitoBean MenuService service;
-    @MockitoBean OperatorAccountService accounts;
+    @MockitoBean AccountDetailsService accounts;
+    @org.junit.jupiter.api.BeforeEach
+    void account() {
+        when(accounts.account(anyString())).thenAnswer(call ->
+                new com.Bitemap.Backend.auth.AccountResponse(
+                        1, "Test", call.getArgument(0), java.util.List.of("ROLE_OPERATOR")));
+    }
 
     @Test
     void databaseAndConcurrencyFailuresDoNotLeakSql() throws Exception {
         when(service.list(anyString(), anyLong(), anyInt(), anyInt())).thenThrow(new DataAccessResourceFailureException("SECRET SQL"));
-        mvc.perform(get("/api/operator/vendors/1/menu-items").with(user("owner").roles("OPERATOR")))
+        mvc.perform(get("/api/operator/vendors/1/menu-items").with(com.Bitemap.Backend.TestAccounts.user("owner").roles("OPERATOR")))
                 .andExpect(status().isServiceUnavailable()).andExpect(content().string(not(containsString("SECRET"))));
         when(service.update(anyString(), anyLong(), anyLong(), any())).thenThrow(new OptimisticLockingFailureException("SECRET SQL"));
-        mvc.perform(put("/api/operator/vendors/1/menu-items/1").with(user("owner").roles("OPERATOR")).with(csrf())
+        mvc.perform(put("/api/operator/vendors/1/menu-items/1").with(com.Bitemap.Backend.TestAccounts.user("owner").roles("OPERATOR")).with(csrf())
                 .contentType("application/json").content("{\"name\":\"X\",\"price\":1,\"version\":0}"))
                 .andExpect(status().isConflict()).andExpect(content().string(not(containsString("SECRET"))));
     }

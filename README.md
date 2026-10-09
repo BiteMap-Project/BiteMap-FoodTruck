@@ -3,27 +3,32 @@ COMP 490/491 FoodTruck vendor discovery, ordering, delivery, and location intell
 
 ## Current status
 
+Backend identity now uses unified customer/operator accounts. Registration creates a
+CUSTOMER; becoming an operator is explicit. See [the API contract and rollout guide](docs/unified-accounts.md).
+Frontend integration is separate: coordinate it before deploying the V8 migration.
+
 This repository contains the Spring Boot backend foundation and a React frontend
 with database-backed food-truck search and Flyway-managed vendor migrations.
 A public vendor-list/search API is available; other business APIs and production
 deployment are future work. Docker Compose runs all three development services
 together, enabling development-only database fixtures.
 The backend starts with PostgreSQL and provides an Actuator health endpoint.
-Operators can register, log in, inspect their session, and log out through the API.
+Accounts can register as customers, log in, inspect their roles, and log out through the API.
+Customers explicitly onboard before using operator features.
 The generated Spring login and HTTP Basic are disabled. Enabled operators can
 create, list, and update their own vendor profiles through the
 [vendor management API](docs/operator-vendors.md). Frontend authentication
 and management screens remain separate work; production
 security hardening is still required. See [operator sessions](docs/operator-sessions.md).
 
-Operator account registration is available at `POST /api/auth/register` (SCRUM-45).
+Customer registration is available at `POST /api/auth/register`; operator onboarding uses `POST /api/auth/become-operator`.
 Owner-protected menu create/read/edit/status endpoints are documented in
 [menu management](docs/operator-menu.md), including version-conflict handling and
 the V6 availability migration. The frontend's existing public `available` boolean
 remains compatible; operator forms need to use the new status/version DTOs.
 See [the registration API guide](docs/operator-registration.md) for validation,
-CSRF usage, responses, and security limitations. Registration does not log an
-operator in; there is no registration screen yet.
+CSRF usage, responses, and security limitations. Registration does not log the
+account in. The current [unified-account guide](docs/unified-accounts.md) supersedes the historical operator-registration model.
 
 ## Start everything with Docker Compose (recommended)
 

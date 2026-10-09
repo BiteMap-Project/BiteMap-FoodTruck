@@ -40,7 +40,7 @@ class OperatorRegistrationTests {
 
 	@BeforeEach
 	void emptyDatabase() {
-		assertThat(jdbc.queryForObject("SELECT count(*) FROM operators", Integer.class))
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM app_users", Integer.class))
 				.as("Use a dedicated test database without the dev profile").isZero();
 	}
 
@@ -57,12 +57,12 @@ class OperatorRegistrationTests {
 				.andExpect(jsonPath("$.passwordHash").doesNotExist())
 				.andExpect(jsonPath("$.token").doesNotExist())
 				.andExpect(content().string(not(containsString(PASSWORD))));
-		String hash = jdbc.queryForObject("SELECT password_hash FROM operators", String.class);
+		String hash = jdbc.queryForObject("SELECT password_hash FROM app_users", String.class);
 		assertThat(hash).startsWith("{pbkdf2-sha256-600k}").isNotEqualTo(PASSWORD);
 		assertThat(encoder.matches(PASSWORD, hash)).isTrue();
 		assertThat(encoder.matches("Incorrect password", hash)).isFalse();
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM vendors WHERE operator_id IS NOT NULL", Integer.class)).isZero();
-		assertThat(jdbc.queryForObject("SELECT enabled FROM operators", Boolean.class)).isTrue();
+		assertThat(jdbc.queryForObject("SELECT enabled FROM app_users", Boolean.class)).isTrue();
 	}
 
 	@Test
@@ -70,7 +70,7 @@ class OperatorRegistrationTests {
 		String password = "  keep these spaces  ";
 		mvc.perform(request("One", "one@example.com", password).with(csrf())).andExpect(status().isCreated());
 		mvc.perform(request("Two", "two@example.com", password).with(csrf())).andExpect(status().isCreated());
-		var hashes = jdbc.queryForList("SELECT password_hash FROM operators ORDER BY id", String.class);
+		var hashes = jdbc.queryForList("SELECT password_hash FROM app_users ORDER BY id", String.class);
 		assertThat(hashes.get(0)).isNotEqualTo(hashes.get(1));
 		assertThat(encoder.matches(password, hashes.getFirst())).isTrue();
 		assertThat(encoder.matches(password.strip(), hashes.getFirst())).isFalse();
@@ -79,11 +79,11 @@ class OperatorRegistrationTests {
 	@Test
 	void duplicateEmailCannotOverwriteAccount() throws Exception {
 		mvc.perform(request("Original", "owner@example.com", PASSWORD).with(csrf())).andExpect(status().isCreated());
-		var before = jdbc.queryForMap("SELECT * FROM operators");
+		var before = jdbc.queryForMap("SELECT * FROM app_users");
 		mvc.perform(request("Replacement", " OWNER@EXAMPLE.COM ", "Another password value").with(csrf()))
 				.andExpect(status().isConflict())
 				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
-		assertThat(jdbc.queryForMap("SELECT * FROM operators")).isEqualTo(before);
+		assertThat(jdbc.queryForMap("SELECT * FROM app_users")).isEqualTo(before);
 	}
 
 	@ParameterizedTest
@@ -94,7 +94,7 @@ class OperatorRegistrationTests {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.errors.password").isString())
 				.andExpect(jsonPath("$.rejectedValue").doesNotExist());
-		assertThat(jdbc.queryForObject("SELECT count(*) FROM operators", Integer.class)).isZero();
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM app_users", Integer.class)).isZero();
 	}
 
 	@ParameterizedTest
@@ -110,7 +110,7 @@ class OperatorRegistrationTests {
 	void acceptsPasswordLengthBoundaries(int length) throws Exception {
 		String secret = "x".repeat(length);
 		mvc.perform(request("Owner", "owner@example.com", secret).with(csrf())).andExpect(status().isCreated());
-		assertThat(encoder.matches(secret, jdbc.queryForObject("SELECT password_hash FROM operators", String.class))).isTrue();
+		assertThat(encoder.matches(secret, jdbc.queryForObject("SELECT password_hash FROM app_users", String.class))).isTrue();
 	}
 
 	@ParameterizedTest
@@ -144,7 +144,7 @@ class OperatorRegistrationTests {
 		mvc.perform(request("Owner", "owner@example.com", PASSWORD)).andExpect(status().isForbidden());
 		mvc.perform(request("Owner", "owner@example.com", PASSWORD).with(csrf().useInvalidToken()))
 				.andExpect(status().isForbidden());
-		assertThat(jdbc.queryForObject("SELECT count(*) FROM operators", Integer.class)).isZero();
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM app_users", Integer.class)).isZero();
 	}
 
 	@Test
@@ -170,7 +170,7 @@ class OperatorRegistrationTests {
 
 	@Test
 	void requestToStringDoesNotExposeCredentials() {
-		assertThat(new RegisterOperatorRequest("Owner", "owner@example.com", PASSWORD).toString())
+		assertThat(new RegisterAccountRequest("Owner", "owner@example.com", PASSWORD).toString())
 				.doesNotContain(PASSWORD, "owner@example.com");
 	}
 

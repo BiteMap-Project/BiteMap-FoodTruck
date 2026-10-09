@@ -23,13 +23,16 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 public class SessionController {
 	private final AuthenticationManager authenticationManager;
-	private final OperatorAccountService accounts;
+	private final AccountDetailsService accounts;
 	private final SecurityContextRepository contexts;
 	private final SessionAuthenticationStrategy sessions;
 	private final LogoutHandler logoutHandler;
+    private final AccountService onboarding;
 
-	public SessionController(AuthenticationManager authenticationManager, OperatorAccountService accounts,
-			SecurityContextRepository contexts, SessionAuthenticationStrategy sessions, CsrfTokenRepository csrf) {
+	public SessionController(AuthenticationManager authenticationManager, AccountDetailsService accounts,
+			SecurityContextRepository contexts, SessionAuthenticationStrategy sessions, CsrfTokenRepository csrf,
+            AccountService onboarding) {
+        this.onboarding = onboarding;
 		this.authenticationManager = authenticationManager;
 		this.accounts = accounts;
 		this.contexts = contexts;
@@ -41,7 +44,7 @@ public class SessionController {
 	}
 
 	@PostMapping("/login")
-	ResponseEntity<OperatorRegistrationService.OperatorAccount> login(@Valid @RequestBody LoginRequest body,
+	ResponseEntity<AccountResponse> login(@Valid @RequestBody LoginRequest body,
 			HttpServletRequest request, HttpServletResponse response) {
 		var authentication = authenticationManager.authenticate(
 				UsernamePasswordAuthenticationToken.unauthenticated(body.email(), body.password()));
@@ -55,9 +58,31 @@ public class SessionController {
 	}
 
 	@GetMapping("/me")
-	ResponseEntity<OperatorRegistrationService.OperatorAccount> me(Authentication authentication) {
-		return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(accounts.account(authentication.getName()));
+	ResponseEntity<AccountResponse> me(Authentication authentication) {
+        var account = accounts.account(authentication.getName());
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(
+                new AccountResponse(account.id(), account.displayName(), account.email(),
+                        authentication.getAuthorities().stream().map(a -> a.getAuthority()).sorted().toList()));
 	}
+
+    @PostMapping("/become-operator")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('CUSTOMER')")
+    ResponseEntity<AccountResponse> becomeOperator(Authentication authentication,
+            HttpServletRequest request, HttpServletResponse response) {
+        var principal = (AccountPrincipal) authentication.getPrincipal();
+        onboarding.becomeOperator(principal.userId()); // Transaction commits before session changes.
+        var account = accounts.account(authentication.getName());
+        var roles = account.roles().stream().map(org.springframework.security.core.authority.SimpleGrantedAuthority::new).toList();
+        var refreshed = new AccountPrincipal(account.id(), account.email(), "", true, roles);
+        refreshed.eraseCredentials();
+        var updated = UsernamePasswordAuthenticationToken.authenticated(refreshed, null, roles);
+        sessions.onAuthentication(updated, request, response);
+        var context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(updated);
+        SecurityContextHolder.setContext(context);
+        contexts.saveContext(context, request, response);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(account);
+    }
 
 	@PostMapping("/logout")
 	ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {

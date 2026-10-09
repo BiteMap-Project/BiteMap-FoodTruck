@@ -20,7 +20,7 @@ public class AnalyticsService {
 
 	@Transactional
 	public TruckAnalytics truckMetrics(String email) {
-        long ownerId = jdbc.query("SELECT id FROM operators WHERE email = :email AND enabled = TRUE FOR SHARE",
+        long ownerId = jdbc.query(com.Bitemap.Backend.auth.OperatorOwnership.SQL.replace("?", ":email"),
                 Map.of("email", email), (rs, row) -> rs.getLong("id")).stream().findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "An enabled operator account is required."));
 		String query = """

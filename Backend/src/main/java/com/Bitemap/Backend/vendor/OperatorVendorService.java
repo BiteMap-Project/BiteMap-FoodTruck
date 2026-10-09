@@ -51,7 +51,7 @@ public class OperatorVendorService {
 	private long activeOwner(String email) {
 		// Hold the account stable until this transaction ends: disabling/deleting it
 		// cannot race between this check and a vendor write. Never load password hashes.
-		return jdbc.query("SELECT id FROM operators WHERE email = ? AND enabled = TRUE FOR SHARE",
+		return jdbc.query(com.Bitemap.Backend.auth.OperatorOwnership.SQL,
 				(row, index) -> row.getLong("id"), email).stream().findFirst()
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "An enabled operator account is required."));
 	}

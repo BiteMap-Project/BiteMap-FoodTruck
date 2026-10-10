@@ -45,7 +45,7 @@ it("logs in and opens the operator route", async () => {
   fetchMock.mockImplementation(async (url: string) => {
     if (url === "/api/auth/me") return response(401);
     if (url === "/api/auth/csrf") return response(200, { headerName: "X-CSRF-TOKEN", token: "token" });
-    if (url === "/api/auth/login") return response(200, { id: 2, displayName: "Owner", email: "owner@example.com" });
+    if (url === "/api/auth/login") return response(200, { id: 2, displayName: "Owner", email: "owner@example.com", roles: ["ROLE_CUSTOMER", "ROLE_OPERATOR"] });
     return response(500);
   });
   render(
@@ -67,7 +67,7 @@ it("logs in and opens the operator route", async () => {
 
 it("sends an already signed-in operator from the login page to the workspace", async () => {
   fetchMock.mockImplementation(async (url: string) =>
-    url === "/api/auth/me" ? response(200, { id: 2, displayName: "Owner", email: "owner@example.com" }) : response(500));
+    url === "/api/auth/me" ? response(200, { id: 2, displayName: "Owner", email: "owner@example.com", roles: ["ROLE_CUSTOMER", "ROLE_OPERATOR"] }) : response(500));
   render(
     <MemoryRouter initialEntries={["/operator/login"]}>
       <Routes>
@@ -95,6 +95,23 @@ it("keeps the login form when the session check fails", async () => {
   await waitFor(() => expect(fetchMock).toHaveBeenCalled());
   expect(screen.getByRole("heading", { name: "Operator sign in" })).toBeInTheDocument();
   expect(screen.queryByText("Operator route")).not.toBeInTheDocument();
+});
+
+it("sends a customer account to owner onboarding", async () => {
+  fetchMock.mockImplementation(async (url: string) =>
+    url === "/api/auth/me"
+      ? response(200, { id: 3, displayName: "Customer", email: "customer@example.com", roles: ["ROLE_CUSTOMER"] })
+      : response(500));
+  render(
+    <MemoryRouter initialEntries={["/operator/login"]}>
+      <Routes>
+        <Route path="/operator/login" element={<OperatorLoginPage />} />
+        <Route path="/operator/onboarding" element={<p>Owner onboarding</p>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  expect(await screen.findByText("Owner onboarding")).toBeInTheDocument();
 });
 
 it("shows a local confirmation error without sending the passwords", async () => {
@@ -128,7 +145,7 @@ it("redirects an anonymous operator session to login", async () => {
 
 it("restores an operator session and logs out with a fresh CSRF token", async () => {
   fetchMock
-    .mockResolvedValueOnce(response(200, { id: 2, displayName: "Food Truck Owner", email: "owner@example.com" }))
+    .mockResolvedValueOnce(response(200, { id: 2, displayName: "Food Truck Owner", email: "owner@example.com", roles: ["ROLE_CUSTOMER", "ROLE_OPERATOR"] }))
     .mockResolvedValueOnce(response(200, { items: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }))
     .mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "logout-token" }))
     .mockResolvedValueOnce(response(204));

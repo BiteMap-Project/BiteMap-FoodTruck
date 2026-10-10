@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { AuthApiError, getCurrentOperator, loginOperator } from "../services/auth";
+import { AuthApiError, getCurrentAccount, hasRole, loginAccount } from "../services/auth";
 import PasswordInput from "../components/PasswordInput";
 import "./operator-auth.css";
 
@@ -19,9 +19,9 @@ function OperatorLoginPage() {
   // If the check fails or the visitor is signed out, the form simply stays.
   useEffect(() => {
     const controller = new AbortController();
-    getCurrentOperator(controller.signal).then(
+    getCurrentAccount(controller.signal).then(
       (account) => {
-        if (account && !controller.signal.aborted) navigate("/operator", { replace: true });
+        if (account && !controller.signal.aborted) navigate(hasRole(account, "ROLE_OPERATOR") ? "/operator" : "/operator/onboarding", { replace: true });
       },
       () => {},
     );
@@ -33,8 +33,8 @@ function OperatorLoginPage() {
     setError("");
     setSubmitting(true);
     try {
-      await loginOperator(email, password);
-      navigate("/operator", { replace: true });
+      const account = await loginAccount(email, password);
+      navigate(hasRole(account, "ROLE_OPERATOR") ? "/operator" : "/operator/onboarding", { replace: true });
     } catch (cause) {
       setError(cause instanceof AuthApiError ? cause.message : "Unable to sign in. Please try again.");
     } finally {
@@ -52,7 +52,7 @@ function OperatorLoginPage() {
       <section className="auth-card" aria-labelledby="login-heading">
         <p className="auth-eyebrow">WELCOME BACK</p>
         <h1 id="login-heading">Operator sign in</h1>
-        <p className="auth-intro">Sign in to manage your food trucks and menus.</p>
+        <p className="auth-intro">Sign in, then activate owner tools if this is your first visit.</p>
         {registration?.registered && (
           <p className="auth-success" role="status">Account created. You can sign in now.</p>
         )}
@@ -81,7 +81,7 @@ function OperatorLoginPage() {
             {submitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
-        <p className="auth-switch">New operator? <Link to="/operator/register">Create an account</Link></p>
+        <p className="auth-switch">New to BiteMap? <Link to="/operator/register">Create an account</Link></p>
         <Link className="auth-back" to="/trucks">← Just browsing? Find a food truck</Link>
       </section>
     </main>

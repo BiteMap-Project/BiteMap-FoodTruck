@@ -7,6 +7,9 @@ import OperatorLoginPage from "./pages/OperatorLoginPage";
 import OperatorRegisterPage from "./pages/OperatorRegisterPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import CartPage from "./pages/CartPage";
+import CustomerLoginPage from "./pages/CustomerLoginPage";
+import CustomerRegisterPage from "./pages/CustomerRegisterPage";
+import OperatorOnboardingPage from "./pages/OperatorOnboardingPage";
 
 function App() {
   return (
@@ -16,10 +19,13 @@ function App() {
 
       <Route path="/trucks/:id" element={<TruckMenuPage />} />
       <Route path="/cart" element={<CartPage />} />
+      <Route path="/customer/login" element={<CustomerLoginPage />} />
+      <Route path="/customer/register" element={<CustomerRegisterPage />} />
       <Route path="/owner" element={<OperatorHomePage />} />
       <Route path="/operator" element={<OperatorHomePage />} />
       <Route path="/operator/login" element={<OperatorLoginPage />} />
       <Route path="/operator/register" element={<OperatorRegisterPage />} />
+      <Route path="/operator/onboarding" element={<OperatorOnboardingPage />} />
       <Route path="/operator/analytics" element={<AnalyticsPage />} />
       <Route path="/analytics" element={<Navigate to="/operator/analytics" replace />} />
       <Route path="*" element={<NotFoundPage />} />

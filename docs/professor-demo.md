@@ -2,8 +2,10 @@
 
 ## What works in this change
 
-A visitor can browse without an account. An operator can register, sign in, create
-an owned truck, publish a menu item, and inspect private truck metrics and CSV.
+A visitor can browse and build a cart without an account. A customer can register,
+sign in, and return to that cart. An operator can use the same account, activate
+owner tools, create an owned truck, publish a menu item, and inspect private truck
+metrics and CSV.
 The published profile and menu are saved in PostgreSQL and visible to anonymous
 visitors. `/owner` now leads to the real `/operator` workspace instead of the
 localStorage prototype; the prototype's source files remain for the team to reuse.
@@ -34,6 +36,9 @@ localStorage prototype; the prototype's source files remain for the team to reus
    more trucks; use a fresh account if demonstrating the one-truck result.
 8. Sign out through the workspace. Private insights should require sign-in again;
    the public menu remains visible. Refresh the public page to show the saved data.
+9. In the visitor window, add an available menu item to the cart. Choose **Sign in
+   to continue**, create a customer account, sign in, and confirm that the same
+   item is still in the cart.
 
 ## Honest limits and the next customer story
 
@@ -42,8 +47,9 @@ to a cart, sign in/create a customer account at checkout, then submit an order.
 The operator role must come from the server account, not a client-side role switch.
 A customer login must return to the original cart instead of losing it.
 
-Customer accounts, carts, orders, payment, and order status are not implemented by
-this change. Do not present the existing prototype's sample orders as real orders.
+Customer accounts and the browser cart are connected. Persisted orders, payment,
+and order status are not implemented by this change. Do not present the existing
+prototype's sample orders as real orders.
 For the next demo slice, agree on pickup-only orders paid at pickup. This gives the
 professor a complete order/confirmation/operator-receipt use case without introducing
 card processing or delivery into the first ordering story. The team must agree on

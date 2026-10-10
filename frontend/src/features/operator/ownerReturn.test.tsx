@@ -7,7 +7,7 @@ import TruckMenuPage from "../../pages/TruckMenuPage";
 import { readOwnerReturn, readWorkspaceRestore } from "./ownerReturn";
 
 const fetchMock = vi.fn();
-const account = { id: 2, displayName: "Owner", email: "owner@example.com" };
+const account = { id: 2, displayName: "Owner", email: "owner@example.com", roles: ["ROLE_CUSTOMER", "ROLE_OPERATOR"] };
 const first = { id: 7, name: "Spicy Food", category: "Tacos", location: "CSUN" };
 const second = { id: 8, name: "Soup Cart", category: "Soup", location: "Reseda" };
 const page = (items: unknown[]) => ({ items, page: 0, size: 20, totalElements: items.length, totalPages: 1 });

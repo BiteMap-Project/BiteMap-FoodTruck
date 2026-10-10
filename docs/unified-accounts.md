@@ -1,6 +1,7 @@
 # Unified accounts: backend contract and rollout
 
-This is a backend-only change. Coordinate frontend integration before deploying it.
+This account contract now has frontend registration, login, role routing, and
+operator-onboarding integration.
 The repository uses Java 21 / Spring Boot 4.1.1. Existing JDBC account persistence is retained; there is no parallel authentication implementation or unused JPA identity model.
 
 ## Identity and ownership
@@ -39,7 +40,9 @@ Onboarding rotates session ID and CSRF only after the DB transaction commits. If
 Frontend flow: register customer → login → explicitly choose “Become a truck owner” → POST onboarding → refresh CSRF/account → show workspace → create a NEW truck via POST /api/operator/vendors.
 Render customer/operator features based on the corresponding roles. Successful login alone does not imply operator access.
 Onboarding never claims demo, unassigned, or another operator's trucks. It has no vendor update statement.
-The frontend is unchanged and its current operator-registration assumptions require a teammate's integration work.
+The customer cart returns through `/customer/login`, while `/operator/login`
+routes customer-only accounts through `/operator/onboarding` before opening the
+owner workspace.
 
 ## Session and authorization behavior
 

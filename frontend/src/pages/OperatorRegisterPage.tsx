@@ -45,8 +45,8 @@ function OperatorRegisterPage() {
     <main className="auth-page">
       <section className="auth-card" aria-labelledby="register-heading">
         <Link className="auth-brand" to="/">BiteMap</Link>
-        <h1 id="register-heading">Create an operator account</h1>
-        <p className="auth-intro">Use this account to manage your trucks and menus.</p>
+        <h1 id="register-heading">Create your BiteMap account</h1>
+        <p className="auth-intro">After signing in, you can activate the owner workspace.</p>
         {error && <p className="auth-error" role="alert">{error}</p>}
         <form onSubmit={submit} noValidate>
           <label htmlFor="register-name">Display name</label>

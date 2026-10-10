@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ErrorState, LoadingState } from "../components/StatusViews";
-import { getCurrentOperator, logoutOperator, type OperatorAccount } from "../services/auth";
+import { getCurrentAccount, hasRole, logoutAccount, type OperatorAccount } from "../services/auth";
 import "./operator-auth.css";
 import OperatorWorkspace from "../features/operator/OperatorWorkspace";
 
@@ -19,10 +19,11 @@ function OperatorHomePage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    getCurrentOperator(controller.signal).then(
+    getCurrentAccount(controller.signal).then(
       (account) => {
         if (controller.signal.aborted) return;
         if (!account) navigate("/operator/login", { replace: true });
+        else if (!hasRole(account, "ROLE_OPERATOR")) navigate("/operator/onboarding", { replace: true });
         else setSession({ status: "ready", account });
       },
       () => {
@@ -36,7 +37,7 @@ function OperatorHomePage() {
     setLogoutError("");
     setSigningOut(true);
     try {
-      await logoutOperator();
+      await logoutAccount();
       navigate("/operator/login", { replace: true });
     } catch {
       setLogoutError("Unable to sign out. Please try again.");

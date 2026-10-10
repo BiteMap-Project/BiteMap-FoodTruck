@@ -1,20 +1,39 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { cartTotal, clearCart, readCart, setCartQuantity } from "../features/cart/cart";
 import "./cart.css";
 import { getCurrentAccount, type Account } from "../services/auth";
+import { createCustomerOrder } from "../services/orders";
 
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
 export default function CartPage() {
+  const navigate = useNavigate();
   const [cart, setCart] = useState(readCart);
   const [account, setAccount] = useState<Account | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [orderError, setOrderError] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
     getCurrentAccount(controller.signal).then(setAccount, () => {});
     return () => controller.abort();
   }, []);
+
+  async function placeOrder() {
+    if (!cart || submitting) return;
+    setOrderError("");
+    setSubmitting(true);
+    try {
+      const order = await createCustomerOrder(cart);
+      clearCart();
+      setCart(null);
+      navigate(`/orders/${order.id}/confirmation`);
+    } catch (cause) {
+      setOrderError(cause instanceof Error ? cause.message : "Unable to place the order. Please try again.");
+      setSubmitting(false);
+    }
+  }
 
   return <div className="cart-site">
     <header className="cart-header"><Link className="cart-brand" to="/">BiteMap<span>.</span></Link><Link to="/trucks">Continue browsing</Link></header>
@@ -34,7 +53,7 @@ export default function CartPage() {
         <section className="cart-total"><span>Estimated total</span><strong>{dollars.format(cartTotal(cart))}</strong></section>
         <p className="cart-note">Pickup time, taxes and payment will be confirmed when ordering is connected.</p>
         {account
-          ? <><p className="cart-signed-in">Signed in as {account.displayName}</p><button className="cart-checkout" type="button" disabled>Order submission is coming next</button></>
+          ? <><p className="cart-signed-in">Signed in as {account.displayName}</p>{orderError && <p className="cart-order-error" role="alert">{orderError}</p>}<button className="cart-checkout" type="button" disabled={submitting} onClick={placeOrder}>{submitting ? "Placing order…" : "Place pickup order"}</button></>
           : <Link className="cart-checkout cart-checkout-link" to="/customer/login" state={{ returnTo: "/cart" }}>Sign in to continue</Link>}
         <button className="cart-clear" type="button" onClick={() => { clearCart(); setCart(null); }}>Clear cart</button>
       </>}

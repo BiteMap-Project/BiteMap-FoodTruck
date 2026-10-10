@@ -67,6 +67,8 @@ class DatabaseMigrationTests {
 				+ ".operators", Integer.class)).isZero();
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
 				+ ".vendor_menu_items", Integer.class)).isZero();
+		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
+				+ ".customer_orders", Integer.class)).isZero();
 		assertThat(jdbc.queryForObject("INSERT INTO " + schema
 				+ ".vendors (name, category, location) VALUES ('Test Vendor', 'Soup', 'CSUN') RETURNING id",
 				Long.class)).isPositive();

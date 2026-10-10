@@ -45,7 +45,7 @@ it("recognizes a signed-in customer without changing the cart", async () => {
   render(<MemoryRouter><CartPage /></MemoryRouter>);
 
   expect(await screen.findByText("Signed in as Casey")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Order submission is coming next" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Place pickup order" })).toBeEnabled();
   expect(screen.getByRole("heading", { name: "Taco Truck" })).toBeInTheDocument();
 });
 

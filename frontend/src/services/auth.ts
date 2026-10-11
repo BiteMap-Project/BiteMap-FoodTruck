@@ -1,8 +1,11 @@
-export type OperatorAccount = {
+export type Account = {
   id: number;
   displayName: string;
   email: string;
+  roles: string[];
 };
+
+export type OperatorAccount = Account;
 
 type CsrfToken = {
   headerName: string;
@@ -60,11 +63,11 @@ export async function postWithCsrf<T>(path: string, body: object, fallback: stri
   return response.json();
 }
 
-export function loginOperator(email: string, password: string): Promise<OperatorAccount> {
+export function loginAccount(email: string, password: string): Promise<Account> {
   return postWithCsrf("/api/auth/login", { email, password }, "Unable to sign in. Please try again.");
 }
 
-export function registerOperator(displayName: string, email: string, password: string): Promise<OperatorAccount> {
+export function registerAccount(displayName: string, email: string, password: string): Promise<Account> {
   return postWithCsrf(
     "/api/auth/register",
     { displayName, email, password },
@@ -72,7 +75,7 @@ export function registerOperator(displayName: string, email: string, password: s
   );
 }
 
-export async function getCurrentOperator(signal?: AbortSignal): Promise<OperatorAccount | null> {
+export async function getCurrentAccount(signal?: AbortSignal): Promise<Account | null> {
   const response = await fetch("/api/auth/me", {
     credentials: "same-origin",
     headers: { Accept: "application/json" },
@@ -83,7 +86,7 @@ export async function getCurrentOperator(signal?: AbortSignal): Promise<Operator
   return response.json();
 }
 
-export async function logoutOperator(): Promise<void> {
+export async function logoutAccount(): Promise<void> {
   const csrf = await csrfToken();
   const response = await fetch("/api/auth/logout", {
     method: "POST",
@@ -92,3 +95,16 @@ export async function logoutOperator(): Promise<void> {
   });
   if (!response.ok) throw await readProblem(response, "Unable to sign out. Please try again.");
 }
+
+export function becomeOperator(): Promise<Account> {
+  return postWithCsrf("/api/auth/become-operator", {}, "Unable to activate the owner workspace. Please try again.");
+}
+
+export const hasRole = (account: Account, role: "ROLE_CUSTOMER" | "ROLE_OPERATOR") => account.roles.includes(role);
+
+// Compatibility names for the existing owner workspace while routes migrate to
+// the unified account language.
+export const loginOperator = loginAccount;
+export const registerOperator = registerAccount;
+export const getCurrentOperator = getCurrentAccount;
+export const logoutOperator = logoutAccount;

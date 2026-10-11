@@ -4,7 +4,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import OperatorHomePage from "../../pages/OperatorHomePage";
 
 const fetchMock = vi.fn();
-const account = { id: 2, displayName: "Owner", email: "owner@example.com" };
+const account = { id: 2, displayName: "Owner", email: "owner@example.com", roles: ["ROLE_CUSTOMER", "ROLE_OPERATOR"] };
 const vendor = { id: 7, name: "Spicy Food", category: "Tacos", location: "CSUN" };
 const item = { id: 10, vendorId: 7, name: "Taco", description: "Fresh", price: 4.5, status: "ACTIVE", version: 3 };
 const page = (items: unknown[], current = 0, totalPages = 1) => ({ items, page: current, size: 20, totalElements: items.length, totalPages });

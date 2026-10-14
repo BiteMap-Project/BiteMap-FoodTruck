@@ -48,7 +48,7 @@ export default function CustomerRegisterPage() {
       {fieldErrors.confirmation && <span className="field-error">{fieldErrors.confirmation}</span>}
       <button type="submit" disabled={submitting}>{submitting ? "Creating account…" : "Create account"}</button>
     </form>
-    <p className="auth-switch">Already registered? <Link to="/customer/login" state={{ returnTo }}>Sign in</Link></p>
+    <p className="auth-switch">Already have a BiteMap account—even as a truck owner? Use the same email and password. <Link to="/customer/login" state={{ returnTo }}>Customer sign in</Link></p>
     <Link className="auth-back" to="/cart">← Return to cart</Link>
   </section></main>;
 }

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ClockIcon, PinIcon, SearchIcon } from "../components/icons";
 import StopResults from "../features/discover/StopResults";
 import VendorResults from "../features/discover/VendorResults";
+import AccountNavigation from "../features/discover/AccountNavigation";
 import "../features/discover/discover.css";
 
 type View = "trucks" | "stops";
@@ -112,15 +113,7 @@ export default function DiscoverPage() {
           </Link>
         </div>
 
-        <Link className="discover-owner-link" to="/operator/login">
-          <span className="discover-avatar" aria-hidden="true">
-            ↗
-          </span>
-          <span>
-            <strong>Truck owner?</strong>
-            <small>Sign in to your workspace</small>
-          </span>
-        </Link>
+        <AccountNavigation />
       </aside>
 
       <div className="discover-workspace">

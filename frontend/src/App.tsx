@@ -11,6 +11,7 @@ import CustomerLoginPage from "./pages/CustomerLoginPage";
 import CustomerRegisterPage from "./pages/CustomerRegisterPage";
 import OperatorOnboardingPage from "./pages/OperatorOnboardingPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
+import AdminApplicationsPage from "./pages/AdminApplicationsPage";
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
       <Route path="/operator/login" element={<OperatorLoginPage />} />
       <Route path="/operator/register" element={<OperatorRegisterPage />} />
       <Route path="/operator/onboarding" element={<OperatorOnboardingPage />} />
+      <Route path="/admin/owner-applications" element={<AdminApplicationsPage />} />
       <Route path="/operator/analytics" element={<AnalyticsPage />} />
       <Route path="/analytics" element={<Navigate to="/operator/analytics" replace />} />
       <Route path="*" element={<NotFoundPage />} />

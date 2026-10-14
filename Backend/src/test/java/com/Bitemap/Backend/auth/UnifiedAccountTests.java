@@ -26,6 +26,12 @@ class UnifiedAccountTests {
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
 
+    void grantReviewedAccess() {
+        long user = jdbc.queryForObject("SELECT id FROM app_users WHERE email=?", Long.class, EMAIL);
+        jdbc.update("INSERT INTO operators(user_id) VALUES (?)", user);
+        jdbc.update("INSERT INTO app_user_roles(user_id,role) VALUES (?,'OPERATOR')", user);
+    }
+
     MockHttpSession registerAndLogin() throws Exception {
         mvc.perform(post("/api/auth/register").with(csrf()).contentType("application/json")
                 .content(json.writeValueAsString(Map.of("displayName","Customer","email",EMAIL,"password",PASSWORD,
@@ -53,6 +59,7 @@ class UnifiedAccountTests {
         var before = jdbc.queryForList("SELECT * FROM vendors ORDER BY id");
         var session = registerAndLogin();
         String oldId = session.getId();
+        grantReviewedAccess();
         var tokenResult = mvc.perform(get("/api/auth/csrf").session(session)).andReturn();
         String token = json.readTree(tokenResult.getResponse().getContentAsString()).get("token").asText();
         mvc.perform(post("/api/auth/become-operator").session(session).header("X-CSRF-TOKEN",token)
@@ -82,6 +89,7 @@ class UnifiedAccountTests {
 
     @Test void revokedOperatorKeepsCustomerAccessButCannotSelfReactivate() throws Exception {
         var session = registerAndLogin();
+        grantReviewedAccess();
         mvc.perform(post("/api/auth/become-operator").session(session).with(csrf())).andExpect(status().isOk());
         jdbc.update("UPDATE operators SET enabled=FALSE");
         mvc.perform(get("/api/operator/vendors").session(session)).andExpect(status().isForbidden());
@@ -93,6 +101,7 @@ class UnifiedAccountTests {
 
     @Test void deletedOperatorRoleCannotBeRegrantedByOnboarding() throws Exception {
         var session = registerAndLogin();
+        grantReviewedAccess();
         mvc.perform(post("/api/auth/become-operator").session(session).with(csrf())).andExpect(status().isOk());
         jdbc.update("DELETE FROM app_user_roles WHERE role='OPERATOR'");
         mvc.perform(get("/api/operator/vendors").session(session)).andExpect(status().isForbidden());
@@ -121,6 +130,7 @@ class UnifiedAccountTests {
         var result = mvc.perform(post("/api/auth/login").with(csrf()).contentType("application/json")
                 .content(json.writeValueAsString(Map.of("email",EMAIL,"password",PASSWORD)))).andExpect(status().isOk()).andReturn();
         var second = (MockHttpSession) result.getRequest().getSession(false);
+        grantReviewedAccess();
         mvc.perform(post("/api/auth/become-operator").session(first).with(csrf())).andExpect(status().isOk());
         mvc.perform(get("/api/auth/me").session(second)).andExpect(jsonPath("$.roles", contains("ROLE_CUSTOMER")));
         mvc.perform(get("/api/operator/vendors").session(second)).andExpect(status().isForbidden());

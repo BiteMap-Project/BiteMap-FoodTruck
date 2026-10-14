@@ -201,6 +201,33 @@ body:has(.discovery) {
   min-width: 0;
 }
 
+.discovery .discover-account {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.discovery .discover-account-name {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.discovery .discover-account-name strong,
+.discovery .discover-account-name span {
+  display: block;
+}
+
+.discovery .discover-account-name strong { color: var(--text-h); }
+
+.discovery .discover-account-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .discovery .discover-topbar {
   display: flex;
   align-items: center;

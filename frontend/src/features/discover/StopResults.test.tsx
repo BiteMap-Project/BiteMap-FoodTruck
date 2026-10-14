@@ -2,6 +2,10 @@ import { MemoryRouter } from "react-router-dom";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import DiscoverPage from "../../pages/DiscoverPage";
+vi.mock("../../services/auth", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../services/auth")>(),
+  getCurrentAccount: vi.fn(async () => null),
+}));
 import type { Stop, StopPage } from "../../services/stops";
 
 const stop: Stop = {

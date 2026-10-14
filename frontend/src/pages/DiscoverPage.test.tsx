@@ -11,6 +11,7 @@ const render = (view: ReactElement) => renderView(<MemoryRouter>{view}</MemoryRo
 const vendor = { id: -2, name: "Database Taco", category: "Tacos", location: "Northridge" };
 const data: VendorPage = { items: [vendor], page: 0, size: 20, totalElements: 1, totalPages: 1 };
 const fetchMock = vi.fn();
+vi.mock("../services/auth", () => ({ getCurrentAccount: vi.fn(async () => null) }));
 const response = (body: VendorPage) => ({ ok: true, json: async () => body });
 const tick = () => act(async () => { await vi.advanceTimersByTimeAsync(300); });
 const search = (value: string) => fireEvent.change(screen.getByRole("searchbox"), { target: { value } });
@@ -26,6 +27,7 @@ it("shows loading then database cards under StrictMode with matching profile lin
   render(<StrictMode><DiscoverPage /></StrictMode>);
   expect(screen.getByRole("status")).toHaveTextContent("Loading trucks");
   await tick();
+  expect(screen.getByRole("link", { name: /Customer sign in/ })).toHaveAttribute("href", "/customer/login");
   expect(screen.getByRole("region", { name: "Truck results" })).toBeInTheDocument();
   expect(screen.getByRole("status")).toHaveTextContent("1 truck found");
   expect(screen.getByRole("heading", { name: vendor.name })).toBeInTheDocument();

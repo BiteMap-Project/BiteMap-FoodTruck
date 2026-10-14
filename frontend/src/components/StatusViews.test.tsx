@@ -2,6 +2,10 @@ import { MemoryRouter } from "react-router-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import App from "../App";
+vi.mock("../services/auth", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../services/auth")>(),
+  getCurrentAccount: vi.fn(async () => null),
+}));
 import { EmptyState, ErrorState, LoadingState } from "./StatusViews";
 
 it("announces loading politely", () => {

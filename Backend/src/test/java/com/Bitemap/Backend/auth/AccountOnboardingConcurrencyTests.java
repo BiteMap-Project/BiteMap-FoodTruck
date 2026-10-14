@@ -15,10 +15,12 @@ class AccountOnboardingConcurrencyTests {
     @Autowired JdbcTemplate jdbc;
     @Autowired AccountService accounts;
 
-    @Test void concurrentRequestsCreateExactlyOneProfileAndRole() throws Exception {
+    @Test void concurrentRefreshesPreserveAnAlreadyApprovedProfileAndRole() throws Exception {
         long user = jdbc.queryForObject("INSERT INTO app_users(display_name,email,password_hash) VALUES ('Race',?,'unused') RETURNING id",
                 Long.class, "onboarding-" + UUID.randomUUID() + "@example.com");
         jdbc.update("INSERT INTO app_user_roles(user_id,role) VALUES (?, 'CUSTOMER')", user);
+        jdbc.update("INSERT INTO operators(user_id) VALUES (?)", user);
+        jdbc.update("INSERT INTO app_user_roles(user_id,role) VALUES (?, 'OPERATOR')", user);
         try (var workers = Executors.newFixedThreadPool(2)) {
             var ready = new CountDownLatch(2);
             var start = new CountDownLatch(1);

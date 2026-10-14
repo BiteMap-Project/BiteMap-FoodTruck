@@ -100,7 +100,7 @@ export function becomeOperator(): Promise<Account> {
   return postWithCsrf("/api/auth/become-operator", {}, "Unable to activate the owner workspace. Please try again.");
 }
 
-export const hasRole = (account: Account, role: "ROLE_CUSTOMER" | "ROLE_OPERATOR") => account.roles.includes(role);
+export const hasRole = (account: Account, role: "ROLE_CUSTOMER" | "ROLE_OPERATOR" | "ROLE_ADMIN") => account.roles.includes(role);
 
 // Compatibility names for the existing owner workspace while routes migrate to
 // the unified account language.

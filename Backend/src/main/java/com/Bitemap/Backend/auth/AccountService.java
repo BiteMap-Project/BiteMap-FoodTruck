@@ -10,7 +10,7 @@ public class AccountService {
     private final JdbcTemplate jdbc;
     public AccountService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
-    /** Serializes concurrent onboarding, rejects revoked profiles, never touches vendors. */
+    /** Verifies already-granted operator access before explicit session refresh; never grants roles. */
     @Transactional
     public void becomeOperator(long userId) {
         var users = jdbc.queryForList("SELECT id FROM app_users WHERE id=? AND enabled FOR UPDATE", Long.class, userId);
@@ -25,7 +25,6 @@ public class AccountService {
             if (!profiles.getFirst() || !operator) throw new AccessDeniedException("Operator access requires review.");
             return;
         }
-        jdbc.update("INSERT INTO operators(user_id) VALUES (?)", userId);
-        jdbc.update("INSERT INTO app_user_roles(user_id,role) VALUES (?, 'OPERATOR') ON CONFLICT DO NOTHING", userId);
+        throw new AccessDeniedException("Submit an owner application and wait for administrator approval.");
     }
 }

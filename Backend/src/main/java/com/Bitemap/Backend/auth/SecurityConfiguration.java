@@ -71,6 +71,7 @@ public class SecurityConfiguration {
 				.requestMatchers(HttpMethod.GET, "/api/vendors", "/api/vendors/{id}", "/api/vendor-stops", "/actuator/health", "/actuator/health/**").permitAll()
 				.requestMatchers("/api/operator/**").hasRole("OPERATOR")
                 .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
 				.anyRequest().authenticated())
 				.securityContext(context -> context.securityContextRepository(contexts))
 				.csrf(config -> config.csrfTokenRepository(csrf))

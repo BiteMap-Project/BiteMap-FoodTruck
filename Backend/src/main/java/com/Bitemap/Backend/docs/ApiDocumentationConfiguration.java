@@ -74,8 +74,8 @@ public class ApiDocumentationConfiguration {
             var onboarding = api.getPaths().get("/api/auth/become-operator");
             if (onboarding != null && onboarding.getPost() != null) {
                 var operation = onboarding.getPost();
-                operation.setSummary("Enable operator access for the signed-in customer");
-                operation.setDescription("No request body. Idempotent; never claims existing trucks. "
+                operation.setSummary("Refresh an already approved operator session");
+                operation.setDescription("Requires an existing enabled operator profile and OPERATOR grant. Does not grant new access. No request body; never claims existing trucks. "
                         + "Rotates the session and CSRF token after commit. Fetch a fresh CSRF token afterward.");
                 operation.addSecurityItem(new SecurityRequirement().addList("csrfToken"));
                 operation.getResponses().addApiResponse("401", new io.swagger.v3.oas.models.responses.ApiResponse().description("Login required"));

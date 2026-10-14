@@ -9,6 +9,10 @@ const truck = {
   menu: [{ id: 40, name: "Veggie Taco", description: "Beans and salsa", price: 4.5, available: false }],
 };
 const fetchMock = vi.fn();
+vi.mock("../services/auth", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../services/auth")>(),
+  getCurrentAccount: vi.fn(async () => null),
+}));
 const response = (body: unknown, status = 200) => ({ ok: status === 200, status, json: async () => body });
 const open = (id = "-2") => render(<MemoryRouter initialEntries={[`/trucks/${id}`]}><App /></MemoryRouter>);
 

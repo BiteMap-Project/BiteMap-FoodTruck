@@ -337,7 +337,7 @@ class DatabaseMigrationTests {
         assertThat(customer).isGreaterThan(disabled);
         assertThatThrownBy(() -> jdbc.update("INSERT INTO " + schema + ".app_users(display_name,email,password_hash) VALUES ('Dup','OWNER@EXAMPLE.COM','hash')"))
                 .isInstanceOf(DataIntegrityViolationException.class);
-        assertThatThrownBy(() -> jdbc.update("INSERT INTO " + schema + ".app_user_roles(user_id,role) VALUES (?, 'ADMIN')", customer))
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO " + schema + ".app_user_roles(user_id,role) VALUES (?, 'SUPERUSER')", customer))
                 .isInstanceOf(DataIntegrityViolationException.class);
         assertThat(migrations(false).migrate().migrationsExecuted).isZero();
     }

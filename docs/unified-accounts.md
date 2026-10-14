@@ -1,5 +1,7 @@
 # Unified accounts: backend contract and rollout
 
+> Owner onboarding update: see [owner-approval.md](owner-approval.md). Instant activation below is historical. New applicants require administrator approval; the legacy onboarding endpoint only refreshes already-granted access.
+
 This account contract now has frontend registration, login, role routing, and
 operator-onboarding integration.
 The repository uses Java 21 / Spring Boot 4.1.1. Existing JDBC account persistence is retained; there is no parallel authentication implementation or unused JPA identity model.

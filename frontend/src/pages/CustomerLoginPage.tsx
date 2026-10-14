@@ -47,7 +47,7 @@ export default function CustomerLoginPage() {
     <section className="auth-card" aria-labelledby="customer-login-heading">
       <p className="auth-eyebrow">CUSTOMER CHECKOUT</p>
       <h1 id="customer-login-heading">Customer sign in</h1>
-      <p className="auth-intro">Your cart will still be here after you sign in.</p>
+      <p className="auth-intro">Already a truck owner? Use the same email and password. Your cart will still be here after you sign in.</p>
       {state?.registered && <p className="auth-success" role="status">Account created. You can sign in now.</p>}
       {error && <p className="auth-error" role="alert">{error}</p>}
       <form onSubmit={submit}>
@@ -55,10 +55,10 @@ export default function CustomerLoginPage() {
         <input id="customer-login-email" type="email" autoComplete="email" maxLength={320} required value={email} onChange={(event) => setEmail(event.target.value)} />
         <label htmlFor="customer-login-password">Password</label>
         <PasswordInput id="customer-login-password" autoComplete="current-password" maxLength={128} required value={password} onChange={(event) => setPassword(event.target.value)} />
-        <button type="submit" disabled={submitting}>{submitting ? "Signing in…" : "Sign in and return to cart"}</button>
+        <button type="submit" disabled={submitting}>{submitting ? "Signing in…" : returnTo === "/cart" ? "Sign in and return to cart" : "Sign in and browse trucks"}</button>
       </form>
       <p className="auth-switch">New customer? <Link to="/customer/register" state={{ returnTo }}>Create an account</Link></p>
-      <Link className="auth-back" to="/cart">← Return to cart</Link>
+      <Link className="auth-back" to={returnTo}>{returnTo === "/cart" ? "← Return to cart" : "← Browse trucks"}</Link>
     </section>
   </main>;
 }

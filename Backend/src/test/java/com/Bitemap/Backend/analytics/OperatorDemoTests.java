@@ -18,6 +18,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class OperatorDemoTests {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+    @Autowired com.Bitemap.Backend.onboarding.OwnerApplicationService applications;
 
     @Test
     void registerLoginPublishBrowseAnalyzeAndLogout() throws Exception {
@@ -28,6 +30,11 @@ class OperatorDemoTests {
                 .content("{\"email\":\"demo-walkthrough@example.com\",\"password\":\"A demo test passphrase 2026!\"}"))
                 .andExpect(status().isOk()).andReturn();
         var session = (MockHttpSession) login.getRequest().getSession(false);
+        long applicant = jdbc.queryForObject("SELECT id FROM app_users WHERE email='demo-walkthrough@example.com'", Long.class);
+        long reviewer = jdbc.queryForObject("INSERT INTO app_users(display_name,email,password_hash) VALUES ('Reviewer','demo-reviewer@example.com','unused') RETURNING id", Long.class);
+        jdbc.update("INSERT INTO app_user_roles(user_id,role) VALUES (?,'ADMIN')", reviewer);
+        var application = applications.submit(applicant, new com.Bitemap.Backend.onboarding.OwnerApplication.Submit("Demo", "demo@example.com", "CSUN"));
+        applications.review(reviewer, application.id(), new com.Bitemap.Backend.onboarding.OwnerApplication.Review(com.Bitemap.Backend.onboarding.OwnerApplication.Decision.APPROVED, "Demo reviewed"));
         mvc.perform(post("/api/auth/become-operator").session(session).with(csrf())).andExpect(status().isOk());
         var created = mvc.perform(post("/api/operator/vendors").session(session).with(csrf()).contentType("application/json")
                 .content("{\"name\":\"Professor Tacos\",\"category\":\"Tacos\",\"location\":\"CSUN\"}"))

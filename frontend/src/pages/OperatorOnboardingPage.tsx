@@ -1,37 +1,67 @@
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AuthApiError, becomeOperator, getCurrentAccount, hasRole, type Account } from "../services/auth";
+import { becomeOperator, getCurrentAccount, hasRole, type Account } from "../services/auth";
+import { getOwnerApplication, submitOwnerApplication, type OwnerApplication } from "../services/ownerApplications";
 import "./operator-auth.css";
 
 export default function OperatorOnboardingPage() {
   const navigate = useNavigate();
   const [account, setAccount] = useState<Account | null>(null);
+  const [application, setApplication] = useState<OwnerApplication | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [attempt, setAttempt] = useState(0);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
+  const [busy, setBusy] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [operatingArea, setOperatingArea] = useState("");
   useEffect(() => {
     const controller = new AbortController();
-    getCurrentAccount(controller.signal).then((current) => {
-      if (!current) navigate("/operator/login", { replace: true });
-      else if (hasRole(current, "ROLE_OPERATOR")) navigate("/operator", { replace: true });
-      else setAccount(current);
-    }, () => setError("Unable to check your account. Please try again."));
+    async function load() {
+      setLoading(true); setError("");
+      try {
+        const current = await getCurrentAccount(controller.signal);
+        if (controller.signal.aborted) return;
+        if (!current) { navigate("/operator/login", { replace: true }); return; }
+        if (hasRole(current, "ROLE_OPERATOR")) { navigate("/operator", { replace: true }); return; }
+        const value = await getOwnerApplication(controller.signal);
+        if (controller.signal.aborted) return;
+        setAccount(current); setContactEmail((previous) => previous || current.email); setApplication(value);
+      } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Unable to check your application."); }
+      finally { if (!controller.signal.aborted) setLoading(false); }
+    }
+    void load();
     return () => controller.abort();
-  }, [navigate]);
-
-  async function activate() {
-    setError(""); setSubmitting(true);
-    try { await becomeOperator(); navigate("/operator", { replace: true }); }
-    catch (cause) { setError(cause instanceof AuthApiError ? cause.message : "Unable to activate the owner workspace."); setSubmitting(false); }
+  }, [attempt, navigate]);
+  async function submit(event: FormEvent) {
+    event.preventDefault(); if (busy) return;
+    setError(""); setBusy(true);
+    try { setApplication(await submitOwnerApplication({ businessName, contactEmail, operatingArea })); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to submit your application."); }
+    finally { setBusy(false); }
   }
-
+  async function enterWorkspace() {
+    setError(""); setBusy(true);
+    try { await becomeOperator(); navigate("/operator"); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to open the owner workspace."); }
+    finally { setBusy(false); }
+  }
   return <main className="auth-page"><section className="auth-card" aria-labelledby="owner-onboarding-heading">
-    <Link className="auth-brand" to="/">BiteMap<span>.</span></Link>
-    <p className="auth-eyebrow">OWNER ONBOARDING</p>
-    <h1 id="owner-onboarding-heading">Become a truck owner</h1>
-    <p className="auth-intro">{account ? `${account.displayName}, activate the owner tools to create and manage your trucks.` : "Checking your account…"}</p>
+    <Link className="auth-brand" to="/trucks">BiteMap<span>.</span></Link>
+    <p className="auth-eyebrow">OWNER APPLICATION</p>
+    <h1 id="owner-onboarding-heading">{application?.status === "PENDING" ? "Application pending" : application?.status === "APPROVED" ? "Owner application approved" : application?.status === "REJECTED" ? "Application not approved" : "Apply to become a truck owner"}</h1>
+    {loading && <p role="status">Checking your application…</p>}
     {error && <p className="auth-error" role="alert">{error}</p>}
-    <button type="button" disabled={!account || submitting} onClick={activate}>{submitting ? "Activating…" : "Activate owner workspace"}</button>
-    <Link className="auth-back" to="/trucks">← Keep browsing as a customer</Link>
+    {!loading && account && !application && <form onSubmit={submit}><p className="auth-intro">Owner tools become available after review by the BiteMap team.</p>
+      <label htmlFor="business-name">Business name</label><input id="business-name" required maxLength={120} value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
+      <label htmlFor="contact-email">Contact email</label><input id="contact-email" type="email" required maxLength={320} value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
+      <label htmlFor="operating-area">Operating area</label><input id="operating-area" required maxLength={240} value={operatingArea} onChange={(e) => setOperatingArea(e.target.value)} />
+      <button disabled={busy}>{busy ? "Submitting…" : "Submit application"}</button>
+    </form>}
+    {!loading && application?.status === "PENDING" && <><p>Thanks, {application.businessName}. Your application is awaiting review by the BiteMap team.</p><p>Owner workspace is not enabled yet. You can continue browsing and ordering as a customer.</p></>}
+    {!loading && application?.status === "REJECTED" && <><p>{application.reviewNote}</p><p>Contact the BiteMap team for follow-up. Your customer account is still available.</p></>}
+    {!loading && application?.status === "APPROVED" && <><p>Your application was approved. Open your workspace to create a new truck. Existing trucks cannot be claimed.</p><button disabled={busy} onClick={enterWorkspace}>{busy ? "Opening…" : "Access your truck"}</button></>}
+    <button type="button" disabled={loading || busy} onClick={() => setAttempt((n) => n + 1)}>Refresh application status</button>
+    <Link className="auth-back" to="/trucks">Continue as a customer</Link>
   </section></main>;
 }

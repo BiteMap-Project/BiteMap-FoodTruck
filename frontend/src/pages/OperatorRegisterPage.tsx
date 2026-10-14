@@ -46,7 +46,7 @@ function OperatorRegisterPage() {
       <section className="auth-card" aria-labelledby="register-heading">
         <Link className="auth-brand" to="/">BiteMap</Link>
         <h1 id="register-heading">Create your BiteMap account</h1>
-        <p className="auth-intro">After signing in, you can activate the owner workspace.</p>
+        <p className="auth-intro">After signing in, submit an owner application. Owner tools require approval by the BiteMap team.</p>
         {error && <p className="auth-error" role="alert">{error}</p>}
         <form onSubmit={submit} noValidate>
           <label htmlFor="register-name">Display name</label>

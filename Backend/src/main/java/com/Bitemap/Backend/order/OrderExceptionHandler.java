@@ -22,16 +22,36 @@ public class OrderExceptionHandler {
     }
 
     @ExceptionHandler(OrderUnavailableException.class)
-    ProblemDetail unavailableItem() {
+    ProblemDetail unavailableItem(OrderUnavailableException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
-                "One or more cart items are no longer available. Refresh the menu before ordering.");
+                exception.getMessage());
     }
 
-    @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class,
-            HandlerMethodValidationException.class, ConstraintViolationException.class, IllegalArgumentException.class})
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ProblemDetail invalidFields(MethodArgumentNotValidException exception) {
+        var errors = new java.util.TreeMap<String, String>();
+        exception.getBindingResult().getFieldErrors().forEach(error -> errors.putIfAbsent(error.getField(), error.getDefaultMessage()));
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                errors.entrySet().stream().map(e -> e.getKey() + ": " + e.getValue()).collect(java.util.stream.Collectors.joining("; ")));
+        problem.setProperty("errors", errors);
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidOrderException.class)
+    ProblemDetail invalidCart(InvalidOrderException exception) { return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.getMessage()); }
+
+    @ExceptionHandler(OrderKeyConflictException.class)
+    ProblemDetail keyConflict() { return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+            "This idempotency key was already used for a different cart. Use a new key for a new order."); }
+
+    @ExceptionHandler({HttpMessageNotReadableException.class, org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
+    ProblemDetail malformed() { return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+            "Malformed order request. IDs and quantities must be JSON integers within range; idempotencyKey must be a valid UUID."); }
+
+    @ExceptionHandler({HandlerMethodValidationException.class, ConstraintViolationException.class})
     ProblemDetail invalid() {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
-                "Provide one to fifty unique menu items with quantities from 1 to 10.");
+                "Check the order fields: use nonzero IDs, 1–50 distinct items, quantities from 1 to 10, and an idempotency key.");
     }
 
     @ExceptionHandler({DataAccessException.class, CannotCreateTransactionException.class})

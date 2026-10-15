@@ -1,56 +1,81 @@
 package com.Bitemap.Backend.order;
 
 import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.UUID;
+import java.util.Map;
+import java.util.Collections;
+import java.util.stream.Collectors;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Validated
 public class OrderService {
+    private static final BigDecimal MAX_TOTAL = new BigDecimal("9999999999.99");
     private final JdbcTemplate jdbc;
 
     public OrderService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
     @Transactional
-    public OrderResponse create(String customerEmail, CreateOrderRequest request) {
+    public OrderResponse create(String customerEmail, @NotNull @Valid CreateOrderRequest request) {
         requireUniqueItems(request);
-        long customerId = jdbc.queryForObject("""
+        var customers = jdbc.queryForList("""
                 SELECT u.id FROM app_users u
                 JOIN app_user_roles r ON r.user_id=u.id AND r.role='CUSTOMER'
                 WHERE lower(u.email)=lower(?) AND u.enabled
-                FOR SHARE OF u
+                FOR SHARE OF u,r
                 """, Long.class, customerEmail);
+        if (customers.isEmpty()) throw new AccessDeniedException("An enabled customer account is required.");
+        long customerId = customers.getFirst();
 
         jdbc.queryForObject("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", Object.class,
                 customerId + ":" + request.idempotencyKey());
         var existing = find(customerId, request.idempotencyKey());
-        if (existing != null) return existing;
+        if (existing != null) {
+            Map<Long, Integer> quantities = request.items().stream().collect(Collectors.toMap(CreateOrderRequest.Item::menuItemId, CreateOrderRequest.Item::quantity));
+            if (existing.vendorId() != request.vendorId() || existing.items().size() != quantities.size()
+                    || existing.items().stream().anyMatch(item -> !Integer.valueOf(item.quantity()).equals(quantities.get(item.menuItemId()))))
+                throw new OrderKeyConflictException();
+            return existing;
+        }
 
         String vendorName = jdbc.query("SELECT name FROM vendors WHERE id=? FOR SHARE", rs ->
                 rs.next() ? rs.getString(1) : null, request.vendorId());
-        if (vendorName == null) throw new OrderUnavailableException();
+        if (vendorName == null) throw new OrderUnavailableException("The selected truck is not available.");
+
+        // One bounded lookup, not one query per line. Lock in stable ID order.
+        var parameters = new ArrayList<Object>();
+        parameters.add(request.vendorId());
+        request.items().stream().map(CreateOrderRequest.Item::menuItemId).sorted().forEach(parameters::add);
+        String placeholders = String.join(",", Collections.nCopies(request.items().size(), "?"));
+        var menu = jdbc.query("SELECT id,name,price,availability_status FROM vendor_menu_items WHERE vendor_id=? AND id IN ("
+                + placeholders + ") ORDER BY id FOR SHARE", (rs, row) -> new MenuLine(rs.getLong("id"),rs.getString("name"),
+                rs.getBigDecimal("price"),rs.getString("availability_status")), parameters.toArray()).stream()
+                .collect(Collectors.toMap(MenuLine::id, item -> item));
 
         var lines = new ArrayList<OrderResponse.Item>();
         BigDecimal total = BigDecimal.ZERO;
         for (var requested : request.items()) {
-            var line = jdbc.query("""
-                    SELECT id,name,price FROM vendor_menu_items
-                    WHERE id=? AND vendor_id=? AND availability_status='ACTIVE'
-                    FOR SHARE
-                    """, rs -> rs.next() ? line(rs, requested.quantity()) : null,
-                    requested.menuItemId(), request.vendorId());
-            if (line == null) throw new OrderUnavailableException();
+            var item = menu.get(requested.menuItemId());
+            // Missing and wrong-truck IDs deliberately have the same response.
+            if (item == null || item.status().equals("INACTIVE"))
+                throw new OrderUnavailableException("Item " + requested.menuItemId() + " is not available for this truck.");
+            if (item.status().equals("SOLD_OUT")) throw new OrderUnavailableException("Item " + requested.menuItemId() + " is currently sold out.");
+            if (!item.status().equals("ACTIVE")) throw new OrderUnavailableException("Item " + requested.menuItemId() + " is not available for this truck.");
+            var line = new OrderResponse.Item(item.id(),item.name(),item.price(),requested.quantity(),item.price().multiply(BigDecimal.valueOf(requested.quantity())));
             lines.add(line);
             total = total.add(line.lineTotal());
         }
 
+        if (total.compareTo(MAX_TOTAL) > 0) throw new InvalidOrderException("Order total exceeds the supported maximum. Reduce your cart.");
         long orderId = jdbc.queryForObject("""
                 INSERT INTO customer_orders(customer_user_id,vendor_id,idempotency_key,total)
                 VALUES (?,?,?,?) RETURNING id
@@ -76,7 +101,7 @@ public class OrderService {
     private void requireUniqueItems(CreateOrderRequest request) {
         var ids = new HashSet<Long>();
         if (request.items().stream().anyMatch(item -> !ids.add(item.menuItemId()))) {
-            throw new IllegalArgumentException("Each menu item may appear only once.");
+            throw new InvalidOrderException("Each menu item may appear only once. Combine duplicate items into one quantity.");
         }
     }
 
@@ -101,11 +126,7 @@ public class OrderService {
                 header.total(), header.createdAt(), items);
     }
 
-    private OrderResponse.Item line(ResultSet rs, int quantity) throws SQLException {
-        BigDecimal price = rs.getBigDecimal("price");
-        return new OrderResponse.Item(rs.getLong("id"), rs.getString("name"), price, quantity,
-                price.multiply(BigDecimal.valueOf(quantity)));
-    }
+    private record MenuLine(long id, String name, BigDecimal price, String status) {}
 
     private record Header(long id, long vendorId, String vendorName, String status,
             BigDecimal total, Instant createdAt) {}

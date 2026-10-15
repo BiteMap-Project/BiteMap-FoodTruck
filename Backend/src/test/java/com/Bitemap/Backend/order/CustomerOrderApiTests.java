@@ -132,6 +132,82 @@ class CustomerOrderApiTests {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM customer_orders WHERE customer_user_id=?", Integer.class, customer)).isZero();
     }
 
+    @Test
+    void acceptsSeedIdsAndIgnoresAllClientMoneyAndIdentityFields() throws Exception {
+        jdbc.update("INSERT INTO vendors(id,name,category,location) OVERRIDING SYSTEM VALUE VALUES (-1,'Seed Truck','Food','CSUN')");
+        jdbc.update("INSERT INTO vendor_menu_items(id,vendor_id,name,price,availability_status) OVERRIDING SYSTEM VALUE VALUES (-5,-1,'Seed Taco',4.25,'ACTIVE')");
+        var request = Map.of("vendorId", -1, "idempotencyKey", UUID.randomUUID(), "total", "0.01", "customerUserId", -999,
+                "status", "COMPLETED", "items", java.util.List.of(Map.of("menuItemId", -5, "quantity", 2, "price", "0.01", "unitPrice", "0.01", "lineTotal", "0.01")));
+        mvc.perform(post("/api/customer/orders").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")).with(csrf())
+                .contentType("application/json").content(json.writeValueAsString(request)))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.vendorId").value(-1)).andExpect(jsonPath("$.total").value(8.50))
+                .andExpect(jsonPath("$.items[0].unitPrice").value(4.25)).andExpect(jsonPath("$.status").value("PLACED"));
+        assertThat(jdbc.queryForObject("SELECT customer_user_id FROM customer_orders",Long.class)).isEqualTo(customer);
+    }
+
+    @Test
+    void rejectsReusingAKeyWithDifferentQuantities() throws Exception {
+        var key=UUID.randomUUID();
+        mvc.perform(post("/api/customer/orders").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")).with(csrf())
+                .contentType("application/json").content(body(key,new Object[][]{{taco,1}}))).andExpect(status().isCreated());
+        mvc.perform(post("/api/customer/orders").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")).with(csrf())
+                .contentType("application/json").content(body(key,new Object[][]{{taco,2}}))).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("This idempotency key was already used for a different cart. Use a new key for a new order."));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM customer_orders",Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void givesAnActionableSoldOutErrorWithoutSavingAnOrder() throws Exception {
+        jdbc.update("UPDATE vendor_menu_items SET availability_status='SOLD_OUT' WHERE id=?",taco);
+        mvc.perform(post("/api/customer/orders").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")).with(csrf())
+                .contentType("application/json").content(body(UUID.randomUUID(),new Object[][]{{taco,1}})))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value("Item " + taco + " is currently sold out."));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM customer_orders",Integer.class)).isZero();
+    }
+
+    @Test
+    void nullLineIsAnInputErrorNotAServerFailure() throws Exception {
+        mvc.perform(post("/api/customer/orders").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")).with(csrf())
+                .contentType("application/json").content("{\"vendorId\":"+vendor+",\"idempotencyKey\":\""+UUID.randomUUID()+"\",\"items\":[null]}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors").exists());
+    }
+
+    @Test
+    void rejectsZeroFractionalStringAndOverflowIdsAndQuantities() throws Exception {
+        for (String invalid : new String[] {
+                "{\"vendorId\":0,\"items\":[{\"menuItemId\":1,\"quantity\":1}]}",
+                "{\"vendorId\":1.5,\"items\":[{\"menuItemId\":1,\"quantity\":1}]}",
+                "{\"vendorId\":\"1\",\"items\":[{\"menuItemId\":1,\"quantity\":1}]}",
+                "{\"vendorId\":9223372036854775808,\"items\":[{\"menuItemId\":1,\"quantity\":1}]}",
+                "{\"vendorId\":1,\"items\":[{\"menuItemId\":0,\"quantity\":1}]}",
+                "{\"vendorId\":1,\"items\":[{\"menuItemId\":1.5,\"quantity\":1}]}",
+                "{\"vendorId\":1,\"items\":[{\"menuItemId\":1,\"quantity\":1.5}]}",
+                "{\"vendorId\":1,\"items\":[{\"menuItemId\":1,\"quantity\":\"2\"}]}",
+                "{\"vendorId\":1,\"items\":[{\"menuItemId\":1,\"quantity\":2147483648}]}"
+        }) {
+            String request = invalid.replaceFirst("\\{", "{\"idempotencyKey\":\"" + UUID.randomUUID() + "\",");
+            mvc.perform(post("/api/customer/orders").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")).with(csrf())
+                    .contentType("application/json").content(request))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.trace").doesNotExist());
+        }
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM customer_orders", Integer.class)).isZero();
+    }
+
+    @Test
+    void acceptsOperatorCreatedItemsAndReorderedReplay() throws Exception {
+        long operator = com.Bitemap.Backend.TestAccounts.operator(jdbc, "Owner", "checkout-owner@example.com", "unused");
+        jdbc.update("UPDATE vendors SET operator_id=? WHERE id=?", operator, vendor);
+        var key = UUID.randomUUID();
+        var first = mvc.perform(post("/api/customer/orders").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")).with(csrf())
+                .contentType("application/json").content(body(key, new Object[][]{{taco,10},{drink,1}})))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.total").value(47.25)).andReturn();
+        long id = json.readTree(first.getResponse().getContentAsString()).get("id").asLong();
+        jdbc.update("UPDATE vendor_menu_items SET availability_status='SOLD_OUT' WHERE id=?", taco);
+        mvc.perform(post("/api/customer/orders").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")).with(csrf())
+                .contentType("application/json").content(body(key, new Object[][]{{drink,1},{taco,10}})))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(id));
+    }
+
     private long item(long vendorId, String name, String price, String status) {
         return jdbc.queryForObject("""
                 INSERT INTO vendor_menu_items(vendor_id,name,price,availability_status)

@@ -23,6 +23,15 @@ it.each([false, true])("shows the server name and role-aware actions (operator: 
   show();
   expect(await screen.findByText("Spicy Food")).toBeInTheDocument();
   expect(screen.getByText("Signed in · Customer")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "My orders" })).toHaveAttribute("href", "/orders");
+  expect(screen.getByRole("navigation", { name: "Your orders" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "My cart" })).toHaveClass("discover-menu-link");
+  if (operator) {
+    expect(screen.getByText("Your business")).toBeInTheDocument();
+    expect(screen.queryByText("Good food. Great spots.")).not.toBeInTheDocument();
+  } else {
+    expect(screen.queryByRole("link", { name: "Access your truck" })).not.toBeInTheDocument();
+  }
   expect(screen.queryByText("Customer sign in")).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: operator ? "Access your truck" : "Owner application" })).toHaveAttribute("href", operator ? "/operator" : "/operator/onboarding");
 });
@@ -62,4 +71,11 @@ it("keeps account information and permits retry when sign out fails", async () =
   expect(await screen.findByRole("alert")).toHaveTextContent("Unable to sign out");
   expect(screen.getByText("Spicy Food")).toBeInTheDocument();
   await waitFor(() => expect(screen.getByRole("button", { name: "Sign out" })).toBeEnabled());
+});
+
+it("retains the administrator review link without granting owner access", async () => {
+  fetchMock.mockResolvedValue(response(200, { ...account, roles: ["ROLE_CUSTOMER", "ROLE_ADMIN"] }));
+  show();
+  expect(await screen.findByRole("link", { name: "Review applications" })).toHaveAttribute("href", "/admin/owner-applications");
+  expect(screen.queryByRole("link", { name: "Access your truck" })).not.toBeInTheDocument();
 });

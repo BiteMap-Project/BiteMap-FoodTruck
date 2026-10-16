@@ -44,6 +44,37 @@ class CustomerOrderApiTests {
     }
 
     @Test
+    void historyIsPrivatePaginatedAndNeverCached() throws Exception {
+        long otherCustomer = jdbc.queryForObject("INSERT INTO app_users(display_name,email,password_hash) VALUES ('Other','someone-else@example.com','unused') RETURNING id", Long.class);
+        jdbc.update("INSERT INTO app_user_roles(user_id,role) VALUES (?, 'CUSTOMER')", otherCustomer);
+        mvc.perform(post("/api/customer/orders")
+                .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")).with(csrf())
+                .contentType("application/json").content(body(UUID.randomUUID(), new Object[][] {{taco, 1}})))
+                .andExpect(status().isCreated());
+        mvc.perform(get("/api/customer/orders?size=1")
+                .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].vendorName").value("Taco Truck"));
+        mvc.perform(get("/api/customer/orders?page=1&size=1")
+                .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(0)));
+        mvc.perform(get("/api/customer/orders")
+                .with(com.Bitemap.Backend.TestAccounts.user("someone-else@example.com").roles("CUSTOMER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(0)));
+        mvc.perform(get("/api/customer/orders")).andExpect(status().isUnauthorized());
+        jdbc.update("UPDATE app_users SET enabled=false WHERE id=?", otherCustomer);
+        mvc.perform(get("/api/customer/orders")
+                .with(com.Bitemap.Backend.TestAccounts.user("someone-else@example.com").roles("CUSTOMER")))
+                .andExpect(status().isUnauthorized());
+        for (String query : new String[] {"size=0", "size=101", "page=-1", "page=10001"}) {
+            mvc.perform(get("/api/customer/orders?" + query)
+                    .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Test
     void createsPriceSnapshotsAndTreatsARepeatedKeyAsTheSameOrder() throws Exception {
         var key = UUID.randomUUID();
         var body = body(key, new Object[][] {{taco, 2}, {drink, 1}});

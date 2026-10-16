@@ -38,3 +38,16 @@ export function SearchIcon() {
     </svg>
   );
 }
+
+export function BagIcon() {
+  return <svg {...base}><path d="M5 7h14l1 14H4L5 7Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg>;
+}
+export function ReceiptIcon() {
+  return <svg {...base}><path d="M5 3l2 1 2-1 3 1 3-1 2 1 2-1v18l-2-1-2 1-3-1-3 1-2-1-2 1V3Z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>;
+}
+export function TruckIcon() {
+  return <svg {...base}><path d="M3 5h11v12H3V5ZM14 9h4l3 4v4h-7" /><circle cx="7" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>;
+}
+export function LogoutIcon() {
+  return <svg {...base}><path d="M9 4H4v16h5M9 12h12m-4-4 4 4-4 4" /></svg>;
+}

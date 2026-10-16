@@ -105,6 +105,26 @@ public class OrderService {
         }
     }
 
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
+    public CustomerOrderPage list(String email,
+            @jakarta.validation.constraints.Min(0) @jakarta.validation.constraints.Max(10000) int page,
+            @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(100) int size) {
+        // Identity comes only from the authenticated principal. Both queries use the same scope.
+        String scope = """
+                FROM customer_orders o JOIN app_users u ON u.id=o.customer_user_id
+                JOIN app_user_roles r ON r.user_id=u.id AND r.role='CUSTOMER'
+                JOIN vendors v ON v.id=o.vendor_id
+                WHERE lower(u.email)=lower(?) AND u.enabled
+                """;
+        long count = jdbc.queryForObject("SELECT count(*) " + scope, Long.class, email);
+        var items = jdbc.query("SELECT o.id,o.vendor_id,v.name,o.status,o.total,o.created_at " + scope
+                + " ORDER BY o.created_at DESC,o.id DESC LIMIT ? OFFSET ?",
+                (rs, row) -> new CustomerOrderPage.Summary(rs.getLong(1), rs.getLong(2), rs.getString(3),
+                        OrderStatus.valueOf(rs.getString(4)), rs.getBigDecimal(5), rs.getTimestamp(6).toInstant()),
+                email, size, (long) page * size);
+        return new CustomerOrderPage(items, page, size, count, (count + size - 1) / size);
+    }
+
     private OrderResponse find(long customerId, UUID key) {
         Long id = jdbc.query("SELECT id FROM customer_orders WHERE customer_user_id=? AND idempotency_key=?",
                 rs -> rs.next() ? rs.getLong(1) : null, customerId, key);

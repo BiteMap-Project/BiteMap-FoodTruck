@@ -32,4 +32,15 @@ public class CustomerOrderController {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(service.get(authentication.getName(), orderId));
     }
+
+    @GetMapping
+    @io.swagger.v3.oas.annotations.Operation(summary = "List your own orders, newest first")
+    public ResponseEntity<CustomerOrderPage> list(Authentication authentication,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0")
+            @jakarta.validation.constraints.Min(0) @jakarta.validation.constraints.Max(10000) int page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "20")
+            @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(100) int size) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(service.list(authentication.getName(), page, size));
+    }
 }

@@ -18,6 +18,7 @@ beforeEach(() => {
     if (url === "/api/auth/csrf") return response(200, { headerName: "X-CSRF-TOKEN", token: "fresh-token" });
     if (url.startsWith("/api/operator/vendors?")) return response(200, page([vendor]));
     if (url.includes("menu-items?")) return response(200, page([item]));
+    if (url.includes("/orders?")) return response(200, page([]));
     return response(500);
   });
 });
@@ -50,7 +51,7 @@ it("shows owned vendor data, not local demo orders or sales", async () => {
   expect(await screen.findByRole("heading", { name: "Spicy Food" })).toBeInTheDocument();
   expect(screen.queryByText("The Rolling Kitchen")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Orders" }));
-  expect(screen.getByText("Orders are not connected yet")).toBeInTheDocument();
+  expect(await screen.findByText("No orders match this filter.")).toBeInTheDocument();
 });
 
 it("offers first-vendor creation when the account owns no vendors", async () => {

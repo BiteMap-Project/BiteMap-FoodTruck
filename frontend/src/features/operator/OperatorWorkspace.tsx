@@ -4,6 +4,7 @@ import type { OperatorAccount } from "../../services/auth";
 import { listOwnedVendors, listMenu, saveVendor, createMenuItem, editMenuItem, changeAvailability, WorkspaceError, type Vendor, type MenuItem, type Page, type Availability } from "../../services/operatorWorkspace";
 import { ItemForm, VendorForm } from "./WorkspaceForms";
 import SchedulePanel from "./SchedulePanel";
+import OrdersPanel from "./OrdersPanel";
 import { previewState, readWorkspaceRestore, WORKSPACE_TABS, type WorkspaceTab } from "./ownerReturn";
 import "./owner-design.css";
 import "./workspace.css";
@@ -112,9 +113,9 @@ function VendorWorkspace({ vendor, tab, onSaved }: { vendor: Vendor; tab: Tab; o
   return <>
     <section className="od-hero"><div className="od-hero-copy"><span className="od-label">YOUR TRUCK</span><h2>{vendor.name}</h2><p>{vendor.category} · {vendor.location}</p><div className="od-hero-bottom"><Link className="od-button od-button-secondary" to={`/trucks/${vendor.id}`} state={previewState({ from: "workspace", vendorId: vendor.id, tab })}>View customer menu →</Link></div></div></section>
     {message && <p role="status" className="ow-message">{message}</p>}{error && <p role="alert" className="ow-error">{error}</p>}
-    {tab === "Overview" && <section className="ow-panel"><h2>Your workspace is connected</h2><p>Use Menu to add items, edit prices and change availability. Use Truck Details to update this truck’s public profile. Use Schedule to publish, edit and cancel planned stops.</p><p>Orders, revenue and opening-hours controls are not available yet.</p></section>}
+    {tab === "Overview" && <section className="ow-panel"><h2>Your workspace is connected</h2><p>Use Menu to add items, edit prices and change availability. Use Truck Details to update this truck’s public profile. Use Schedule to publish, edit and cancel planned stops. Use Orders to review customer orders and manage preparation.</p><p>Revenue and opening-hours controls are not available yet.</p></section>}
     {tab === "Schedule" && <SchedulePanel key={vendor.id} vendorId={vendor.id} />}
-    {tab === "Orders" && <section className="ow-panel"><h2>Orders are not connected yet</h2><p>No order or revenue backend is available. This workspace does not show simulated sales.</p></section>}
+    {tab === "Orders" && <OrdersPanel key={vendor.id} vendorId={vendor.id} />}
     {tab === "Truck Details" && <section className="ow-panel"><h2>Truck details</h2><VendorForm key={`${vendor.id}-${vendor.name}-${vendor.category}-${vendor.location}`} initial={vendor} busy={unavailable} onSave={input => mutate(() => saveVendor(input, vendor.id), result => onSaved(result as Vendor))} />{blocked && <p>Refresh trucks to reload your access before retrying.</p>}</section>}
     {tab === "Menu" && <section className="ow-panel"><div className="ow-toolbar"><h2>Your menu</h2><button className="od-button od-button-primary" disabled={unavailable || menu.kind !== "ready"} onClick={() => setEditor("new")}>Add menu item</button><button disabled={busy} className="od-button od-button-secondary" onClick={() => reload()}>Reload menu</button></div>
       <p>Active items are available. Inactive and sold-out items appear as unavailable on the current customer menu.</p>

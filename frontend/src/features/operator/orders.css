@@ -1,0 +1,17 @@
+.ow-connected .ow-order-layout { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.2fr); gap: 24px; align-items: start; }
+.ow-connected .ow-order-filter { max-width: 280px; }
+.ow-connected .ow-order-help { color: #596354; font-size: .9rem; }
+.ow-connected .ow-order-list, .ow-connected .ow-order-items { list-style: none; padding: 0; margin: 0; }
+.ow-connected .ow-order-list > li { padding: 18px 0; border-bottom: 1px solid var(--od-line); }
+.ow-connected .ow-order-row-heading, .ow-connected .ow-order-total, .ow-connected .ow-order-items > li { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.ow-connected .ow-order-items > li { padding: 14px 0; border-bottom: 1px solid var(--od-line); }
+.ow-connected .ow-order-detail, .ow-connected .ow-order-placeholder { min-width: 0; padding: 24px; background: #f8f8f4; border-radius: 12px; overflow-wrap: anywhere; }
+.ow-connected .ow-order-detail h3 { margin: 0 0 16px; }
+.ow-connected .ow-order-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+.ow-connected .ow-order-status { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: .9rem; background: #e9ede4; color: #34412f; }
+.ow-connected .ow-order-placed { background: #fbe9d3; color: #774311; }
+.ow-connected .ow-order-ready { background: #dcead7; color: #2d5224; }
+.ow-connected .ow-order-cancelled { background: #f8e4df; color: #8a3025; }
+.ow-connected .ow-order-list button[aria-pressed="true"] { outline: 2px solid #98401f; outline-offset: 2px; }
+@media (max-width: 1050px) { .ow-connected .ow-order-layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { .ow-connected .ow-order-detail { padding: 16px; } }

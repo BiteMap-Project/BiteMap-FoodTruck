@@ -6,12 +6,26 @@ export type CustomerOrder = {
   vendorId: number;
   vendorName: string;
   status: string;
+  cancellationReason?: string | null;
   total: number;
   createdAt: string;
   items: Array<{ menuItemId: number; name: string; unitPrice: number; quantity: number; lineTotal: number }>;
 };
 
 const keyStorage = "bitemap.pending-order-key";
+
+export type CustomerOrderPage = {
+  items: Array<Pick<CustomerOrder, "id" | "vendorId" | "vendorName" | "status" | "total" | "createdAt">>;
+  page: number; size: number; totalElements: number; totalPages: number;
+};
+
+export async function listCustomerOrders(page: number, signal: AbortSignal): Promise<CustomerOrderPage> {
+  const response = await fetch(`/api/customer/orders?page=${page}&size=20`, {
+    cache: "no-store", credentials: "same-origin", headers: { Accept: "application/json" }, signal,
+  });
+  if (!response.ok) throw new AuthApiError(response.status, "Unable to load your orders. Please try again.");
+  return response.json();
+}
 
 function idempotencyKey(cart: Cart) {
   const signature = JSON.stringify({ vendorId: cart.vendorId, items: cart.items.map(({ id, quantity }) => ({ id, quantity })) });
@@ -36,6 +50,7 @@ export async function createCustomerOrder(cart: Cart): Promise<CustomerOrder> {
 
 export async function getCustomerOrder(id: number, signal?: AbortSignal): Promise<CustomerOrder> {
   const response = await fetch(`/api/customer/orders/${id}`, {
+    cache: "no-store",
     credentials: "same-origin",
     headers: { Accept: "application/json" },
     signal,

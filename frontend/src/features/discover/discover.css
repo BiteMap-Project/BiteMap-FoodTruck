@@ -203,10 +203,33 @@ body:has(.discovery) {
 
 .discovery .discover-account {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  flex-direction: column;
+  flex: 1;
+  gap: 22px;
   min-width: 0;
   font-size: 13px;
+}
+
+.discovery .discover-order-nav { display: grid; gap: 8px; }
+.discovery .discover-order-nav .discover-eyebrow { margin: 4px 14px 2px; }
+.discovery .discover-account .discover-menu-link { font-size: 15px; min-height: 48px; padding: 13px 14px; }
+.discovery .discover-business { padding: 18px; border-radius: var(--radius); background: var(--surface-muted); }
+.discovery .discover-business h2 { margin: 0 0 6px; font-size: 14px; }
+.discovery .discover-business p { margin: 0; }
+.discovery .discover-business .discover-menu-link { padding: 12px 0 0; font-size: 13px; font-weight: 600; color: #4c613c; flex-wrap: wrap; gap: 8px; }
+.discovery .discover-account-footer { margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border); }
+.discovery .discover-profile { display: flex; align-items: center; gap: 10px; margin: 0 8px 12px; }
+.discovery .discover-profile-initials { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 50%; background: #eee1cf; color: var(--text-h); font-weight: 700; }
+.discovery .discover-account .discover-signout { width: 100%; border: 0; background: transparent; font: inherit; }
+.discovery .discover-account .discover-signout:hover { background: var(--surface-muted); }
+.discovery .discover-signout:disabled { opacity: .6; cursor: wait; }
+@media (max-width: 1000px) {
+  .discovery .discover-account { flex-basis: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .discovery .discover-account-footer { margin: 0; grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .discovery .discover-account .discover-signout { width: auto; }
+}
+@media (max-width: 480px) {
+  .discovery .discover-account { grid-template-columns: minmax(0, 1fr); gap: 16px; }
 }
 
 .discovery .discover-account-name {

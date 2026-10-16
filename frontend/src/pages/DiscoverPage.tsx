@@ -100,19 +100,6 @@ export default function DiscoverPage() {
           </button>
         </div>
 
-        <div className="discover-owner-note">
-          <span className="discover-spark" aria-hidden="true">
-            ✦
-          </span>
-          <h2>Good food. Great spots.</h2>
-          <p>
-            Have a kitchen on wheels? Give hungry people a place to find you.
-          </p>
-          <Link to="/operator/register">
-            Join as a truck owner <span aria-hidden="true">→</span>
-          </Link>
-        </div>
-
         <AccountNavigation />
       </aside>
 

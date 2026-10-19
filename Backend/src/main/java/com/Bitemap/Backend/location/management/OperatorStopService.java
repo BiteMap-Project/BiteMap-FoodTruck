@@ -61,6 +61,7 @@ public class OperatorStopService {
             throw new ScheduleException(CONFLICT, "Only future scheduled stops can be edited.");
         }
         var stop = request.stop();
+        requireNoOpenOrders(id);
         validate(stop);
         rejectOverlap(vendorId, id, stop);
         var updated = jdbc.query("""
@@ -81,6 +82,7 @@ public class OperatorStopService {
         if (current.status().equals("ended") || !current.endsAt().isAfter(clock.instant())) {
             throw new ScheduleException(CONFLICT, "Completed stops are retained as history and cannot be cancelled.");
         }
+        requireNoOpenOrders(id);
         return jdbc.query("""
                 UPDATE vendor_stops SET status='cancelled',version=version+1,updated_at=clock_timestamp()
                 WHERE id=? AND vendor_id=? AND version=? RETURNING *
@@ -96,6 +98,15 @@ public class OperatorStopService {
         var vendors = jdbc.query("SELECT id FROM vendors WHERE id=? AND operator_id=?" + lock,
                 (r, i) -> r.getLong(1), vendorId, owners.getFirst());
         if (vendors.isEmpty()) throw missing();
+    }
+
+    private void requireNoOpenOrders(long stopId) {
+        boolean open = jdbc.queryForObject("""
+            SELECT EXISTS(SELECT 1 FROM customer_order_pickups p JOIN customer_orders o ON o.id=p.order_id
+                WHERE p.stop_id=? AND o.status IN ('PLACED','ACCEPTED','READY'))
+            """,Boolean.class,stopId);
+        if (open) throw new ScheduleException(CONFLICT,
+            "This stop has open pickup orders. Complete or cancel those orders before changing the stop.");
     }
 
     private ManagedStop find(long vendorId, long id) {

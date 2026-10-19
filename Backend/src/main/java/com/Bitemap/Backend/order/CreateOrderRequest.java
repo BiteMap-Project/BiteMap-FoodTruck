@@ -15,6 +15,8 @@ import jakarta.validation.constraints.Size;
 public record CreateOrderRequest(
         @NotNull(message = "vendorId is required") @NonZeroId
         @JsonDeserialize(using = OrderIntegers.Id.class) Long vendorId,
+        @NotNull(message = "pickupStopId is required") @NonZeroId
+        @JsonDeserialize(using = OrderIntegers.Id.class) Long pickupStopId,
         @NotNull(message = "idempotencyKey is required") UUID idempotencyKey,
         @NotEmpty(message = "Provide at least one menu item") @Size(max = 50, message = "Provide at most 50 distinct menu items")
         List<@NotNull(message = "Menu item must not be null") @Valid Item> items) {

@@ -359,6 +359,19 @@ class DatabaseMigrationTests {
         assertThat(migrations(false).migrate().migrationsExecuted).isZero();
     }
 
+    @Test
+    void pickupMigrationPreservesExistingOrdersWithoutFabricatingLocations() {
+        Flyway.configure().configuration(migrations(false).getConfiguration()).target("11").load().migrate();
+        long user=jdbc.queryForObject("INSERT INTO " + schema + ".app_users(display_name,email,password_hash) VALUES ('Customer','pickup-migration@example.com','unused') RETURNING id",Long.class);
+        long vendor=jdbc.queryForObject("INSERT INTO " + schema + ".vendors(name,category,location) VALUES ('Truck','Food','CSUN') RETURNING id",Long.class);
+        jdbc.update("INSERT INTO " + schema + ".customer_orders(customer_user_id,vendor_id,idempotency_key,total) VALUES (?,?,?,5)",user,vendor,UUID.randomUUID());
+        var before=jdbc.queryForMap("SELECT * FROM " + schema + ".customer_orders");
+        migrateAndValidate(migrations(false));
+        assertThat(jdbc.queryForMap("SELECT * FROM " + schema + ".customer_orders")).isEqualTo(before);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".customer_order_pickups",Integer.class)).isZero();
+        assertThat(migrations(false).migrate().migrationsExecuted).isZero();
+    }
+
 	private Flyway migrations(boolean development) {
 		String[] locations = development
 				? new String[] { "classpath:db/migration", "classpath:db/dev" }

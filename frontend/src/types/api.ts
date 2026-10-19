@@ -55,6 +55,17 @@ export type OrderItem = {
   lineTotal: number;
 };
 
+export type PickupDetails = {
+  stopId: number;
+  venueName: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  startsAt: string;
+  endsAt: string;
+  timeZone: string;
+};
+
 export type CustomerOrderSummary = {
   id: number;
   vendorId: number;
@@ -66,6 +77,7 @@ export type CustomerOrderSummary = {
 
 export type CustomerOrder = CustomerOrderSummary & {
   cancellationReason?: string | null;
+  pickup?: PickupDetails | null;
   items: OrderItem[];
 };
 
@@ -80,4 +92,7 @@ export type OwnerOrderSummary = {
   cancellationReason: string | null;
 };
 
-export type OwnerOrder = OwnerOrderSummary & { items: OrderItem[] };
+export type OwnerOrder = OwnerOrderSummary & {
+  pickup?: PickupDetails | null;
+  items: OrderItem[];
+};

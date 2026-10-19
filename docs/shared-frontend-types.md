@@ -9,7 +9,7 @@ The shared file currently covers:
 - accounts and account roles;
 - vendors, public menu items, and operator-managed menu items;
 - reusable paginated responses;
-- customer and operator order summaries, details, items, and statuses.
+- customer and operator order summaries, details, items, pickup metadata, and statuses.
 
 Public and operator menu items remain separate types because their APIs return
 different fields. Public items expose `available`; managed items expose `status`,

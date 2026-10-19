@@ -4,6 +4,7 @@ import { AuthApiError } from "../../services/auth";
 import { getOwnerOrder, listOwnerOrders, updateOwnerOrder, type OrderStatus, type OwnerOrder, type OwnerOrderSummary } from "../../services/operatorOrders";
 import type { Page } from "../../services/operatorWorkspace";
 import "./orders.css";
+import { PickupLocation } from "../orders/PickupLocation";
 
 const labels: Record<OrderStatus, string> = { PLACED: "Placed", ACCEPTED: "Accepted", READY: "Ready", COMPLETED: "Completed", CANCELLED: "Cancelled" };
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -142,6 +143,7 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
       </li>)}</ul>
       <p className="ow-order-total"><span>Order total</span><strong>{money.format(order.total)}</strong></p>
       <p className="ow-order-help">Saved checkout prices. No online payment is recorded here.</p>
+      <PickupLocation pickup={order.pickup} />
       {order.cancellationReason && <div><strong>Cancellation reason</strong><p>{order.cancellationReason}</p></div>}
       <div className="ow-order-actions">
         {action && !cancelling && <button className="od-button od-button-primary" disabled={busy || blocked || loading} onClick={() => void change(action.status)}>{action.label}</button>}

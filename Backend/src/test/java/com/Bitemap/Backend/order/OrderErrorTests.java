@@ -35,7 +35,7 @@ class OrderErrorTests {
             doThrow(failure).when(service).create(anyString(), any());
             mvc.perform(post("/api/customer/orders").with(com.Bitemap.Backend.TestAccounts.user("customer@example.com").roles("CUSTOMER"))
                     .with(csrf()).contentType("application/json")
-                    .content("{\"vendorId\":-1,\"idempotencyKey\":\"cd821fc5-316c-4a85-af68-e6890485d32c\",\"items\":[{\"menuItemId\":-5,\"quantity\":1}]}"))
+                    .content("{\"vendorId\":-1,\"pickupStopId\":-1,\"idempotencyKey\":\"cd821fc5-316c-4a85-af68-e6890485d32c\",\"items\":[{\"menuItemId\":-5,\"quantity\":1}]}"))
                     .andExpect(status().isServiceUnavailable())
                     .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
                     .andExpect(jsonPath("$.detail").value("Ordering is temporarily unavailable. Please try again."))

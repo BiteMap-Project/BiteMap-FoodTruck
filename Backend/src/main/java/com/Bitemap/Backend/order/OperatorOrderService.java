@@ -19,6 +19,7 @@ import static com.Bitemap.Backend.order.OperatorOrderException.Kind.*;
 @Transactional
 public class OperatorOrderService {
     private final JdbcTemplate jdbc;
+    private final PickupService pickups;
     private static final String FIELDS = "id,vendor_id,status,total,created_at,updated_at,version,cancellation_reason";
     private static final RowMapper<OperatorOrderResponse.Summary> SUMMARY = (row, index) ->
             new OperatorOrderResponse.Summary(row.getLong("id"), row.getLong("vendor_id"),
@@ -26,7 +27,7 @@ public class OperatorOrderService {
                     row.getTimestamp("created_at").toInstant(), row.getTimestamp("updated_at").toInstant(),
                     row.getLong("version"), row.getString("cancellation_reason"));
 
-    public OperatorOrderService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public OperatorOrderService(JdbcTemplate jdbc, PickupService pickups) { this.jdbc = jdbc; this.pickups = pickups; }
 
     // Repeatable read makes count/page consistent. These transactions deliberately allow
     // shared locks: ownership and role revocation must not race the read or update.
@@ -109,6 +110,6 @@ public class OperatorOrderService {
                 """, (rs, index) -> new OrderResponse.Item(rs.getLong(1), rs.getString(2),
                 rs.getBigDecimal(3), rs.getInt(4), rs.getBigDecimal(5)), row.id());
         return new OperatorOrderResponse(row.id(), row.vendorId(), row.status(), row.total(),
-                row.createdAt(), row.updatedAt(), row.version(), row.cancellationReason(), items);
+                row.createdAt(), row.updatedAt(), row.version(), row.cancellationReason(), items, pickups.saved(row.id()));
     }
 }

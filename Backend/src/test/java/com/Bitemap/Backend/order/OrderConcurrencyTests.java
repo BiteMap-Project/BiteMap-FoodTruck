@@ -32,8 +32,9 @@ class OrderConcurrencyTests {
             vendor = jdbc.queryForObject("INSERT INTO vendors(name,category,location) VALUES ('Race','Food','CSUN') RETURNING id", Long.class);
             long item = jdbc.queryForObject("INSERT INTO vendor_menu_items(vendor_id,name,price,availability_status) VALUES (?,'Taco',4.25,'ACTIVE') RETURNING id", Long.class, vendor);
             UUID key = UUID.randomUUID();
-            var first = new CreateOrderRequest(vendor, key, List.of(new CreateOrderRequest.Item(item, 1)));
-            var second = new CreateOrderRequest(vendor, key, List.of(new CreateOrderRequest.Item(item, differentCart ? 2 : 1)));
+            long stop = PickupOrderApiTests.activeStop(jdbc, vendor);
+            var first = new CreateOrderRequest(vendor, stop, key, List.of(new CreateOrderRequest.Item(item, 1)));
+            var second = new CreateOrderRequest(vendor, stop, key, List.of(new CreateOrderRequest.Item(item, differentCart ? 2 : 1)));
             var ready = new CountDownLatch(2);
             var start = new CountDownLatch(1);
             try (var executor = Executors.newFixedThreadPool(2)) {
@@ -61,6 +62,7 @@ class OrderConcurrencyTests {
             jdbc.update("DELETE FROM customer_orders WHERE customer_user_id=?", customer);
             if (vendor != 0) {
                 jdbc.update("DELETE FROM vendor_menu_items WHERE vendor_id=?", vendor);
+                jdbc.update("DELETE FROM vendor_stops WHERE vendor_id=?", vendor);
                 jdbc.update("DELETE FROM vendors WHERE id=?", vendor);
             }
             jdbc.update("DELETE FROM app_users WHERE id=?", customer);

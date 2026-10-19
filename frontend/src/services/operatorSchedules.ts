@@ -1,4 +1,5 @@
-import { WorkspaceError, type Page } from "./operatorWorkspace";
+import { WorkspaceError } from "./operatorWorkspace";
+import type { Page } from "../types/api";
 
 export type StopInput = { venueName: string; address: string; latitude: number; longitude: number; startsAt: string; endsAt: string; timeZone: string };
 export type ManagedStop = StopInput & { id: number; vendorId: number; status: "scheduled" | "serving" | "ended" | "cancelled"; version: number; createdAt: string; updatedAt: string };

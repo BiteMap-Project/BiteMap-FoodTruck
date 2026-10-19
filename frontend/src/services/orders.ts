@@ -1,23 +1,12 @@
 import { AuthApiError, postWithCsrf } from "./auth";
 import type { Cart } from "../features/cart/cart";
+import type { CustomerOrder, CustomerOrderSummary, Page } from "../types/api";
 
-export type CustomerOrder = {
-  id: number;
-  vendorId: number;
-  vendorName: string;
-  status: string;
-  cancellationReason?: string | null;
-  total: number;
-  createdAt: string;
-  items: Array<{ menuItemId: number; name: string; unitPrice: number; quantity: number; lineTotal: number }>;
-};
+export type { CustomerOrder } from "../types/api";
 
 const keyStorage = "bitemap.pending-order-key";
 
-export type CustomerOrderPage = {
-  items: Array<Pick<CustomerOrder, "id" | "vendorId" | "vendorName" | "status" | "total" | "createdAt">>;
-  page: number; size: number; totalElements: number; totalPages: number;
-};
+export type CustomerOrderPage = Page<CustomerOrderSummary>;
 
 export async function listCustomerOrders(page: number, signal: AbortSignal): Promise<CustomerOrderPage> {
   const response = await fetch(`/api/customer/orders?page=${page}&size=20`, {

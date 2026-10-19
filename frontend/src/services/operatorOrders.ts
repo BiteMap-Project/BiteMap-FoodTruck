@@ -1,16 +1,7 @@
 import { AuthApiError } from "./auth";
-import type { Page } from "./operatorWorkspace";
-import type { PickupDetails } from "./orders";
+import type { OrderStatus, OwnerOrder, OwnerOrderSummary, Page } from "../types/api";
 
-export type OrderStatus = "PLACED" | "ACCEPTED" | "READY" | "COMPLETED" | "CANCELLED";
-export type OwnerOrderSummary = {
-  id: number; vendorId: number; status: OrderStatus; total: number;
-  createdAt: string; updatedAt: string; version: number; cancellationReason: string | null;
-};
-export type OwnerOrder = OwnerOrderSummary & {
-  pickup?: PickupDetails | null;
-  items: { menuItemId: number; name: string; unitPrice: number; quantity: number; lineTotal: number }[];
-};
+export type { OrderStatus, OwnerOrder, OwnerOrderSummary } from "../types/api";
 export type StatusCommand = { status: OrderStatus; version: number; cancellationReason?: string };
 const base = (vendorId: number) => `/api/operator/vendors/${vendorId}/orders`;
 

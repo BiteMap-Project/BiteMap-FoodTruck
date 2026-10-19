@@ -1,9 +1,9 @@
-export type Vendor = { id: number; name: string; category: string; location: string };
+import type { Availability, ManagedMenuItem, Page, Vendor } from "../types/api";
+
+export type { Availability, Page, Vendor } from "../types/api";
+export type { ManagedMenuItem as MenuItem } from "../types/api";
 export type VendorInput = Omit<Vendor, "id">;
-export type Availability = "ACTIVE" | "INACTIVE" | "SOLD_OUT";
-export type MenuItem = { id: number; vendorId: number; name: string; description: string | null; price: number; status: Availability; version: number };
-export type MenuDetails = Pick<MenuItem, "name" | "description" | "price">;
-export type Page<T> = { items: T[]; page: number; size: number; totalElements: number; totalPages: number };
+export type MenuDetails = Pick<ManagedMenuItem, "name" | "description" | "price">;
 
 export class WorkspaceError extends Error {
   status: number;
@@ -40,7 +40,7 @@ const vendors = "/api/operator/vendors";
 const menu = (vendorId: number) => `${vendors}/${vendorId}/menu-items`;
 export const listOwnedVendors = (page: number, signal?: AbortSignal) => read<Page<Vendor>>(`${vendors}?page=${page}&size=20`, signal);
 export const saveVendor = (input: VendorInput, id?: number) => write<Vendor>(id === undefined ? vendors : `${vendors}/${id}`, id === undefined ? "POST" : "PUT", input);
-export const listMenu = (vendorId: number, page: number, signal?: AbortSignal) => read<Page<MenuItem>>(`${menu(vendorId)}?page=${page}&size=20`, signal);
-export const createMenuItem = (vendorId: number, input: MenuDetails & { status: Availability }) => write<MenuItem>(menu(vendorId), "POST", input);
-export const editMenuItem = (vendorId: number, itemId: number, input: MenuDetails & { version: number }) => write<MenuItem>(`${menu(vendorId)}/${itemId}`, "PUT", input);
-export const changeAvailability = (vendorId: number, itemId: number, status: Availability, version: number) => write<MenuItem>(`${menu(vendorId)}/${itemId}/availability`, "PATCH", { status, version });
+export const listMenu = (vendorId: number, page: number, signal?: AbortSignal) => read<Page<ManagedMenuItem>>(`${menu(vendorId)}?page=${page}&size=20`, signal);
+export const createMenuItem = (vendorId: number, input: MenuDetails & { status: Availability }) => write<ManagedMenuItem>(menu(vendorId), "POST", input);
+export const editMenuItem = (vendorId: number, itemId: number, input: MenuDetails & { version: number }) => write<ManagedMenuItem>(`${menu(vendorId)}/${itemId}`, "PUT", input);
+export const changeAvailability = (vendorId: number, itemId: number, status: Availability, version: number) => write<ManagedMenuItem>(`${menu(vendorId)}/${itemId}/availability`, "PATCH", { status, version });

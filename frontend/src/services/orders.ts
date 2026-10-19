@@ -1,11 +1,8 @@
 import { AuthApiError, postWithCsrf } from "./auth";
 import type { Cart } from "../features/cart/cart";
+import type { CustomerOrder, CustomerOrderSummary, Page, PickupDetails } from "../types/api";
 
-export type PickupDetails = {
-  stopId: number; venueName: string; address: string; latitude: number; longitude: number;
-  startsAt: string; endsAt: string; timeZone: string;
-};
-
+export type { CustomerOrder, PickupDetails } from "../types/api";
 export async function getPickupStop(vendorId: number, signal?: AbortSignal): Promise<PickupDetails | null> {
   const response = await fetch(`/api/vendors/${vendorId}/pickup-stop`, {
     cache: 'no-store', credentials: 'same-origin', headers: { Accept: 'application/json' }, signal,
@@ -15,24 +12,9 @@ export async function getPickupStop(vendorId: number, signal?: AbortSignal): Pro
   return response.json();
 }
 
-export type CustomerOrder = {
-  id: number;
-  vendorId: number;
-  vendorName: string;
-  status: string;
-  cancellationReason?: string | null;
-  pickup?: PickupDetails | null;
-  total: number;
-  createdAt: string;
-  items: Array<{ menuItemId: number; name: string; unitPrice: number; quantity: number; lineTotal: number }>;
-};
-
 const keyStorage = "bitemap.pending-order-key";
 
-export type CustomerOrderPage = {
-  items: Array<Pick<CustomerOrder, "id" | "vendorId" | "vendorName" | "status" | "total" | "createdAt">>;
-  page: number; size: number; totalElements: number; totalPages: number;
-};
+export type CustomerOrderPage = Page<CustomerOrderSummary>;
 
 export async function listCustomerOrders(page: number, signal: AbortSignal): Promise<CustomerOrderPage> {
   const response = await fetch(`/api/customer/orders?page=${page}&size=20`, {

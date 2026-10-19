@@ -1,9 +1,6 @@
-export type Account = {
-  id: number;
-  displayName: string;
-  email: string;
-  roles: string[];
-};
+import type { Account, AccountRole } from "../types/api";
+
+export type { Account } from "../types/api";
 
 export type OperatorAccount = Account;
 
@@ -100,7 +97,7 @@ export function becomeOperator(): Promise<Account> {
   return postWithCsrf("/api/auth/become-operator", {}, "Unable to activate the owner workspace. Please try again.");
 }
 
-export const hasRole = (account: Account, role: "ROLE_CUSTOMER" | "ROLE_OPERATOR" | "ROLE_ADMIN") => account.roles.includes(role);
+export const hasRole = (account: Account, role: AccountRole) => account.roles.includes(role);
 
 // Compatibility names for the existing owner workspace while routes migrate to
 // the unified account language.

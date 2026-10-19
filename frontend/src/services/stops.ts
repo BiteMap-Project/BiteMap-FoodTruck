@@ -1,4 +1,4 @@
-import type { Vendor } from "./vendors";
+import type { Page, Vendor } from "../types/api";
 
 export type StopStatus = "scheduled" | "serving";
 
@@ -17,14 +17,7 @@ export type Stop = {
   distanceMeters: number | null;
 };
 
-export type StopPage = {
-  items: Stop[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  evaluatedAt: string;
-};
+export type StopPage = Page<Stop> & { evaluatedAt: string };
 
 export type StopQuery = {
   q: string;

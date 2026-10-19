@@ -1,17 +1,7 @@
-export type Vendor = {
-  id: number;
-  name: string;
-  category: string;
-  location: string;
-};
+import type { Page, Vendor, VendorProfile } from "../types/api";
 
-export type VendorPage = {
-  items: Vendor[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-};
+export type { PublicMenuItem as MenuItem, Vendor, VendorProfile } from "../types/api";
+export type VendorPage = Page<Vendor>;
 
 export async function listVendors(q: string, page: number, signal: AbortSignal): Promise<VendorPage> {
   const params = new URLSearchParams({ q, page: String(page), size: "20" });
@@ -22,16 +12,6 @@ export async function listVendors(q: string, page: number, signal: AbortSignal):
   if (!response.ok) throw new Error("Unable to load vendors");
   return response.json();
 }
-
-export type MenuItem = {
-  id: number;
-  name: string;
-  description: string | null;
-  price: number;
-  available: boolean;
-};
-
-export type VendorProfile = Vendor & { menu: MenuItem[] };
 
 export async function getVendor(id: string, signal: AbortSignal): Promise<VendorProfile | null> {
   const response = await fetch(`/api/vendors/${encodeURIComponent(id)}`, {

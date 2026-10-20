@@ -44,6 +44,9 @@ status in order history.
 
 ## Automated coverage
 
+Real-browser regression coverage and isolated local/CI commands are documented
+in [Automated ordering journey](automated-ordering-journey.md).
+
 `EndToEndOrderDemoTests` follows the full API workflow from public menu and active
 stop lookup to customer order placement, operator processing, and customer
 history. The focused customer, pickup, and operator test classes cover validation,

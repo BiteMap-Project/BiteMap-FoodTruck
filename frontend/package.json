@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:e2e": "node scripts/ordering-e2e.mjs",
+    "test:e2e:typecheck": "tsc --project tsconfig.e2e.json",
     "test": "vitest run",
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -16,6 +18,7 @@
     "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^24.13.3",

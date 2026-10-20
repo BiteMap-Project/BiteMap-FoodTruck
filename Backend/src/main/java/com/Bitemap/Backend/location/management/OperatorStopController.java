@@ -15,14 +15,28 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/operator/vendors/{vendorId}/stops")
-@Tag(name = "Operator schedules", description = "Owner-only one-time stops. Use explicit date/time offsets plus an IANA zone. Writes require fresh CSRF.")
+@Tag(name = "Operator schedules", description = "Owner-only individual and repeating stops. Use explicit date/time offsets plus an IANA zone. Writes require fresh CSRF.")
 @ApiResponses({@ApiResponse(responseCode="400", description="Invalid fields or time zone"),
         @ApiResponse(responseCode="401", description="Login required"), @ApiResponse(responseCode="403", description="Invalid role or CSRF"),
         @ApiResponse(responseCode="404", description="Missing or not owned"), @ApiResponse(responseCode="409", description="Overlap, stale version or immutable history"),
         @ApiResponse(responseCode="503", description="Database unavailable")})
 public class OperatorStopController {
     private final OperatorStopService service;
-    public OperatorStopController(OperatorStopService service) { this.service = service; }
+    private final RecurringStopService recurring;
+    public OperatorStopController(OperatorStopService service, RecurringStopService recurring) {
+        this.service = service;
+        this.recurring = recurring;
+    }
+
+    @PostMapping("/repeat")
+    @Operation(summary="Publish 2–52 repeating stops atomically for an owned truck")
+    @ApiResponse(responseCode="201", description="All occurrences created")
+    @SecurityRequirement(name="csrfToken")
+    public ResponseEntity<java.util.List<ManagedStop>> repeat(Authentication auth,
+            @PathVariable long vendorId, @Valid @RequestBody RecurringStopService.Request request) {
+        return ResponseEntity.status(201).cacheControl(CacheControl.noStore())
+                .body(recurring.create(auth.getName(), vendorId, request));
+    }
 
     @PostMapping
     @Operation(summary="Publish a future stop for an owned truck")

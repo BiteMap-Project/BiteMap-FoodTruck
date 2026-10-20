@@ -11,6 +11,7 @@ const fetchMock = vi.fn();
 beforeEach(() => {
   fetchMock.mockReset(); vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockImplementation(async (url: string, options?: RequestInit) => {
+    if (url.startsWith("/api/operator/schedule-addresses?")) return response(200, [{ address: "18111 NORDHOFF ST, NORTHRIDGE, CA, 91325", latitude: 34.24, longitude: -118.53 }]);
     if (url === "/api/auth/csrf") return response(200, { headerName: "X-CSRF-TOKEN", token: "fresh" });
     if (options?.method) return response(200, stop);
     return response(200, page());
@@ -18,17 +19,22 @@ beforeEach(() => {
 });
 function show() { return render(<MemoryRouter><Routes><Route path="/" element={<SchedulePanel vendorId={7} />} /><Route path="/operator/login" element={<p>Login screen</p>} /></Routes></MemoryRouter>); }
 async function open() { show(); await screen.findByRole("heading", { name: "Campus lunch" }); }
-function fill() {
-  for (const [label, value] of [["Venue name", "Dinner"], ["Street address", "Northridge"], ["Latitude", "34.24"], ["Longitude", "-118.53"], ["Start (local time)", "2090-01-03T11:00"], ["End (local time)", "2090-01-03T14:00"]]) fireEvent.change(screen.getByLabelText(label), { target: { value } });
+async function fill() {
+  for (const [label, value] of [["Venue name", "Dinner"], ["Street address", "18111 Nordhoff St"], ["City", "Northridge"], ["Start date", "2090-01-03"], ["Start time", "11:00"], ["End date", "2090-01-03"], ["End time", "14:00"]]) {
+    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+  }
+  fireEvent.click(screen.getByText("Find address"));
+  fireEvent.click(await screen.findByRole("button", { name: "Use 18111 NORDHOFF ST, NORTHRIDGE, CA, 91325" }));
 }
+
 it("loads only the selected vendor's schedule and shows stored-zone times", async () => {
   await open(); expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/stops?page=0&size=20", expect.objectContaining({ credentials: "same-origin", signal: expect.any(AbortSignal) }));
   expect(screen.getByText(/America\/Los_Angeles/)).toBeInTheDocument();
 });
 it("creates a stop with explicit offsets and fresh CSRF", async () => {
-  await open(); fireEvent.click(screen.getByText("Add stop")); fill(); fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));
+  await open(); fireEvent.click(screen.getByText("Add stop")); await fill(); fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));
   await screen.findByText("Schedule saved to BiteMap.");
-  expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/stops", expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "X-CSRF-TOKEN": "fresh" }), body: JSON.stringify({ venueName: "Dinner", address: "Northridge", latitude: 34.24, longitude: -118.53, startsAt: "2090-01-03T11:00:00-08:00", endsAt: "2090-01-03T14:00:00-08:00", timeZone: "America/Los_Angeles" }) }));
+  expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/stops", expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "X-CSRF-TOKEN": "fresh" }), body: JSON.stringify({ venueName: "Dinner", address: "18111 NORDHOFF ST, NORTHRIDGE, CA, 91325", latitude: 34.24, longitude: -118.53, startsAt: "2090-01-03T11:00:00-08:00", endsAt: "2090-01-03T14:00:00-08:00", timeZone: "America/Los_Angeles" }) }));
 });
 it("edits using the stored version and nested contract", async () => {
   await open(); fireEvent.click(screen.getByText("Edit Campus lunch")); fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));
@@ -44,7 +50,7 @@ it("requires cancellation confirmation and sends its version", async () => {
   expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/stops/12/cancel", expect.objectContaining({ method: "POST", body: '{"version":3}' }));
 });
 it("retains a conflicting draft and blocks writes until explicit reload", async () => {
-  await open(); fireEvent.click(screen.getByText("Add stop")); fill();
+  await open(); fireEvent.click(screen.getByText("Add stop")); await fill();
   fetchMock.mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh" })).mockResolvedValueOnce(response(409, { detail: "This truck already has a stop during that time." }));
   fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("already has a stop"); expect(screen.getByLabelText("Venue name")).toHaveValue("Dinner"); expect(screen.getByText("Save stop")).toBeDisabled();
@@ -72,22 +78,22 @@ it("aborts reads when leaving the schedule", async () => {
   await act(async () => resolve(response(200, page())));
 });
 it("rejects invalid local times before any mutation", async () => {
-  await open(); fireEvent.click(screen.getByText("Add stop")); fill(); fireEvent.change(screen.getByLabelText("Time zone"), { target: { value: "Not/AZone" } });
-  fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" })); expect(await screen.findByRole("alert")).toHaveTextContent("valid local times"); expect(fetchMock).toHaveBeenCalledTimes(1);
+  await open(); fireEvent.click(screen.getByText("Add stop")); await fill(); fireEvent.change(screen.getByLabelText("End time"), { target: { value: "10:00" } });
+  fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" })); expect(await screen.findByRole("alert")).toHaveTextContent("End must be later"); expect(fetchMock).toHaveBeenCalledTimes(2);
 });
 
 it.each([403, 404, 503])("blocks further writes after HTTP %i without losing the draft", async status => {
-  await open(); fireEvent.click(screen.getByText("Add stop")); fill();
+  await open(); fireEvent.click(screen.getByText("Add stop")); await fill();
   fetchMock.mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh" })).mockResolvedValueOnce(response(status));
   fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));
   await screen.findByRole("alert"); expect(screen.getByText("Save stop")).toBeDisabled(); expect(screen.getByLabelText("Venue name")).toHaveValue("Dinner");
 });
 it("prevents duplicate submissions while a request is pending", async () => {
-  await open(); fireEvent.click(screen.getByText("Add stop")); fill();
+  await open(); fireEvent.click(screen.getByText("Add stop")); await fill();
   let resolve!: (value: unknown) => void;
   fetchMock.mockImplementationOnce(() => new Promise(r => { resolve = r; }));
   fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" })); fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));
-  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(fetchMock).toHaveBeenCalledTimes(3);
   await act(async () => resolve(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh" })));
   await screen.findByText("Schedule saved to BiteMap."); expect(fetchMock.mock.calls.filter(([, options]) => options?.method === "POST")).toHaveLength(1);
 });
@@ -97,4 +103,18 @@ it("does not reload or redirect from a mutation completed after leaving", async 
   fetchMock.mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh" })).mockImplementationOnce(() => new Promise(r => { resolve = r; }));
   fireEvent.click(screen.getByText("Confirm cancellation")); await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3)); view.unmount();
   await act(async () => resolve(response(200, stop))); expect(fetchMock).toHaveBeenCalledTimes(3);
+});
+
+it("requires an address selection before saving", async () => {
+  await open(); fireEvent.click(screen.getByText("Add stop"));
+  fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("select a street address");
+  expect(fetchMock.mock.calls.some(([, options]) => options?.method === "POST")).toBe(false);
+});
+it("sets an overnight end date with a duration shortcut", async () => {
+  await open(); fireEvent.click(screen.getByText("Add stop")); await fill();
+  fireEvent.change(screen.getByLabelText("Start time"), { target: { value: "23:00" } });
+  fireEvent.click(screen.getByText("Set end: +4 hours"));
+  expect(screen.getByLabelText("End date")).toHaveValue("2090-01-04");
+  expect((screen.getByLabelText("End time") as HTMLInputElement).value.slice(0, 5)).toBe("03:00");
 });

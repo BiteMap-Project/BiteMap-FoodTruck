@@ -11,6 +11,7 @@ import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
@@ -22,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class OperatorStopErrorTests {
     @Autowired MockMvc mvc;
     @MockitoBean OperatorStopService service;
+    @MockitoBean RecurringStopService recurring;
     @MockitoBean AccountDetailsService accounts;
     @org.junit.jupiter.api.BeforeEach
     void account() {

@@ -34,6 +34,24 @@ function TruckIllustration() {
           fill="#405749"
           stroke="none"
         />
+        <g
+          className="discover-bear"
+          fill="none"
+          stroke="#fff8e7"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="186" cy="126" r="6" />
+          <circle cx="218" cy="126" r="6" />
+          <circle cx="202" cy="132" r="18" />
+          <path d="M187 113c0-5 4-8 9-7 2-5 10-5 12 0 5-2 10 2 10 7v3h-31Z" />
+          <circle cx="196" cy="130" r="1.2" fill="#fff8e7" stroke="none" />
+          <circle cx="208" cy="130" r="1.2" fill="#fff8e7" stroke="none" />
+          <ellipse cx="202" cy="138" rx="7" ry="5" />
+          <circle cx="202" cy="136" r="1.5" fill="#fff8e7" stroke="none" />
+          <path d="M202 138v2m-4 1c2 2 6 2 8 0m-18 15c3-6 8-9 14-9s11 3 14 9" />
+        </g>
         <path d="M165 104v57" stroke="#fff8e7" strokeWidth="4" />
         <path
           d="M86 163h156"

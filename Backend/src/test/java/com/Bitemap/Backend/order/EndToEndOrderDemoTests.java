@@ -49,14 +49,20 @@ class EndToEndOrderDemoTests {
                 INSERT INTO vendor_menu_items(vendor_id,name,price,availability_status)
                 VALUES (?,'Campus Taco',4.50,'ACTIVE') RETURNING id
                 """, Long.class, vendorId);
+        long pickupStopId = PickupOrderApiTests.activeStop(jdbc, vendorId);
 
         mvc.perform(get("/api/vendors/" + vendorId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Professor Tacos"))
                 .andExpect(jsonPath("$.menu[0].name").value("Campus Taco"));
+        mvc.perform(get("/api/vendors/" + vendorId + "/pickup-stop"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stopId").value(pickupStopId))
+                .andExpect(jsonPath("$.venueName").value("Orange Grove entrance"));
 
         String orderRequest = json.writeValueAsString(Map.of(
                 "vendorId", vendorId,
+                "pickupStopId", pickupStopId,
                 "idempotencyKey", UUID.randomUUID(),
                 "items", java.util.List.of(Map.of("menuItemId", menuItemId, "quantity", 2))));
         var placed = mvc.perform(post("/api/customer/orders")
@@ -66,6 +72,8 @@ class EndToEndOrderDemoTests {
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(jsonPath("$.status").value("PLACED"))
                 .andExpect(jsonPath("$.total").value(9.00))
+                .andExpect(jsonPath("$.pickup.stopId").value(pickupStopId))
+                .andExpect(jsonPath("$.pickup.address").value("18111 Nordhoff St"))
                 .andReturn();
         long orderId = json.readTree(placed.getResponse().getContentAsString()).get("id").asLong();
 
@@ -75,6 +83,10 @@ class EndToEndOrderDemoTests {
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.items[0].id").value(orderId))
                 .andExpect(jsonPath("$.items[0].status").value("PLACED"));
+        mvc.perform(get(ordersPath + "/" + orderId)
+                        .with(TestAccounts.user(OPERATOR).roles("OPERATOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pickup.stopId").value(pickupStopId));
 
         changeStatus(ordersPath, orderId, "ACCEPTED", 0);
         changeStatus(ordersPath, orderId, "READY", 1);
@@ -85,7 +97,8 @@ class EndToEndOrderDemoTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.vendorName").value("Professor Tacos"))
-                .andExpect(jsonPath("$.items[0].name").value("Campus Taco"));
+                .andExpect(jsonPath("$.items[0].name").value("Campus Taco"))
+                .andExpect(jsonPath("$.pickup.venueName").value("Orange Grove entrance"));
         mvc.perform(get("/api/customer/orders")
                         .with(TestAccounts.user(CUSTOMER).roles("CUSTOMER")))
                 .andExpect(status().isOk())

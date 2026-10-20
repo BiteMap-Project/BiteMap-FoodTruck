@@ -2,23 +2,27 @@
 
 ## Demo use case
 
-A customer finds a food truck, adds an available item to the cart, signs in, and
-places a pickup order. The truck operator receives the same order and moves it
-through **Placed**, **Accepted**, **Ready**, and **Completed**. The customer can
-open order history and see the updated status.
+A customer finds a food truck with an active stop, confirms the pickup details,
+adds an available item to the cart, signs in, and places a pickup order. The truck
+operator receives the same order and moves it through **Placed**, **Accepted**,
+**Ready**, and **Completed**. The customer can open order history and see the
+updated status.
 
 ## Customer checks
 
 1. Open the homepage without signing in.
-2. Search for a truck and open its menu.
-3. Add two items from that truck to the cart.
+2. Search for a truck with an active stop and open its menu.
+3. Confirm that the pickup location and time are shown, then add two items from
+   that truck to the cart.
 4. Try to add an item from another truck. Confirm that BiteMap asks the customer
    to clear the current cart first.
 5. Open the cart and choose **Sign in to continue**.
 6. Register or sign in as a customer. Confirm that the cart is still present.
 7. Place the pickup order and record the order number.
-8. Refresh the confirmation page. The saved order should still appear.
-9. Open **My orders** and confirm that the order is listed as **Placed**.
+8. Confirm that the receipt shows the same pickup location selected before
+   checkout.
+9. Refresh the confirmation page. The saved order should still appear.
+10. Open **My orders** and confirm that the order is listed as **Placed**.
 
 ## Operator checks
 
@@ -33,13 +37,15 @@ open order history and see the updated status.
 ## Expected result
 
 The same database order is visible to the customer and the truck owner. Menu
-prices and item names are saved with the order, so later menu edits do not change
-the receipt. Order status changes are limited to the owned truck and use the
-allowed sequence. The customer sees the latest status in order history.
+prices, item names, and pickup instructions are saved with the order, so later
+menu or schedule edits do not change the receipt. Order status changes are limited
+to the owned truck and use the allowed sequence. The customer sees the latest
+status in order history.
 
 ## Automated coverage
 
-`EndToEndOrderDemoTests` follows the full API workflow from public menu lookup to
-customer order placement, operator processing, and customer history. The focused
-customer and operator test classes cover validation, ownership, price snapshots,
-duplicate submissions, invalid status changes, and stale updates.
+`EndToEndOrderDemoTests` follows the full API workflow from public menu and active
+stop lookup to customer order placement, operator processing, and customer
+history. The focused customer, pickup, and operator test classes cover validation,
+ownership, saved prices and pickup instructions, duplicate submissions, invalid
+status changes, and stale updates.

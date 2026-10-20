@@ -14,6 +14,55 @@ type Result =
 
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
+function menuArtwork(name: string) {
+  const value = name.toLowerCase();
+  if (value.includes("taco")) return { icon: "🌮", tone: "gold" };
+  if (value.includes("quesadilla")) return { icon: "🫓", tone: "wheat" };
+  if (value.includes("burger") || value.includes("melt")) return { icon: "🍔", tone: "amber" };
+  if (value.includes("soup")) return { icon: "🍲", tone: "tomato" };
+  if (value.includes("bread")) return { icon: "🥖", tone: "wheat" };
+  if (value.includes("coffee") || value.includes("latte") || value.includes("brew")) return { icon: "☕", tone: "coffee" };
+  if (value.includes("muffin")) return { icon: "🧁", tone: "berry" };
+  if (value.includes("fries")) return { icon: "🍟", tone: "gold" };
+  if (value.includes("bowl") || value.includes("masala")) return { icon: "🍛", tone: "sage" };
+  if (value.includes("wrap")) return { icon: "🌯", tone: "wheat" };
+  if (value.includes("poke")) return { icon: "🍱", tone: "ocean" };
+  if (value.includes("musubi")) return { icon: "🍙", tone: "sage" };
+  if (value.includes("sundae") || value.includes("ice cream")) return { icon: "🍨", tone: "berry" };
+  if (value.includes("crepe")) return { icon: "🥞", tone: "wheat" };
+  if (value.includes("pizza")) return { icon: "🍕", tone: "tomato" };
+  if (value.includes("sandwich")) return { icon: "🥪", tone: "sage" };
+  if (value.includes("noodle")) return { icon: "🍜", tone: "tomato" };
+  if (value.includes("lemonade") || value.includes("horchata") || value.includes("lassi")) return { icon: "🥤", tone: "sage" };
+  return { icon: "🍽️", tone: "sage" };
+}
+
+function ChefBearIllustration() {
+  return (
+    <svg className="truck-chef-bear" viewBox="0 0 150 150" aria-hidden="true">
+      <circle cx="75" cy="75" r="68" fill="#f4d19e" />
+      <g stroke="#293c31" strokeWidth="4" strokeLinejoin="round">
+        <circle cx="48" cy="62" r="15" fill="#b66f47" />
+        <circle cx="102" cy="62" r="15" fill="#b66f47" />
+        <path d="M43 43v-5h10c0-12 10-20 22-20s22 8 22 20h10v5Z" fill="#fff8e7" />
+        <path d="M52 43h46" fill="none" strokeLinecap="round" />
+        <circle cx="75" cy="72" r="34" fill="#b66f47" />
+        <circle cx="64" cy="69" r="3" fill="#293c31" stroke="none" />
+        <circle cx="86" cy="69" r="3" fill="#293c31" stroke="none" />
+        <ellipse cx="75" cy="83" rx="14" ry="11" fill="#f8dfbd" stroke="none" />
+        <path d="m69 79 6-4 6 4-6 6Z" fill="#293c31" stroke="none" />
+        <path d="M75 85v2m-7 0c4 5 10 5 14 0" fill="none" strokeLinecap="round" />
+        <path d="M43 142v-15c0-21 14-34 32-34s32 13 32 34v15Z" fill="#b66f47" />
+        <circle cx="42" cy="119" r="14" fill="#b66f47" />
+        <circle cx="108" cy="119" r="14" fill="#b66f47" />
+        <circle cx="42" cy="119" r="5" fill="#f8dfbd" stroke="none" />
+        <circle cx="108" cy="119" r="5" fill="#f8dfbd" stroke="none" />
+        <path d="m60 101 15 12 15-12" fill="none" stroke="#b64923" strokeWidth="7" />
+      </g>
+    </svg>
+  );
+}
+
 function TruckMenuPage() {
   const { id = "" } = useParams();
   // Set only when an owner opens this page from their dashboard or insights.
@@ -73,14 +122,20 @@ function TruckMenuPage() {
       {current.status === "success" && (
         <>
           <div className="truck-profile-hero">
-          <p className="truck-eyebrow">MEET YOUR NEXT FAVORITE</p>
-          <h1>{current.truck.name}</h1>
-          <p>Category: {current.truck.category}</p>
-          <p>Location: {current.truck.location}</p>
-          <a className="truck-menu-jump" href="#menu-heading">Explore the menu ↓</a>
+            <div className="truck-profile-copy">
+              <p className="truck-eyebrow">MEET YOUR NEXT FAVORITE</p>
+              <h1>{current.truck.name}</h1>
+              <p>Category: {current.truck.category}</p>
+              <p>Location: {current.truck.location}</p>
+              <a className="truck-menu-jump" href="#menu-heading">Explore the menu ↓</a>
+            </div>
+            <ChefBearIllustration />
           </div>
           <section aria-labelledby="menu-heading">
-            <h2 id="menu-heading">Menu</h2>
+            <div className="truck-menu-heading">
+              <div><p className="truck-eyebrow">TODAY'S MENU</p><h2 id="menu-heading">Pick your favorite</h2></div>
+              <span>{current.truck.menu.length} {current.truck.menu.length === 1 ? "item" : "items"}</span>
+            </div>
             {cartMessage && <p className="cart-message" role="status">{cartMessage}</p>}
             {current.truck.menu.length === 0 ? (
               <EmptyState title="No menu available yet." hint="This truck hasn't posted its menu. Check back later." />
@@ -88,16 +143,21 @@ function TruckMenuPage() {
               <ul className="menu-items">
                 {current.truck.menu.map((item) => (
                   <li key={item.id}>
-                    <div className="menu-item-heading">
-                      <h3>{item.name}</h3>
-                      <span>{dollars.format(item.price)}</span>
+                    <div className={`menu-item-art menu-item-art-${menuArtwork(item.name).tone}`} role="img" aria-label={`${item.name} illustration`}>
+                      <span aria-hidden="true">{menuArtwork(item.name).icon}</span>
                     </div>
-                    {item.description && <p>{item.description}</p>}
-                    {item.available ? <button className="add-to-cart" type="button" onClick={() => {
-                      const next = addCartItem(current.truck.id, current.truck.name, { id: item.id, name: item.name, price: item.price });
-                      if (!next) setCartMessage("Your cart contains items from another truck. Clear that cart before starting a new order.");
-                      else { setCartCount(cartItemCount(next)); setCartMessage(`${item.name} added to your cart.`); }
-                    }}>Add {item.name} to cart</button> : <p className="unavailable">Currently unavailable</p>}
+                    <div className="menu-item-content">
+                      <div className="menu-item-heading">
+                        <h3>{item.name}</h3>
+                        <span>{dollars.format(item.price)}</span>
+                      </div>
+                      {item.description && <p>{item.description}</p>}
+                      {item.available ? <button className="add-to-cart" type="button" aria-label={`Add ${item.name} to cart`} onClick={() => {
+                        const next = addCartItem(current.truck.id, current.truck.name, { id: item.id, name: item.name, price: item.price });
+                        if (!next) setCartMessage("Your cart contains items from another truck. Clear that cart before starting a new order.");
+                        else { setCartCount(cartItemCount(next)); setCartMessage(`${item.name} added to your cart.`); }
+                      }}>Add to cart</button> : <p className="unavailable">Currently unavailable</p>}
+                    </div>
                   </li>
                 ))}
               </ul>

@@ -7,23 +7,41 @@ body:has(.truck-site) { background: #f8f8f4; }
 .truck-site-header nav { display: flex; gap: 28px; flex-wrap: wrap; }
 .truck-site-header nav a { color: #455b49; font-size: 14px; text-decoration: none; padding: 10px 0; }
 .truck-site .truck-profile { max-width: 1180px; padding: 32px clamp(20px, 4vw, 64px) 64px; }
-.truck-profile-hero { position: relative; padding: clamp(28px, 5vw, 64px); margin-top: 24px; border-radius: 20px; border: 1px solid #efddc6; background: #fbead6; }
+.truck-profile-hero { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 32px; min-height: 240px; padding: clamp(28px, 5vw, 64px); margin-top: 24px; overflow: hidden; border-radius: 20px; border: 1px solid #efddc6; background: #fbead6; }
+.truck-profile-copy { position: relative; z-index: 1; }
+.truck-chef-bear { flex: 0 0 clamp(130px, 18vw, 190px); width: clamp(130px, 18vw, 190px); filter: drop-shadow(0 12px 14px rgb(79 65 46 / 10%)); }
 .truck-eyebrow { font-size: 11px; letter-spacing: 2px; font-weight: 750; color: #855031; }
 .truck-site .truck-profile-hero h1 { font: 500 clamp(36px, 5vw, 62px)/1.1 Georgia, serif; margin: 22px 0; color: #293c31; }
-.truck-profile-hero > p:not(.truck-eyebrow) { margin-top: 8px; }
+.truck-profile-copy > p:not(.truck-eyebrow) { margin-top: 8px; }
 .truck-menu-jump { display: inline-block; margin-top: 28px; padding: 13px 20px; background: #b64923; color: white; border-radius: 9px; font-size: 14px; font-weight: 650; text-decoration: none; }
 .truck-site .truck-profile section { margin-top: 40px; }
-.truck-site .truck-profile h2 { font: 500 32px/1.2 Georgia, serif; color: #293c31; }
+.truck-site .truck-profile h2 { margin: 8px 0 0; font: 500 32px/1.2 Georgia, serif; color: #293c31; }
+.truck-menu-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+.truck-menu-heading > span { color: #7b857a; font-size: 13px; }
 .truck-site .menu-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 24px; border: 0; }
-.truck-site .menu-items li { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+.truck-site .menu-items li { overflow: hidden; background: white; border: 1px solid var(--border); border-radius: 14px; padding: 0; }
+.truck-site .menu-item-art { position: relative; display: grid; min-height: 150px; place-items: center; overflow: hidden; }
+.truck-site .menu-item-art::before, .truck-site .menu-item-art::after { position: absolute; content: ""; border-radius: 999px; opacity: .45; }
+.truck-site .menu-item-art::before { width: 170px; height: 170px; right: -30px; top: -75px; background: #fff8e7; }
+.truck-site .menu-item-art::after { width: 90px; height: 90px; left: -25px; bottom: -45px; background: #77885b; }
+.truck-site .menu-item-art > span { position: relative; z-index: 1; font-size: 68px; filter: drop-shadow(0 8px 8px rgb(52 55 44 / 12%)); }
+.truck-site .menu-item-art-gold { background: #e9bf7f; }
+.truck-site .menu-item-art-amber { background: #d9a36e; }
+.truck-site .menu-item-art-tomato { background: #dba681; }
+.truck-site .menu-item-art-wheat { background: #d8c79d; }
+.truck-site .menu-item-art-coffee { background: #c8ad90; }
+.truck-site .menu-item-art-berry { background: #d9b2aa; }
+.truck-site .menu-item-art-sage { background: #c7d0b1; }
+.truck-site .menu-item-art-ocean { background: #aec9c2; }
+.truck-site .menu-item-content { padding: 22px; }
 .truck-site .menu-item-heading { gap: 12px; }
 .truck-site .menu-item-heading span { color: #a54120; }
-.truck-site .menu-items li > p { margin-top: 14px; line-height: 1.7; }
+.truck-site .menu-item-content > p { min-height: 50px; margin-top: 12px; line-height: 1.6; }
 .truck-site .unavailable { display: inline-block; padding: 3px 10px; border-radius: 6px; background: #fff0e8; }
-.truck-site .add-to-cart { margin-top: 18px; min-height: 42px; padding: 9px 14px; border: 1px solid #b64923; border-radius: 8px; background: #b64923; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+.truck-site .add-to-cart { margin-top: 4px; min-height: 42px; padding: 9px 16px; border: 1px solid #b64923; border-radius: 8px; background: #b64923; color: white; font: inherit; font-weight: 700; cursor: pointer; }
 .truck-site .add-to-cart:hover { background: #963a1b; }
 .truck-site .cart-message { margin: 14px 0; padding: 12px 14px; border: 1px solid #d9c7b0; border-radius: 8px; background: #fff9ef; color: #4d5a50; }
 .truck-site .owner-preview-note { margin-top: 12px; padding: 10px 14px; border: 1px solid #d9c7b0; border-left: 4px solid #b64923; border-radius: 8px; background: #fff9ef; color: #4d5a50; font-size: 14px; }
 .truck-site-footer { text-align: center; border-top: 1px solid var(--border); padding: 28px 20px; font-size: 13px; }
 .truck-site a:focus-visible, .truck-site button:focus-visible { outline: 3px solid #b64923; outline-offset: 4px; }
-@media(max-width: 650px) { .truck-site-header { align-items: flex-start; flex-direction: column; gap: 10px; } .truck-site-header nav { gap: 20px; } .truck-site .menu-items { grid-template-columns: 1fr; } }
+@media(max-width: 650px) { .truck-site-header { align-items: flex-start; flex-direction: column; gap: 10px; } .truck-site-header nav { gap: 20px; } .truck-chef-bear { display: none; } .truck-profile-hero { min-height: 0; } .truck-site .menu-items { grid-template-columns: 1fr; } }

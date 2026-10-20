@@ -26,7 +26,20 @@ VALUES
     (-121, -7, 'Spam Musubi', 'Grilled teriyaki Spam and rice wrapped with nori; two pieces per order.', 6.00, 'ACTIVE'),
     (-122, -8, 'Churro Sundae', 'Cinnamon churro bites with vanilla ice cream, chocolate sauce, and toasted almonds.', 8.50, 'ACTIVE'),
     (-123, -8, 'Strawberry Crepe', 'A warm crepe filled with strawberries, vanilla cream, and powdered sugar.', 9.00, 'ACTIVE'),
-    (-124, -8, 'Chocolate Horchata', 'House rice milk with cinnamon, cocoa, and a light vanilla finish.', 4.25, 'ACTIVE')
+    (-124, -8, 'Chocolate Horchata', 'House rice milk with cinnamon, cocoa, and a light vanilla finish.', 4.25, 'ACTIVE'),
+    (-125, -9, 'Carne Asada Tacos', 'Three handmade corn tortillas with grilled steak, onion, cilantro, and salsa roja.', 11.50, 'ACTIVE'),
+    (-126, -9, 'Sonora Burrito Bowl', 'Seasoned rice, black beans, grilled chicken, pico de gallo, avocado, and crema.', 13.00, 'ACTIVE'),
+    (-127, -9, 'Roasted Veggie Quesadilla', 'Roasted peppers, squash, Oaxaca cheese, and smoky tomatillo salsa.', 9.75, 'ACTIVE'),
+    (-128, -9, 'Cinnamon Horchata', 'House-made rice drink with cinnamon and vanilla, served over ice.', 4.25, 'ACTIVE'),
+    (-129, -10, 'Harvest Veggie Burger', 'Black bean and roasted vegetable patty with avocado, greens, tomato, and herb aioli.', 12.00, 'ACTIVE'),
+    (-130, -10, 'Crispy Cauliflower Bowl', 'Turmeric rice, crispy cauliflower, cucumber, pickled onion, herbs, and tahini.', 11.50, 'ACTIVE'),
+    (-131, -10, 'Sweet Potato Fries', 'Sea-salted sweet potato fries served with chipotle-lime dipping sauce.', 6.00, 'ACTIVE'),
+    (-132, -11, 'Margherita Pizza', 'Tomato, fresh mozzarella, basil, and olive oil on a blistered thin crust.', 13.50, 'ACTIVE'),
+    (-133, -11, 'Spicy Soppressata Pizza', 'Soppressata, mozzarella, chili honey, tomato, and cracked pepper.', 15.00, 'ACTIVE'),
+    (-134, -11, 'Caprese Sandwich', 'Fresh mozzarella, tomato, basil pesto, and balsamic glaze on toasted ciabatta.', 10.50, 'ACTIVE'),
+    (-135, -12, 'Garlic Sesame Noodles', 'Chewy noodles with garlic, sesame, crisp vegetables, scallions, and chili oil.', 12.00, 'ACTIVE'),
+    (-136, -12, 'Korean Fried Chicken Bowl', 'Crispy chicken, steamed rice, cabbage slaw, pickles, and sweet-spicy glaze.', 13.50, 'ACTIVE'),
+    (-137, -12, 'Miso Mushroom Noodles', 'Miso-glazed mushrooms, noodles, bok choy, scallions, and toasted sesame.', 12.50, 'ACTIVE')
 ON CONFLICT (id) DO NOTHING;
 
 -- Fill descriptions added after the first fixture release without replacing
@@ -42,3 +55,11 @@ FROM (VALUES
     (-109, 'A rotating bakery muffin baked fresh each morning.')
 ) AS fixture(id, description)
 WHERE item.id = fixture.id AND item.description IS NULL;
+
+-- Improve early fixture descriptions while preserving any local edits.
+UPDATE vendor_menu_items SET description = 'Creamy roasted tomato soup finished with basil oil and cracked pepper.'
+WHERE id = -101 AND description = 'Creamy tomato soup';
+UPDATE vendor_menu_items SET description = 'Grilled chicken, onion, cilantro, salsa verde, and lime on a warm corn tortilla.'
+WHERE id = -104 AND description = 'Chicken, salsa, and onion';
+UPDATE vendor_menu_items SET description = 'Black beans, avocado, pico de gallo, and salsa verde on a warm corn tortilla.'
+WHERE id = -105 AND description = 'Beans, salsa, and avocado';

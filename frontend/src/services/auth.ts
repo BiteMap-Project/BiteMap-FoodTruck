@@ -1,4 +1,5 @@
 import type { Account, AccountRole } from "../types/api";
+import { reportAuthorizationResponse } from "../auth/authEvents";
 
 export type { Account } from "../types/api";
 
@@ -27,6 +28,7 @@ export class AuthApiError extends Error {
 }
 
 async function readProblem(response: Response, fallback: string): Promise<AuthApiError> {
+  reportAuthorizationResponse(response.status);
   try {
     const body = await response.json() as ProblemResponse;
     return new AuthApiError(response.status, body.detail || fallback, body.errors || {});

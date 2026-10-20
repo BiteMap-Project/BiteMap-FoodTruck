@@ -13,6 +13,7 @@ import OperatorOnboardingPage from "./pages/OperatorOnboardingPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import CustomerOrdersPage from "./pages/CustomerOrdersPage";
 import AdminApplicationsPage from "./pages/AdminApplicationsPage";
+import { RequireAdmin, RequireOperator } from "./auth/RouteGuards";
 
 function App() {
   return (
@@ -26,13 +27,13 @@ function App() {
       <Route path="/customer/register" element={<CustomerRegisterPage />} />
       <Route path="/orders/:id/confirmation" element={<OrderConfirmationPage />} />
       <Route path="/orders" element={<CustomerOrdersPage />} />
-      <Route path="/owner" element={<OperatorHomePage />} />
-      <Route path="/operator" element={<OperatorHomePage />} />
+      <Route path="/owner" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />
+      <Route path="/operator" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />
       <Route path="/operator/login" element={<OperatorLoginPage />} />
       <Route path="/operator/register" element={<OperatorRegisterPage />} />
       <Route path="/operator/onboarding" element={<OperatorOnboardingPage />} />
-      <Route path="/admin/owner-applications" element={<AdminApplicationsPage />} />
-      <Route path="/operator/analytics" element={<AnalyticsPage />} />
+      <Route path="/admin/owner-applications" element={<RequireAdmin><AdminApplicationsPage /></RequireAdmin>} />
+      <Route path="/operator/analytics" element={<RequireOperator><AnalyticsPage /></RequireOperator>} />
       <Route path="/analytics" element={<Navigate to="/operator/analytics" replace />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

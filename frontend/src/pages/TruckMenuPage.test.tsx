@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes, Link } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import App from "../App";
 import TruckMenuPage from "./TruckMenuPage";
+import { AuthProvider } from "../auth/AuthContext";
 
 const truck = {
   id: -2, name: "Database Taco", category: "Tacos", location: "Northridge",
@@ -14,7 +15,8 @@ vi.mock("../services/auth", async (importOriginal) => ({
   getCurrentAccount: vi.fn(async () => null),
 }));
 const response = (body: unknown, status = 200) => ({ ok: status === 200, status, json: async () => body });
-const open = (id = "-2") => render(<MemoryRouter initialEntries={[`/trucks/${id}`]}><App /></MemoryRouter>);
+const app = <AuthProvider><App /></AuthProvider>;
+const open = (id = "-2") => render(<MemoryRouter initialEntries={[`/trucks/${id}`]}>{app}</MemoryRouter>);
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -32,7 +34,7 @@ it("adds an available database menu item to the customer cart", async () => {
 
 it("opens the styled discovery page at /trucks", async () => {
   fetchMock.mockResolvedValue(response({ items: [], totalElements: 0, totalPages: 0, page: 0, size: 20 }));
-  render(<MemoryRouter initialEntries={["/trucks"]}><App /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={["/trucks"]}>{app}</MemoryRouter>);
   expect(screen.getByRole("heading", { name: "Your next great bite, nearby." })).toBeInTheDocument();
   expect(await screen.findByRole("searchbox")).toBeInTheDocument();
 });
@@ -96,7 +98,7 @@ it("ignores a late response from a previous truck", async () => {
 it("navigates from a database discovery card to its profile and back", async () => {
   fetchMock.mockImplementation((url: string) => Promise.resolve(response(url.startsWith("/api/vendors?")
     ? { items: [truck], totalElements: 1, totalPages: 1, page: 0, size: 20 } : truck)));
-  render(<MemoryRouter><App /></MemoryRouter>);
+  render(<MemoryRouter>{app}</MemoryRouter>);
   fireEvent.click(await screen.findByRole("link", { name: "View Profile & Menu" }));
   expect(await screen.findByText("Veggie Taco")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: /Back to trucks/ }));

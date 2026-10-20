@@ -79,27 +79,27 @@ it("sends fresh CSRF and the current version for a status change", async () => {
   fetchMock.mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh-token" }))
     .mockResolvedValueOnce(response(200, { ...item, status: "SOLD_OUT", version: 4 }))
     .mockResolvedValueOnce(response(200, page([{ ...item, status: "SOLD_OUT", version: 4 }])));
-  fireEvent.change(screen.getByLabelText("Availability for Taco"), { target: { value: "SOLD_OUT" } });
-  await waitFor(() => expect(screen.getByLabelText("Availability for Taco")).toHaveValue("SOLD_OUT"));
+  fireEvent.click(screen.getByRole("button", { name: "Sold out" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Sold out" })).toHaveAttribute("aria-pressed", "true"));
   expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/menu-items/10/availability", expect.objectContaining({ method: "PATCH", credentials: "same-origin", headers: expect.objectContaining({ "X-CSRF-TOKEN": "fresh-token" }), body: JSON.stringify({ status: "SOLD_OUT", version: 3 }) }));
 });
 
 it("blocks stale saves until explicit reload and does not retry writes", async () => {
   await openMenu();
   fetchMock.mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh-token" })).mockResolvedValueOnce(response(409));
-  fireEvent.change(screen.getByLabelText("Availability for Taco"), { target: { value: "INACTIVE" } });
+  fireEvent.click(screen.getByRole("button", { name: "Not on menu" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("changed elsewhere");
-  expect(screen.getByLabelText("Availability for Taco")).toBeDisabled();
-  expect(screen.getByLabelText("Availability for Taco")).toHaveValue("ACTIVE");
+  expect(screen.getByRole("button", { name: "Not on menu" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Available" })).toHaveAttribute("aria-pressed", "true");
   expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH")).toHaveLength(1);
   fireEvent.click(screen.getByRole("button", { name: "Reload menu" }));
-  await waitFor(() => expect(screen.getByLabelText("Availability for Taco")).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Not on menu" })).toBeEnabled());
 });
 
 it("redirects when a write reports an expired session", async () => {
   await openMenu();
   fetchMock.mockResolvedValueOnce(response(401));
-  fireEvent.change(screen.getByLabelText("Availability for Taco"), { target: { value: "SOLD_OUT" } });
+  fireEvent.click(screen.getByRole("button", { name: "Sold out" }));
   expect(await screen.findByText("Login screen")).toBeInTheDocument();
   expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH")).toHaveLength(0);
 });
@@ -146,7 +146,7 @@ it("updates only the selected vendor's profile", async () => {
 it.each([403, 404])("blocks mutations after a %s access rejection", async (status) => {
   await openMenu();
   fetchMock.mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh-token" })).mockResolvedValueOnce(response(status));
-  fireEvent.change(screen.getByLabelText("Availability for Taco"), { target: { value: "INACTIVE" } });
+  fireEvent.click(screen.getByRole("button", { name: "Not on menu" }));
   await screen.findByRole("alert");
   expect(screen.getByRole("button", { name: "Add menu item" })).toBeDisabled();
 });

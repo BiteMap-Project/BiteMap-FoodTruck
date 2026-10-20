@@ -12,6 +12,11 @@ import "./workspace.css";
 type Tab = WorkspaceTab;
 type Load<T> = { kind: "loading" } | { kind: "error"; error: unknown } | { kind: "ready"; data: T };
 const errorText = (error: unknown) => error instanceof WorkspaceError ? error.message : "Unable to reach the server. Check your connection and try again.";
+const availabilityOptions: { value: Availability; label: string }[] = [
+  { value: "ACTIVE", label: "Available" },
+  { value: "INACTIVE", label: "Not on menu" },
+  { value: "SOLD_OUT", label: "Sold out" },
+];
 
 export default function OperatorWorkspace({ account, onSignOut, signingOut, logoutError }: { account: OperatorAccount; onSignOut: () => void; signingOut: boolean; logoutError: string }) {
   const navigate = useNavigate();
@@ -117,15 +122,14 @@ function VendorWorkspace({ vendor, tab, onSaved }: { vendor: Vendor; tab: Tab; o
     {tab === "Schedule" && <SchedulePanel key={vendor.id} vendorId={vendor.id} />}
     {tab === "Orders" && <OrdersPanel key={vendor.id} vendorId={vendor.id} />}
     {tab === "Truck Details" && <section className="ow-panel"><h2>Truck details</h2><VendorForm key={`${vendor.id}-${vendor.name}-${vendor.category}-${vendor.location}`} initial={vendor} busy={unavailable} onSave={input => mutate(() => saveVendor(input, vendor.id), result => onSaved(result as Vendor))} />{blocked && <p>Refresh trucks to reload your access before retrying.</p>}</section>}
-    {tab === "Menu" && <section className="ow-panel"><div className="ow-toolbar"><h2>Your menu</h2><button className="od-button od-button-primary" disabled={unavailable || menu.kind !== "ready"} onClick={() => setEditor("new")}>Add menu item</button><button disabled={busy} className="od-button od-button-secondary" onClick={() => reload()}>Reload menu</button></div>
-      <p>Active items are available. Inactive and sold-out items appear as unavailable on the current customer menu.</p>
+    {tab === "Menu" && <section className="ow-panel ow-menu-panel"><div className="ow-menu-heading"><div><span className="ow-menu-eyebrow">YOUR MENU</span><h2>Menu items</h2><p>Choose what customers can order from your current menu.</p></div><div className="ow-menu-heading-actions"><button className="od-button od-button-primary" disabled={unavailable || menu.kind !== "ready"} onClick={() => setEditor("new")}>Add menu item</button><button disabled={busy} className="od-button od-button-secondary" onClick={() => reload()}>Reload menu</button></div></div>
       {menu.kind === "loading" && <p role="status">Loading menu…</p>}
       {menu.kind === "error" && <p role="alert">{errorText(menu.error)}</p>}
       {menu.kind === "ready" && <>
-        <p>{menu.data.totalElements} menu items</p>
+        <p className="ow-menu-count">{menu.data.totalElements} menu {menu.data.totalElements === 1 ? "item" : "items"}</p>
         {editor !== null && <section className="ow-editor"><h3>{editor === "new" ? "New item" : `Edit ${editor.name}`}</h3><ItemForm key={editor === "new" ? "new" : `${editor.id}-${editor.version}`} initial={editor === "new" ? undefined : editor} busy={unavailable} onSave={(input, status) => mutate(() => editor === "new" ? createMenuItem(vendor.id, { ...input, status }) : editMenuItem(vendor.id, editor.id, { ...input, version: editor.version }), () => reload(editor === "new" ? 0 : page))} /><button disabled={busy} onClick={() => setEditor(null)}>Cancel editing</button></section>}
         {!menu.data.items.length && <p>No items on this page. Add an item or return to the previous page.</p>}
-        {menu.data.items.map(item => <article className="ow-menu-row" key={item.id}><div><h3>{item.name}</h3><p>{item.description}</p><strong>${item.price.toFixed(2)}</strong></div><div className="ow-item-actions"><label>Availability for {item.name}<select value={item.status} disabled={unavailable || editor !== null} onChange={e => { const status = e.target.value as Availability; void mutate(() => changeAvailability(vendor.id, item.id, status, item.version), () => reload()); }}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="SOLD_OUT">Sold out</option></select></label><button disabled={unavailable || editor !== null} onClick={() => setEditor(item)}>Edit {item.name}</button></div></article>)}
+        {menu.data.items.map(item => <article className="ow-menu-row" key={item.id}><div className="ow-menu-item-copy"><div className="ow-menu-name"><h3>{item.name}</h3><span className={`ow-status-badge is-${item.status.toLowerCase()}`}>{availabilityOptions.find(option => option.value === item.status)?.label}</span></div><p>{item.description}</p><strong>${item.price.toFixed(2)}</strong></div><div className="ow-item-actions"><span className="ow-status-label" id={`availability-${item.id}`}>Customer menu status</span><div className="ow-status-buttons" role="group" aria-labelledby={`availability-${item.id}`}>{availabilityOptions.map(option => <button type="button" key={option.value} className={item.status === option.value ? "is-selected" : ""} aria-pressed={item.status === option.value} disabled={unavailable || editor !== null} onClick={() => { if (item.status === option.value) return; void mutate(() => changeAvailability(vendor.id, item.id, option.value, item.version), () => reload()); }}>{option.label}</button>)}</div><button className="ow-edit-item" disabled={unavailable || editor !== null} onClick={() => setEditor(item)}>Edit {item.name}</button></div></article>)}
         <Pager page={menu.data.page} totalPages={menu.data.totalPages} onPage={reload} label="Menu" disabled={busy || editor !== null} />
       </>}
     </section>}

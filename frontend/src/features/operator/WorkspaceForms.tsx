@@ -36,7 +36,7 @@ export function ItemForm({ initial, onSave, busy }: { initial?: MenuItem; onSave
     <fieldset disabled={busy}><label>Item name<input name="name" required maxLength={150} defaultValue={initial?.name} /></label>
       <label>Price (USD)<input name="price" required inputMode="decimal" defaultValue={initial?.price.toFixed(2)} /></label>
       <label>Description<textarea name="description" maxLength={500} defaultValue={initial?.description ?? ""} /></label>
-      {!initial && <label>Initial availability<select name="status" defaultValue="ACTIVE"><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="SOLD_OUT">Sold out</option></select></label>}
+      {!initial && <label>Initial availability<select name="status" defaultValue="ACTIVE"><option value="ACTIVE">Available</option><option value="INACTIVE">Not on menu</option><option value="SOLD_OUT">Sold out</option></select></label>}
       {initial && <p>Availability is changed separately. Your existing status will be preserved.</p>}
       {error && <p role="alert">{error}</p>}
       <button className="od-button od-button-primary" type="submit">{busy ? "Saving…" : initial ? "Save item" : "Add item"}</button></fieldset>

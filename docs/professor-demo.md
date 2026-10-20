@@ -1,85 +1,51 @@
-# Professor walkthrough: publish a truck and discover its menu
-
-## What works in this change
-
-A visitor can browse and build a cart without an account. A customer can register,
-sign in, and return to that cart. An operator can use the same account, activate
-owner tools, create an owned truck, publish a menu item, and inspect private truck
-metrics and CSV.
-The published profile and menu are saved in PostgreSQL and visible to anonymous
-visitors. `/owner` now leads to the real `/operator` workspace instead of the
-localStorage prototype; the prototype's source files remain for the team to reuse.
+# Professor demo: customer pickup order
 
 ## Before class
 
-1. Open Docker Desktop. From the repository root run `docker compose up -d --build`.
-2. Run `docker compose ps` and wait for all three services to be healthy.
-3. Open `http://localhost:5173` using the same hostname throughout the demo.
-4. Have a normal browser and a private window ready for the operator/visitor roles.
-5. Rehearse CSV download in that browser. Do not reset the database volume.
+1. Open Docker Desktop.
+2. From the repository root, run `docker compose up -d --build`.
+3. Run `docker compose ps` and wait until the services are healthy.
+4. Open `http://localhost:5173`. Keep this hostname for the whole demo.
+5. Prepare two browser sessions: a normal window for the customer and a private
+   window for the operator.
+6. Use test accounts and a test passphrase. Do not use a personal password.
 
-## Let the professor do the clicks (about five minutes)
+## Walkthrough
 
-1. Browse the homepage anonymously. Search for a truck and view its menu.
-2. Return home, choose **Join as a truck owner**, and register a fresh test operator
-   account with a passphrase of at least 15 characters. Do not reuse a real password.
-3. Sign in. The new workspace should show **No trucks yet**, not another user's trucks.
-4. Choose **New truck** and create **Professor Tacos**, food category **Tacos**,
-   location **CSUN**. Explain that saving makes the profile visible to visitors.
-5. Open the **Menu** tab, choose **Add menu item**, enter **Campus Taco** with price
-   **4.50**, then save it. Use **View customer menu** to inspect the result.
-6. In the private visitor window, search for **Professor Tacos** and open its menu.
-   The same item and price should appear without signing in.
-7. Back in the operator window, open **View my business insights**. Expect one truck,
-   one available item, an average menu price of $4.50, and zero scheduled stops.
-   Select that truck and export CSV. An account used in earlier rehearsals may have
-   more trucks; use a fresh account if demonstrating the one-truck result.
-8. Sign out through the workspace. Private insights should require sign-in again;
-   the public menu remains visible. Refresh the public page to show the saved data.
-9. In the visitor window, add an available menu item to the cart. Choose **Sign in
-   to continue**, create a customer account, sign in, and confirm that the same
-   item is still in the cart.
-10. Choose **Place pickup order**. The confirmation page should show the saved
-    order number, truck, item quantities, and total due at pickup. Refresh the page
-    to show that the order is stored in PostgreSQL.
+1. As the customer, open the homepage. Explain that food truck discovery and menus
+   are public, so an account is not required yet.
+2. Search for a truck with an active stop, open its menu, and point out the pickup
+   location and time before adding an available item to the cart.
+3. Open the cart and choose **Sign in to continue**. Register or sign in, then point
+   out that the cart is still there.
+4. Choose **Place pickup order**. Show the order number, truck, pickup instructions,
+   quantity, total, and **Placed** status on the confirmation page.
+5. In the operator window, sign in with the account that owns that truck. Open the
+   truck's **Orders** tab and find the same order number.
+6. Change the order to **Accepted**, then **Ready**.
+7. Return to the customer window. Open **My orders** and refresh the order. Its
+   status should now be **Ready**.
+8. Mark the order **Completed** in the operator window. Refresh the customer order
+   once more to show the final status.
 
-## Honest limits and the next customer story
+## What to say
 
-The customer flow proposed by the team is consistent: browse anonymously, add items
-to a cart, sign in/create a customer account at checkout, then submit an order.
-The operator role must come from the server account, not a client-side role switch.
-A customer login must return to the original cart instead of losing it.
+"BiteMap lets anyone discover food trucks and view menus. An account is required
+when the customer is ready to order. Each order is tied to the truck's active
+pickup stop and saved in PostgreSQL with the item name and price at checkout. The
+owner sees orders only for trucks they own, and the customer sees status changes
+in their order history. Payment is handled at pickup in this version."
 
-Customer accounts, the browser cart, saved pickup orders, and customer confirmation
-are connected. Payment stays pay at pickup. The operator order queue and status
-updates are the next demo slice; do not present the prototype's sample orders as
-orders submitted through this flow.
+## Backup plan
 
-## Jira updates
+If a live account or order fails, use a truck with an active stop and an account
+created during rehearsal.
+Refresh the page once before restarting services. If the service is unavailable,
+run `docker compose ps`, confirm that PostgreSQL and the backend are healthy, and
+then reload the browser.
 
-- Add a follow-up to SCRUM-53: **Restrict business insights to the signed-in operator**.
-  Acceptance: backend ownership filtering, no public analytics, no-store responses,
-  empty new account, owned-truck selector/CSV, cross-owner and role tests.
-- Add **Complete operator onboarding and menu publishing walkthrough** as a new
-  integration story assigned to Aniket. Link SCRUM-26, SCRUM-28, SCRUM-37, SCRUM-51,
-  and SCRUM-52 as existing work reused; coordinate review with Hayk and Carlin.
-  Acceptance: register/login → create owned truck → add menu item → anonymous
-  visitor can find it → operator can see only their metrics → logout blocks access.
-- Keep both in review until the team reviews and rehearses the feature branch.
-- Move **Customer pickup order from cart to confirmation** to **In Review**.
-  Acceptance: anonymous browsing/cart; customer registration/login preserving cart;
-  server-validated item availability and prices; one truck per order; prevent duplicate
-  submission; persist order and line-item price snapshots; customer confirmation;
-  Explicitly state pay at pickup/no online payment. The customer-side criteria are
-  complete; keep owner order receipt as follow-up work.
+## Optional operator setup
 
-## Verification for this branch
-
-- 253 backend tests passed, including saved-order security, validation, rollback,
-  price snapshot, and duplicate-submission coverage.
-- 154 frontend tests passed; production build passed.
-- Browser rehearsal passed: anonymous analytics redirected to sign-in, the operator
-  created a truck and menu item, own-only insights showed $4.50, logout succeeded,
-  and the public menu remained visible without authentication.
-- The temporary browser-test account and its records were removed afterward.
-- One pre-existing lint warning remains in the original owner dashboard prototype.
+If time allows, show owner onboarding separately: register, submit an owner
+application, use an approved operator account, create a truck, and add a menu item.
+Keep the main demo focused on the customer order lifecycle.

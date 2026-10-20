@@ -4,6 +4,8 @@ import { cartTotal, clearCart, readCart, setCartQuantity } from "../features/car
 import "./cart.css";
 import { getCurrentAccount, type Account } from "../services/auth";
 import { createCustomerOrder } from "../services/orders";
+import { PickupLocation } from "../features/orders/PickupLocation";
+import { usePickupStop } from "../features/orders/usePickupStop";
 
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
@@ -13,6 +15,7 @@ export default function CartPage() {
   const [account, setAccount] = useState<Account | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState("");
+  const stop = usePickupStop(cart?.vendorId);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -21,11 +24,11 @@ export default function CartPage() {
   }, []);
 
   async function placeOrder() {
-    if (!cart || submitting) return;
+    if (!cart || submitting || stop.loading || !stop.pickup) return;
     setOrderError("");
     setSubmitting(true);
     try {
-      const order = await createCustomerOrder(cart);
+      const order = await createCustomerOrder(cart, stop.pickup.stopId);
       clearCart();
       setCart(null);
       navigate(`/orders/${order.id}/confirmation`);
@@ -51,9 +54,14 @@ export default function CartPage() {
           </li>)}
         </ul>
         <section className="cart-total"><span>Estimated total</span><strong>{dollars.format(cartTotal(cart))}</strong></section>
-        <p className="cart-note">Pickup time, taxes and payment will be confirmed when ordering is connected.</p>
+        {stop.loading ? <p role="status">Checking current pickup location…</p>
+          : stop.error ? <p role="alert">{stop.error}</p>
+          : stop.pickup ? <PickupLocation pickup={stop.pickup} />
+          : <p role="status">No active pickup stop. You can keep browsing, but this truck is not accepting orders right now.</p>}
+        <button type="button" disabled={stop.loading || submitting} onClick={stop.refresh}>Refresh pickup details</button>
+        <p className="cart-note">Your order total is calculated using current menu prices when you place your order. No online payment is collected here.</p>
         {account
-          ? <><p className="cart-signed-in">Signed in as {account.displayName}</p>{orderError && <p className="cart-order-error" role="alert">{orderError}</p>}<button className="cart-checkout" type="button" disabled={submitting} onClick={placeOrder}>{submitting ? "Placing order…" : "Place pickup order"}</button></>
+          ? <><p className="cart-signed-in">Signed in as {account.displayName}</p>{orderError && <p className="cart-order-error" role="alert">{orderError}</p>}<button className="cart-checkout" type="button" disabled={submitting || stop.loading || !stop.pickup} onClick={placeOrder}>{submitting ? "Placing order…" : "Place pickup order"}</button></>
           : <Link className="cart-checkout cart-checkout-link" to="/customer/login" state={{ returnTo: "/cart" }}>Sign in to continue</Link>}
         <button className="cart-clear" type="button" onClick={() => { clearCart(); setCart(null); }}>Clear cart</button>
       </>}

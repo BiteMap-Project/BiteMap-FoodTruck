@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.List;
 
 public record OperatorOrderResponse(long id, long vendorId, OrderStatus status, BigDecimal total,
-        Instant createdAt, Instant updatedAt, long version, String cancellationReason, List<OrderResponse.Item> items) {
+        Instant createdAt, Instant updatedAt, long version, String cancellationReason, List<OrderResponse.Item> items, PickupDetails pickup) {
     public OperatorOrderResponse { items = List.copyOf(items); }
 
     public record Summary(long id, long vendorId, OrderStatus status, BigDecimal total,

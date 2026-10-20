@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(assignableTypes = CustomerOrderController.class)
+@RestControllerAdvice(assignableTypes = {CustomerOrderController.class, PickupController.class})
 public class OrderExceptionHandler {
     @ExceptionHandler(OrderNotFoundException.class)
     ProblemDetail notFound() {

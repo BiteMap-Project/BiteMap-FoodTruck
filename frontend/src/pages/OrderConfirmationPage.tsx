@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { useCustomerOrder } from "../features/orders/useCustomerOrder";
 import "./cart.css";
+import { PickupLocation } from "../features/orders/PickupLocation";
 
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const steps = ["PLACED", "ACCEPTED", "READY", "COMPLETED"];
@@ -40,6 +41,7 @@ function OrderDetails({ id }: { id: number }) {
       <p className="cart-eyebrow">YOUR PICKUP ORDER</p>
       <h1>{order.status === "PLACED" ? "Thanks, your pickup order is in." : "Your order updates"}</h1>
       <p className="confirmation-number">Order #{order.id} · {order.vendorName}</p>
+      <PickupLocation pickup={order.pickup} />
       <section className={`customer-order-status ${order.status === "CANCELLED" ? "is-cancelled" : ""}`} aria-label="Order status">
         <h2 role="status" aria-live="polite" aria-atomic="true">{messages[order.status] ?? "Order status is unavailable."}</h2>
         {current >= 0 && <ol className="customer-order-progress" aria-label="Preparation progress">{steps.map((step, index) =>

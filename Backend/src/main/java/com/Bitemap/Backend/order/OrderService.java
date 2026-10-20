@@ -21,8 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderService {
     private static final BigDecimal MAX_TOTAL = new BigDecimal("9999999999.99");
     private final JdbcTemplate jdbc;
+    private final PickupService pickups;
 
-    public OrderService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public OrderService(JdbcTemplate jdbc, PickupService pickups) { this.jdbc = jdbc; this.pickups = pickups; }
 
     @Transactional
     public OrderResponse create(String customerEmail, @NotNull @Valid CreateOrderRequest request) {
@@ -41,7 +42,8 @@ public class OrderService {
         var existing = find(customerId, request.idempotencyKey());
         if (existing != null) {
             Map<Long, Integer> quantities = request.items().stream().collect(Collectors.toMap(CreateOrderRequest.Item::menuItemId, CreateOrderRequest.Item::quantity));
-            if (existing.vendorId() != request.vendorId() || existing.items().size() != quantities.size()
+            if (existing.vendorId() != request.vendorId() || existing.pickup() == null
+                    || existing.pickup().stopId() != request.pickupStopId() || existing.items().size() != quantities.size()
                     || existing.items().stream().anyMatch(item -> !Integer.valueOf(item.quantity()).equals(quantities.get(item.menuItemId()))))
                 throw new OrderKeyConflictException();
             return existing;
@@ -76,10 +78,13 @@ public class OrderService {
         }
 
         if (total.compareTo(MAX_TOTAL) > 0) throw new InvalidOrderException("Order total exceeds the supported maximum. Reduce your cart.");
+        // Evaluate the clock after waiting for menu locks, immediately before inserting.
+        var pickup = pickups.requireCurrent(request.vendorId(), request.pickupStopId());
         long orderId = jdbc.queryForObject("""
                 INSERT INTO customer_orders(customer_user_id,vendor_id,idempotency_key,total)
                 VALUES (?,?,?,?) RETURNING id
                 """, Long.class, customerId, request.vendorId(), request.idempotencyKey(), total);
+        pickups.save(orderId, pickup);
         for (var line : lines) jdbc.update("""
                 INSERT INTO customer_order_items(order_id,menu_item_id,name_snapshot,unit_price,quantity,line_total)
                 VALUES (?,?,?,?,?,?)
@@ -143,7 +148,7 @@ public class OrderService {
                 """, (rs, row) -> new OrderResponse.Item(rs.getLong(1), rs.getString(2), rs.getBigDecimal(3),
                         rs.getInt(4), rs.getBigDecimal(5)), orderId);
         return new OrderResponse(header.id(), header.vendorId(), header.vendorName(), header.status(),
-                header.total(), header.createdAt(), items, header.cancellationReason());
+                header.total(), header.createdAt(), items, header.cancellationReason(), pickups.saved(orderId));
     }
 
     private record MenuLine(long id, String name, BigDecimal price, String status) {}

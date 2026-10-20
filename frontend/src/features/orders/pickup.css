@@ -1,0 +1,14 @@
+.pickup-location {
+  padding: 1.25rem;
+  margin-block: 1rem;
+  border: 1px solid #dfe3d8;
+  border-radius: 16px;
+  background: #f6f7f0;
+  color: #293e32;
+  overflow-wrap: anywhere;
+}
+.pickup-location h2 { margin: 0 0 .75rem; color: inherit; font-size: 1.25rem; }
+.pickup-location p { margin: .6rem 0; }
+.pickup-location a { color: #a43c1b; text-decoration: underline; font-weight: 600; }
+.pickup-note { color: #566253; font-size: .9rem; }
+.pickup-location a:focus-visible { outline: 3px solid #a43c1b; outline-offset: 4px; }

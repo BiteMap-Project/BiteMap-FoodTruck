@@ -28,6 +28,8 @@ it("reviews items, updates quantity and calculates the total", async () => {
   addCartItem(4, "Taco Truck", { id: 8, name: "Taco", price: 4.5 });
   render(<MemoryRouter><CartPage /></MemoryRouter>);
   expect(screen.getByRole("heading", { name: "Taco Truck" })).toBeInTheDocument();
+  expect(screen.getByText("Your order total is calculated using current menu prices when you place your order. No online payment is collected here.")).toBeInTheDocument();
+  expect(screen.queryByText(/when ordering is connected/i)).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Quantity for Taco"), { target: { value: "3" } });
   expect(screen.getAllByText("$13.50")).toHaveLength(2);
   expect(await screen.findByRole("link", { name: "Sign in to continue" })).toHaveAttribute("href", "/customer/login");
@@ -35,7 +37,10 @@ it("reviews items, updates quantity and calculates the total", async () => {
 
 it("recognizes a signed-in customer without changing the cart", async () => {
   addCartItem(4, "Taco Truck", { id: 8, name: "Taco", price: 4.5 });
-  fetchMock.mockResolvedValue(response(200, {
+  fetchMock.mockImplementation(async (url: string) => url.endsWith('/pickup-stop') ? response(200, {
+    stopId: 9, venueName: 'Campus', address: '18111 Nordhoff St', latitude: 34.24, longitude: -118.53,
+    startsAt: '2026-01-01T00:00:00Z', endsAt: '2099-01-01T00:00:00Z', timeZone: 'America/Los_Angeles',
+  }) : response(200, {
     id: 7,
     displayName: "Casey",
     email: "casey@example.com",

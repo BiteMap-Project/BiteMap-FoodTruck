@@ -67,6 +67,7 @@ public class SecurityConfiguration {
 		http.authorizeHttpRequests(authorize -> authorize
 				.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/vendors/{id}/pickup-stop").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/logout").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/vendors", "/api/vendors/{id}", "/api/vendor-stops", "/actuator/health", "/actuator/health/**").permitAll()
 				.requestMatchers("/api/operator/**").hasRole("OPERATOR")

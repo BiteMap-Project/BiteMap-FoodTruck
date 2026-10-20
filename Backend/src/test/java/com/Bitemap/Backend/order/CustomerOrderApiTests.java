@@ -31,6 +31,7 @@ class CustomerOrderApiTests {
     long vendor;
     long taco;
     long drink;
+    long stop;
 
     @BeforeEach
     void seed() {
@@ -41,6 +42,7 @@ class CustomerOrderApiTests {
         vendor = jdbc.queryForObject("INSERT INTO vendors(name,category,location) VALUES ('Taco Truck','Tacos','CSUN') RETURNING id", Long.class);
         taco = item(vendor, "Taco", "4.50", "ACTIVE");
         drink = item(vendor, "Drink", "2.25", "ACTIVE");
+        stop = PickupOrderApiTests.activeStop(jdbc, vendor);
     }
 
     @Test
@@ -167,7 +169,7 @@ class CustomerOrderApiTests {
     void acceptsSeedIdsAndIgnoresAllClientMoneyAndIdentityFields() throws Exception {
         jdbc.update("INSERT INTO vendors(id,name,category,location) OVERRIDING SYSTEM VALUE VALUES (-1,'Seed Truck','Food','CSUN')");
         jdbc.update("INSERT INTO vendor_menu_items(id,vendor_id,name,price,availability_status) OVERRIDING SYSTEM VALUE VALUES (-5,-1,'Seed Taco',4.25,'ACTIVE')");
-        var request = Map.of("vendorId", -1, "idempotencyKey", UUID.randomUUID(), "total", "0.01", "customerUserId", -999,
+        var request = Map.of("vendorId", -1, "pickupStopId", PickupOrderApiTests.activeStop(jdbc, -1), "idempotencyKey", UUID.randomUUID(), "total", "0.01", "customerUserId", -999,
                 "status", "COMPLETED", "items", java.util.List.of(Map.of("menuItemId", -5, "quantity", 2, "price", "0.01", "unitPrice", "0.01", "lineTotal", "0.01")));
         mvc.perform(post("/api/customer/orders").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")).with(csrf())
                 .contentType("application/json").content(json.writeValueAsString(request)))
@@ -249,7 +251,7 @@ class CustomerOrderApiTests {
     private String body(UUID key, Object[][] items) throws Exception {
         var lines = java.util.Arrays.stream(items)
                 .map(item -> Map.of("menuItemId", item[0], "quantity", item[1])).toList();
-        return json.writeValueAsString(Map.of("vendorId", vendor, "idempotencyKey", key, "items", lines,
+        return json.writeValueAsString(Map.of("vendorId", vendor, "pickupStopId", stop, "idempotencyKey", key, "items", lines,
                 "total", "0.01", "status", "COMPLETED", "customerUserId", -1));
     }
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { BagIcon, ReceiptIcon, TruckIcon, LogoutIcon, SettingsIcon } from "../../components/icons";
+import { BagIcon, ReceiptIcon, TruckIcon, LogoutIcon, SettingsIcon, HeartOutlineIcon } from "../../components/icons";
 import { hasRole } from "../../services/auth";
 import { useAuth } from "../../auth/authState";
 
@@ -32,6 +32,7 @@ export default function AccountNavigation() {
         <p className="discover-eyebrow">YOUR ORDERS</p>
         <Link className="discover-menu-link" to="/cart"><BagIcon />My cart</Link>
         {hasRole(account, "ROLE_CUSTOMER") && <Link className="discover-menu-link" to="/orders"><ReceiptIcon />My orders</Link>}
+        {hasRole(account, "ROLE_CUSTOMER") && <Link className="discover-menu-link" to="/favorites"><HeartOutlineIcon />Favorites</Link>}
       </nav>
       {hasRole(account, "ROLE_OPERATOR")
         ? <section className="discover-business" aria-label="Your business"><h2>Your business</h2><p>Manage your truck, menu and orders.</p><Link className="discover-menu-link" to="/operator"><TruckIcon />Access your truck <span aria-hidden="true">→</span></Link></section>

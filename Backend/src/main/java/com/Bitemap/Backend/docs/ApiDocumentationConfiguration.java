@@ -71,6 +71,15 @@ public class ApiDocumentationConfiguration {
 							.description("Authentication temporarily unavailable"));
 				}
 			}
+			var favorite = api.getPaths().get("/api/customer/favorites/{vendorId}");
+			if (favorite != null) {
+				for (var operation : java.util.Arrays.asList(favorite.getPut(), favorite.getDelete())) {
+					if (operation == null) continue;
+					operation.addSecurityItem(new SecurityRequirement().addList("csrfToken"));
+					operation.getResponses().addApiResponse("401", new io.swagger.v3.oas.models.responses.ApiResponse().description("Login required"));
+					operation.getResponses().addApiResponse("403", new io.swagger.v3.oas.models.responses.ApiResponse().description("Missing or invalid CSRF token, or not a customer"));
+				}
+			}
             var onboarding = api.getPaths().get("/api/auth/become-operator");
             if (onboarding != null && onboarding.getPost() != null) {
                 var operation = onboarding.getPost();

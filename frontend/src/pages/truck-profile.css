@@ -42,6 +42,8 @@ body:has(.truck-site) { background: #f8f8f4; }
 .truck-site .add-to-cart:hover { background: #963a1b; }
 .truck-site .cart-message { margin: 14px 0; padding: 12px 14px; border: 1px solid #d9c7b0; border-radius: 8px; background: #fff9ef; color: #4d5a50; }
 .truck-site .owner-preview-note { margin-top: 12px; padding: 10px 14px; border: 1px solid #d9c7b0; border-left: 4px solid #b64923; border-radius: 8px; background: #fff9ef; color: #4d5a50; font-size: 14px; }
+.truck-hero-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 28px; }
+.truck-hero-actions .truck-menu-jump { margin-top: 0; }
 .truck-site-footer { text-align: center; border-top: 1px solid var(--border); padding: 28px 20px; font-size: 13px; }
 .truck-site a:focus-visible, .truck-site button:focus-visible { outline: 3px solid #b64923; outline-offset: 4px; }
 @media(max-width: 650px) { .truck-site-header { align-items: flex-start; flex-direction: column; gap: 10px; } .truck-site-header nav { gap: 20px; } .truck-chef-bear { display: none; } .truck-profile-hero { min-height: 0; } .truck-site .menu-items { grid-template-columns: 1fr; } }

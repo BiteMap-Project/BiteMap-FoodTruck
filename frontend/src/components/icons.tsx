@@ -54,3 +54,6 @@ export function SettingsIcon() {
 export function LogoutIcon() {
   return <svg {...base}><path d="M9 4H4v16h5M9 12h12m-4-4 4 4-4 4" /></svg>;
 }
+export function HeartOutlineIcon() {
+  return <svg {...base}><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" /></svg>;
+}

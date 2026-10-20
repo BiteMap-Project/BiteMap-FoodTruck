@@ -7,6 +7,7 @@ import OperatorLoginPage from "./pages/OperatorLoginPage";
 import OperatorRegisterPage from "./pages/OperatorRegisterPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import CartPage from "./pages/CartPage";
+import FavoritesPage from "./pages/FavoritesPage";
 import CustomerLoginPage from "./pages/CustomerLoginPage";
 import CustomerRegisterPage from "./pages/CustomerRegisterPage";
 import OperatorOnboardingPage from "./pages/OperatorOnboardingPage";
@@ -24,6 +25,7 @@ function App() {
 
       <Route path="/trucks/:id" element={<TruckMenuPage />} />
       <Route path="/cart" element={<CartPage />} />
+      <Route path="/favorites" element={<RequireAccount><FavoritesPage /></RequireAccount>} />
       <Route path="/customer/login" element={<CustomerLoginPage />} />
       <Route path="/customer/register" element={<CustomerRegisterPage />} />
       <Route path="/orders/:id/confirmation" element={<OrderConfirmationPage />} />

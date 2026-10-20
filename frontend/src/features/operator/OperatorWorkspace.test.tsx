@@ -1,7 +1,11 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import OperatorHomePage from "../../pages/OperatorHomePage";
+import AuthTestHarness from "../../test/AuthTestHarness";
+import { RequireOperator } from "../../auth/RouteGuards";
+const render = (ui: ReactElement) => rtlRender(<AuthTestHarness>{ui}</AuthTestHarness>);
 
 const fetchMock = vi.fn();
 const account = { id: 2, displayName: "Owner", email: "owner@example.com", roles: ["ROLE_CUSTOMER", "ROLE_OPERATOR"] };
@@ -24,7 +28,7 @@ beforeEach(() => {
 });
 
 function show(path = "/owner") {
-  render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/owner" element={<OperatorHomePage />} /><Route path="/operator/login" element={<p>Login screen</p>} /></Routes></MemoryRouter>);
+  render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/owner" element={<RequireOperator><OperatorHomePage /></RequireOperator>} /><Route path="/operator/login" element={<p>Login screen</p>} /></Routes></MemoryRouter>);
 }
 it("opens the Schedule tab for the selected owned truck", async () => {
   show(); await screen.findByRole("heading", { name: "Spicy Food" });
@@ -62,7 +66,7 @@ it("offers first-vendor creation when the account owns no vendors", async () => 
     return response(200, page([]));
   });
   show(); await screen.findByText("No trucks yet");
-  fireEvent.click(screen.getByRole("button", { name: "New truck" }));
+  fireEvent.click(screen.getByRole("button", { name: "Create your first truck" }));
   fireEvent.change(screen.getByLabelText("Truck name"), { target: { value: "Spicy Food" } });
   fireEvent.change(screen.getByLabelText("Cuisine / category"), { target: { value: "Tacos" } });
   fireEvent.change(screen.getByLabelText("Location"), { target: { value: "CSUN" } });

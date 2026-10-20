@@ -1,4 +1,5 @@
 import { AuthApiError, postWithCsrf } from "./auth";
+import { reportAuthorizationResponse } from "../auth/authEvents";
 import type { Cart } from "../features/cart/cart";
 import type { CustomerOrder, CustomerOrderSummary, Page, PickupDetails } from "../types/api";
 
@@ -8,7 +9,10 @@ export async function getPickupStop(vendorId: number, signal?: AbortSignal): Pro
     cache: 'no-store', credentials: 'same-origin', headers: { Accept: 'application/json' }, signal,
   });
   if (response.status === 204) return null;
-  if (!response.ok) throw new AuthApiError(response.status, 'Unable to load pickup details. Please try again.');
+  if (!response.ok) {
+    reportAuthorizationResponse(response.status);
+    throw new AuthApiError(response.status, 'Unable to load pickup details. Please try again.');
+  }
   return response.json();
 }
 
@@ -20,7 +24,10 @@ export async function listCustomerOrders(page: number, signal: AbortSignal): Pro
   const response = await fetch(`/api/customer/orders?page=${page}&size=20`, {
     cache: "no-store", credentials: "same-origin", headers: { Accept: "application/json" }, signal,
   });
-  if (!response.ok) throw new AuthApiError(response.status, "Unable to load your orders. Please try again.");
+  if (!response.ok) {
+    reportAuthorizationResponse(response.status);
+    throw new AuthApiError(response.status, "Unable to load your orders. Please try again.");
+  }
   return response.json();
 }
 
@@ -54,6 +61,7 @@ export async function getCustomerOrder(id: number, signal?: AbortSignal): Promis
     signal,
   });
   if (!response.ok) {
+    reportAuthorizationResponse(response.status);
     let detail = "Unable to load the order.";
     try { detail = (await response.json() as { detail?: string }).detail ?? detail; } catch { /* Keep fallback. */ }
     throw new AuthApiError(response.status, detail);

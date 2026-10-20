@@ -2,6 +2,7 @@ import { MemoryRouter } from "react-router-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import App from "../App";
+import { AuthProvider } from "../auth/AuthContext";
 vi.mock("../services/auth", async (importOriginal) => ({
   ...await importOriginal<typeof import("../services/auth")>(),
   getCurrentAccount: vi.fn(async () => null),
@@ -36,7 +37,7 @@ it("shows an empty state with a hint and action", () => {
 });
 
 it("shows a not-found page for unknown routes", () => {
-  render(<MemoryRouter initialEntries={["/no/such/page"]}><App /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={["/no/such/page"]}><AuthProvider><App /></AuthProvider></MemoryRouter>);
   expect(screen.getByRole("heading", { name: "Page not found" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /Back to trucks/ })).toHaveAttribute("href", "/");
 });
@@ -46,7 +47,7 @@ it("lets the user clear a search that found nothing", async () => {
   const empty = { items: [], page: 0, size: 20, totalElements: 0, totalPages: 0 };
   const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => empty });
   vi.stubGlobal("fetch", fetchMock);
-  render(<MemoryRouter><App /></MemoryRouter>);
+  render(<MemoryRouter><AuthProvider><App /></AuthProvider></MemoryRouter>);
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "zzz" } });
   await act(async () => { await vi.advanceTimersByTimeAsync(300); });
   expect(screen.getByText("Nothing matched “zzz”.")).toBeInTheDocument();

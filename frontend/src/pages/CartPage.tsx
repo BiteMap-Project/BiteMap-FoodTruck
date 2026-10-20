@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { cartTotal, clearCart, readCart, setCartQuantity } from "../features/cart/cart";
 import "./cart.css";
-import { getCurrentAccount, type Account } from "../services/auth";
+import { useAuth } from "../auth/authState";
 import { createCustomerOrder } from "../services/orders";
 import { PickupLocation } from "../features/orders/PickupLocation";
 import { usePickupStop } from "../features/orders/usePickupStop";
@@ -12,16 +12,10 @@ const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "U
 export default function CartPage() {
   const navigate = useNavigate();
   const [cart, setCart] = useState(readCart);
-  const [account, setAccount] = useState<Account | null>(null);
+  const { account } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState("");
   const stop = usePickupStop(cart?.vendorId);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    getCurrentAccount(controller.signal).then(setAccount, () => {});
-    return () => controller.abort();
-  }, []);
 
   async function placeOrder() {
     if (!cart || submitting || stop.loading || !stop.pickup) return;

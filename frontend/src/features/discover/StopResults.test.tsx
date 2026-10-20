@@ -1,7 +1,8 @@
 import { MemoryRouter } from "react-router-dom";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render as rtlRender, screen, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import DiscoverPage from "../../pages/DiscoverPage";
+import { AuthProvider } from "../../auth/AuthContext";
 vi.mock("../../services/auth", async (importOriginal) => ({
   ...await importOriginal<typeof import("../../services/auth")>(),
   getCurrentAccount: vi.fn(async () => null),
@@ -31,7 +32,7 @@ const tick = () => act(async () => { await vi.advanceTimersByTimeAsync(300); });
 const lastUrl = () => new URL(fetchMock.mock.lastCall![0], "http://localhost");
 
 async function openSchedule() {
-  render(<MemoryRouter><DiscoverPage /></MemoryRouter>);
+  rtlRender(<MemoryRouter><AuthProvider><DiscoverPage /></AuthProvider></MemoryRouter>);
   await tick(); // initial "All trucks" request
   fireEvent.click(screen.getByRole("button", { name: "Schedule & nearby" }));
   await tick();

@@ -1,4 +1,5 @@
 import type { Availability, ManagedMenuItem, Page, Vendor } from "../types/api";
+import { reportAuthorizationResponse } from "../auth/authEvents";
 
 export type { Availability, Page, Vendor } from "../types/api";
 export type { ManagedMenuItem as MenuItem } from "../types/api";
@@ -12,6 +13,7 @@ export class WorkspaceError extends Error {
 
 async function checked(response: Response): Promise<Response> {
   if (response.ok) return response;
+  reportAuthorizationResponse(response.status);
   const messages: Record<number, string> = {
     400: "Check the entered values and try again.",
     401: "Your session expired. Sign in again.",

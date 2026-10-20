@@ -1,14 +1,18 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import OperatorOnboardingPage from "./OperatorOnboardingPage";
 import AdminApplicationsPage from "./AdminApplicationsPage";
+import { RequireAdmin } from "../auth/RouteGuards";
+import AuthTestHarness from "../test/AuthTestHarness";
+const render = (ui: ReactElement) => rtlRender(<AuthTestHarness>{ui}</AuthTestHarness>);
 const fetchMock = vi.fn();
 const response = (status: number, body?: unknown) => ({ ok: status < 400, status, json: async () => body });
 const account = { id: 1, displayName: "Casey", email: "casey@example.com", roles: ["ROLE_CUSTOMER"] };
 const application = { id: 5, businessName: "Casey Foods", contactEmail: "casey@example.com", operatingArea: "CSUN", status: "PENDING" };
 beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal("fetch",fetchMock); });
-const show = (admin = false) => render(<MemoryRouter><Routes><Route path="/" element={admin ? <AdminApplicationsPage /> : <OperatorOnboardingPage />} /><Route path="/operator" element={<p>Owner workspace destination</p>} /></Routes></MemoryRouter>);
+const show = (admin = false) => render(<MemoryRouter><Routes><Route path="/" element={admin ? <RequireAdmin><AdminApplicationsPage /></RequireAdmin> : <OperatorOnboardingPage />} /><Route path="/operator" element={<p>Owner workspace destination</p>} /></Routes></MemoryRouter>);
 it("pending applicants keep customer access but have no activation button", async () => {
   fetchMock.mockResolvedValueOnce(response(200,account)).mockResolvedValueOnce(response(200,application)); show();
   expect(await screen.findByRole("heading",{ name:"Application pending" })).toBeInTheDocument();

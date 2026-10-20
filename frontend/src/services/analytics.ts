@@ -1,4 +1,5 @@
 import { AuthApiError } from "./auth";
+import { reportAuthorizationResponse } from "../auth/authEvents";
 
 export type TruckMetric = {
   vendorId: number;
@@ -28,6 +29,9 @@ export async function getTruckAnalytics(signal: AbortSignal): Promise<TruckAnaly
     cache: "no-store",
     headers: { Accept: "application/json" },
   });
-  if (!response.ok) throw new AuthApiError(response.status, "Unable to load your analytics");
+  if (!response.ok) {
+    reportAuthorizationResponse(response.status);
+    throw new AuthApiError(response.status, "Unable to load your analytics");
+  }
   return response.json();
 }

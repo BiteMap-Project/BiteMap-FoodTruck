@@ -1,5 +1,6 @@
 import { WorkspaceError } from "./operatorWorkspace";
 import type { Page } from "../types/api";
+import { reportAuthorizationResponse } from "../auth/authEvents";
 
 export type StopInput = { venueName: string; address: string; latitude: number; longitude: number; startsAt: string; endsAt: string; timeZone: string };
 export type ManagedStop = StopInput & { id: number; vendorId: number; status: "scheduled" | "serving" | "ended" | "cancelled"; version: number; createdAt: string; updatedAt: string };
@@ -7,6 +8,7 @@ export type ManagedStop = StopInput & { id: number; vendorId: number; status: "s
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(path, { ...options, credentials: "same-origin", headers: { Accept: "application/json", ...options.headers } });
   if (response.ok) return response.json();
+  reportAuthorizationResponse(response.status);
   const messages: Record<number, string> = {
     400: "Check the stop details, dates and time zone.", 401: "Your session expired. Sign in again.",
     403: "Request denied. Refresh your session before trying again.", 404: "This schedule is not available to your account.",

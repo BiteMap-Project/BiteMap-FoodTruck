@@ -1,4 +1,5 @@
 import { AuthApiError } from "./auth";
+import { reportAuthorizationResponse } from "../auth/authEvents";
 import type { OrderStatus, OwnerOrder, OwnerOrderSummary, Page } from "../types/api";
 
 export type { OrderStatus, OwnerOrder, OwnerOrderSummary } from "../types/api";
@@ -7,6 +8,7 @@ const base = (vendorId: number) => `/api/operator/vendors/${vendorId}/orders`;
 
 async function checked<T>(response: Response): Promise<T> {
   if (response.ok) return response.json();
+  reportAuthorizationResponse(response.status);
   const defaults: Record<number, string> = {
     401: "Your session expired. Sign in again.",
     403: "You no longer have permission for this action. Refresh your session.",

@@ -28,7 +28,11 @@ function show(path = "/owner") {
 }
 it("opens the Schedule tab for the selected owned truck", async () => {
   show(); await screen.findByRole("heading", { name: "Spicy Food" });
-  fetchMock.mockResolvedValueOnce(response(200, page([])));
+  const original = fetchMock.getMockImplementation()!;
+  fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+    if (url === "/api/operator/vendors/7/stops?page=0&size=20") return response(200, page([]));
+    return original(url, init);
+  });
   fireEvent.click(screen.getByRole("button", { name: "Schedule" }));
   expect(await screen.findByText(/No stops on this page/)).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/stops?page=0&size=20", expect.objectContaining({ credentials: "same-origin" }));

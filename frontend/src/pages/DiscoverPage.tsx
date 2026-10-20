@@ -42,15 +42,28 @@ function TruckIllustration() {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <circle cx="186" cy="126" r="6" />
-          <circle cx="218" cy="126" r="6" />
-          <circle cx="202" cy="132" r="18" />
-          <path d="M187 113c0-5 4-8 9-7 2-5 10-5 12 0 5-2 10 2 10 7v3h-31Z" />
-          <circle cx="196" cy="130" r="1.2" fill="#fff8e7" stroke="none" />
-          <circle cx="208" cy="130" r="1.2" fill="#fff8e7" stroke="none" />
-          <ellipse cx="202" cy="138" rx="7" ry="5" />
-          <circle cx="202" cy="136" r="1.5" fill="#fff8e7" stroke="none" />
-          <path d="M202 138v2m-4 1c2 2 6 2 8 0m-18 15c3-6 8-9 14-9s11 3 14 9" />
+          <circle cx="188" cy="125" r="6" />
+          <circle cx="216" cy="125" r="6" />
+          <circle cx="202" cy="134" r="17" />
+          <path d="M188 114v-3h5c0-5 4-8 9-8s9 3 9 8h5v3Zm4 0h20" />
+          <circle cx="196" cy="132" r="1.4" fill="#fff8e7" stroke="none" />
+          <circle cx="208" cy="132" r="1.4" fill="#fff8e7" stroke="none" />
+          <ellipse
+            cx="202"
+            cy="140"
+            rx="6.5"
+            ry="5"
+            fill="#fff8e7"
+            stroke="none"
+          />
+          <path
+            d="m199 138 3-2 3 2-3 3Z"
+            fill="#405749"
+            stroke="none"
+          />
+          <path d="M202 141v1m-3 0c2 2 4 2 6 0" stroke="#405749" />
+          <path d="M188 156c3-6 8-9 14-9s11 3 14 9" />
+          <path d="m195 150 7 5 7-5" stroke="#d7683f" />
         </g>
         <path d="M165 104v57" stroke="#fff8e7" strokeWidth="4" />
         <path

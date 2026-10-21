@@ -35,6 +35,10 @@ it("opens the Schedule tab for the selected owned truck", async () => {
   fetchMock.mockResolvedValueOnce(response(200, page([])));
   fireEvent.click(screen.getByRole("button", { name: "Schedule" }));
   expect(await screen.findByText(/No stops on this page/)).toBeInTheDocument();
+  expect(screen.queryByText("Welcome, Owner")).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "View customer menu →" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "New truck" })).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Your truck")).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/stops?page=0&size=20", expect.objectContaining({ credentials: "same-origin" }));
 });
 async function openMenu() {
@@ -56,6 +60,15 @@ it("shows owned vendor data, not local demo orders or sales", async () => {
   expect(screen.queryByText("The Rolling Kitchen")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Orders" }));
   expect(await screen.findByText("No orders match this filter.")).toBeInTheDocument();
+  expect(screen.queryByText("Welcome, Owner")).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "View customer menu →" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "New truck" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Refresh trucks" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Previous trucks" })).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Your truck")).toHaveValue("7");
+  fireEvent.click(screen.getByRole("button", { name: "Overview" }));
+  expect(screen.getByText("Welcome, Owner")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "View customer menu →" })).toBeInTheDocument();
 });
 
 it("offers first-vendor creation when the account owns no vendors", async () => {

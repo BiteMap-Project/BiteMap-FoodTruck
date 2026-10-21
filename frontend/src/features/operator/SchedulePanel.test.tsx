@@ -21,9 +21,37 @@ async function open() { show(); await screen.findByRole("heading", { name: "Camp
 function fill() {
   for (const [label, value] of [["Venue name", "Dinner"], ["Street address", "Northridge"], ["Latitude", "34.24"], ["Longitude", "-118.53"], ["Start (local time)", "2090-01-03T11:00"], ["End (local time)", "2090-01-03T14:00"]]) fireEvent.change(screen.getByLabelText(label), { target: { value } });
 }
+it.each(["ended", "cancelled"] as const)("schedules a %s stop again without changing history", async status => {
+  fetchMock.mockResolvedValueOnce(response(200, page([{ ...stop, status }])));
+  await open();
+  fireEvent.click(screen.getByRole("button", { name: "Schedule Campus lunch again" }));
+  expect(screen.getByLabelText("Venue name")).toHaveValue("Campus lunch");
+  expect(screen.getByLabelText("Street address")).toHaveValue("CSUN");
+  expect(screen.getByLabelText("Start (local time)")).toHaveValue("");
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  fireEvent.change(screen.getByLabelText("New date"), { target: { value: "2090-06-10" } });
+  fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));
+  await screen.findByText("Schedule saved to BiteMap.");
+  const writes = fetchMock.mock.calls.filter(([, options]) => options?.method);
+  expect(writes).toHaveLength(1);
+  expect(writes[0][0]).toBe("/api/operator/vendors/7/stops");
+  expect(writes[0][1].method).toBe("POST");
+  expect(JSON.parse(writes[0][1].body)).toMatchObject({ venueName: "Campus lunch", startsAt: "2090-06-10T11:00:00-07:00", endsAt: "2090-06-10T14:00:00-07:00" });
+});
 it("loads only the selected vendor's schedule and shows stored-zone times", async () => {
   await open(); expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/stops?page=0&size=20", expect.objectContaining({ credentials: "same-origin", signal: expect.any(AbortSignal) }));
   expect(screen.getByText(/America\/Los_Angeles/)).toBeInTheDocument();
+});
+it("preserves overnight local hours when scheduling again and requires a new date", async () => {
+  fetchMock.mockResolvedValueOnce(response(200, page([{ ...stop, startsAt: "2020-01-03T06:00:00Z", endsAt: "2020-01-03T10:00:00Z", status: "ended" }])));
+  await open(); fireEvent.click(screen.getByRole("button", { name: "Schedule Campus lunch again" }));
+  fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  fireEvent.change(screen.getByLabelText("New date"), { target: { value: "2090-06-10" } });
+  expect(screen.getByLabelText("Start (local time)")).toHaveValue("2090-06-10T22:00");
+  expect(screen.getByLabelText("End (local time)")).toHaveValue("2090-06-11T02:00");
+  fireEvent.click(screen.getByText("Discard editing"));
+  expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 it("creates a stop with explicit offsets and fresh CSRF", async () => {
   await open(); fireEvent.click(screen.getByText("Add stop")); fill(); fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));

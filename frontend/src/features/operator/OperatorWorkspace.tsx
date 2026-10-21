@@ -25,6 +25,7 @@ export default function OperatorWorkspace({ account, onSignOut, signingOut, logo
   const [restore] = useState(() => readWorkspaceRestore(location.state));
   const restoreVendorId = useRef(restore?.vendorId ?? null);
   const [tab, setTab] = useState<Tab>(restore?.tab ?? "Overview");
+  const compactLayout = tab === "Schedule" || tab === "Orders";
   const [page, setPage] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [vendors, setVendors] = useState<Load<Page<Vendor>>>({ kind: "loading" });
@@ -55,13 +56,13 @@ export default function OperatorWorkspace({ account, onSignOut, signingOut, logo
       <div className="od-owner"><div><strong>{account.displayName}</strong><p>{account.email}</p><button type="button" className="od-button od-button-secondary" disabled={signingOut} onClick={onSignOut}>{signingOut ? "Signing out…" : "Sign out"}</button></div></div>
     </aside>
     <div className="od-workspace"><header className="od-topbar"><span>Workspace / {tab}</span><Link to="/">Browse trucks →</Link></header>
-      <main className="od-main"><div className="od-page-heading"><div><p className="od-eyebrow">GOOD FOOD. YOUR BUSINESS.</p><h1>Welcome, {account.displayName}</h1><p>Manage only the trucks owned by your account.</p></div></div>
+      <main className="od-main">{compactLayout ? <h1>{tab}</h1> : <div className="od-page-heading"><div><p className="od-eyebrow">GOOD FOOD. YOUR BUSINESS.</p><h1>Welcome, {account.displayName}</h1><p>Manage only the trucks owned by your account.</p></div></div>}
         {logoutError && <p role="alert" className="ow-error">{logoutError}</p>}
         {vendors.kind === "loading" && <p role="status">Loading your trucks…</p>}
         {vendors.kind === "error" && <div role="alert"><p>{errorText(vendors.error)}</p><button onClick={() => reload()}>Retry trucks</button></div>}
         {vendors.kind === "ready" && <>
-          <div className="ow-toolbar"><label>Your truck<select aria-label="Your truck" value={selected?.id ?? ""} onChange={e => { setSelected(vendors.data.items.find(v => v.id === Number(e.target.value)) ?? null); setCreating(false); }}><option value="" disabled>Select a truck</option>{vendors.data.items.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label><button className="od-button od-button-primary" onClick={() => setCreating(true)}>{vendors.data.totalElements === 0 ? "Create your first truck" : "New truck"}</button><button className="od-button od-button-secondary" onClick={() => reload()}>Refresh trucks</button></div>
-          <Pager page={vendors.data.page} totalPages={vendors.data.totalPages} onPage={reload} label="Trucks" />
+          <div className="ow-toolbar"><label>Your truck<select aria-label="Your truck" value={selected?.id ?? ""} onChange={e => { setSelected(vendors.data.items.find(v => v.id === Number(e.target.value)) ?? null); setCreating(false); }}><option value="" disabled>Select a truck</option>{vendors.data.items.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label>{(!compactLayout || vendors.data.totalElements === 0) && <button className="od-button od-button-primary" onClick={() => setCreating(true)}>{vendors.data.totalElements === 0 ? "Create your first truck" : "New truck"}</button>}{!compactLayout && <button className="od-button od-button-secondary" onClick={() => reload()}>Refresh trucks</button>}</div>
+          {(!compactLayout || vendors.data.totalPages > 1) && <Pager page={vendors.data.page} totalPages={vendors.data.totalPages} onPage={reload} label="Trucks" />}
           {creating ? <NewVendor onSaved={() => reload(0)} onCancel={() => setCreating(false)} /> : selected ? <VendorWorkspace key={selected.id} vendor={selected} tab={tab} onSaved={v => { setSelected(v); setVendors({ kind: "ready", data: { ...vendors.data, items: vendors.data.items.map(old => old.id === v.id ? v : old) } }); }} /> : <section className="ow-panel"><h2>No trucks yet</h2><p>Create your first truck to start building its menu.</p></section>}
         </>}
       </main>
@@ -116,7 +117,7 @@ function VendorWorkspace({ vendor, tab, onSaved }: { vendor: Vendor; tab: Tab; o
   }
   const unavailable = busy || blocked;
   return <>
-    <section className="od-hero"><div className="od-hero-copy"><span className="od-label">YOUR TRUCK</span><h2>{vendor.name}</h2><p>{vendor.category} · {vendor.location}</p><div className="od-hero-bottom"><Link className="od-button od-button-secondary" to={`/trucks/${vendor.id}`} state={previewState({ from: "workspace", vendorId: vendor.id, tab })}>View customer menu →</Link></div></div></section>
+    {tab !== "Schedule" && tab !== "Orders" && <section className="od-hero"><div className="od-hero-copy"><span className="od-label">YOUR TRUCK</span><h2>{vendor.name}</h2><p>{vendor.category} · {vendor.location}</p><div className="od-hero-bottom"><Link className="od-button od-button-secondary" to={`/trucks/${vendor.id}`} state={previewState({ from: "workspace", vendorId: vendor.id, tab })}>View customer menu →</Link></div></div></section>}
     {message && <p role="status" className="ow-message">{message}</p>}{error && <p role="alert" className="ow-error">{error}</p>}
     {tab === "Overview" && <section className="ow-panel"><h2>Your workspace is connected</h2><p>Use Menu to add items, edit prices and change availability. Use Truck Details to update this truck’s public profile. Use Schedule to publish, edit and cancel planned stops. Use Orders to review customer orders and manage preparation.</p><p>Revenue and opening-hours controls are not available yet.</p></section>}
     {tab === "Schedule" && <SchedulePanel key={vendor.id} vendorId={vendor.id} />}

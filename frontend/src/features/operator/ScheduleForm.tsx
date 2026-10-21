@@ -6,14 +6,24 @@ function validFutureInterval(start: string, end: string) {
   return Date.parse(start) > Date.now() && Date.parse(end) > Date.parse(start);
 }
 
-export default function ScheduleForm({ initial, busy, blocked = false, onSave }: { initial?: ManagedStop; busy: boolean; blocked?: boolean; onSave: (stop: StopInput) => Promise<void> }) {
+export default function ScheduleForm({ initial, repeat = false, busy, blocked = false, onSave }: { initial?: ManagedStop; repeat?: boolean; busy: boolean; blocked?: boolean; onSave: (stop: StopInput) => Promise<void> }) {
   const [zone, setZone] = useState(initial?.timeZone ?? "America/Los_Angeles");
-  const [start, setStart] = useState(initial ? localTime(initial.startsAt, initial.timeZone) : "");
-  const [end, setEnd] = useState(initial ? localTime(initial.endsAt, initial.timeZone) : "");
+  const [start, setStart] = useState(initial && !repeat ? localTime(initial.startsAt, initial.timeZone) : "");
+  const [end, setEnd] = useState(initial && !repeat ? localTime(initial.endsAt, initial.timeZone) : "");
   const [startChoice, setStartChoice] = useState(initial ? timeCandidates(start, zone).find(c => Date.parse(c) === Date.parse(initial.startsAt)) ?? "" : "");
   const [endChoice, setEndChoice] = useState(initial ? timeCandidates(end, zone).find(c => Date.parse(c) === Date.parse(initial.endsAt)) ?? "" : "");
   const [error, setError] = useState("");
   const starts = timeCandidates(start, zone), ends = timeCandidates(end, zone);
+  function repeatOnDate(date: string) {
+    setStartChoice(""); setEndChoice("");
+    if (!date || !initial) { setStart(""); setEnd(""); return; }
+    const oldStart = localTime(initial.startsAt, initial.timeZone);
+    const oldEnd = localTime(initial.endsAt, initial.timeZone);
+    // Preserve local hours and calendar-day span, not a fixed UTC duration across DST.
+    const days = (Date.parse(`${oldEnd.slice(0, 10)}T00:00:00Z`) - Date.parse(`${oldStart.slice(0, 10)}T00:00:00Z`)) / 86400000;
+    const endDate = new Date(Date.parse(`${date}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
+    setStart(`${date}T${oldStart.slice(11)}`); setEnd(`${endDate}T${oldEnd.slice(11)}`);
+  }
   function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault(); if (busy || blocked) return;
     const startsAt = starts.length === 1 ? starts[0] : starts.find(c => c === startChoice);
@@ -27,6 +37,7 @@ export default function ScheduleForm({ initial, busy, blocked = false, onSave }:
     setError(""); void onSave({ venueName, address, latitude, longitude, startsAt, endsAt, timeZone: zone });
   }
   return <form className="ow-form" aria-label="Schedule stop" onSubmit={handleSubmit}><fieldset disabled={busy || blocked}>
+    {repeat && <><p>Create a new stop using these location details and local hours. Choose a new date, review the times, then save. The original stop stays unchanged.</p><label>New date<input type="date" onChange={e => repeatOnDate(e.target.value)} /></label></>}
     <label>Venue name<input name="venueName" required maxLength={160} defaultValue={initial?.venueName} /></label>
     <label>Street address<input name="address" required maxLength={300} defaultValue={initial?.address} /></label>
     <p>Enter coordinates for this address. BiteMap does not geocode or verify the location yet.</p>

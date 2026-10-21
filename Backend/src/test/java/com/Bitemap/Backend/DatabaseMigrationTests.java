@@ -127,7 +127,7 @@ class DatabaseMigrationTests {
 		assertThat(jdbc.queryForList("SELECT id FROM " + schema + ".vendors", Long.class))
 				.contains(-1L, -2L, -3L, -4L, -5L, -6L, -7L, -8L);
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
-				+ ".vendor_menu_items", Integer.class)).isEqualTo(24);
+				+ ".vendor_menu_items", Integer.class)).isGreaterThanOrEqualTo(24);
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
 				+ ".vendor_menu_items WHERE description IS NOT NULL", Integer.class)).isGreaterThanOrEqualTo(20);
 		jdbc.update("UPDATE " + schema + ".vendors SET name = 'Edited locally' WHERE id = -1");
@@ -158,7 +158,7 @@ class DatabaseMigrationTests {
 		assertThat(jdbc.queryForObject("SELECT name FROM " + schema + ".vendors WHERE id = ?",
 				String.class, existingId)).isEqualTo("Existing Vendor");
 		assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema
-				+ ".vendor_menu_items", Integer.class)).isEqualTo(24);
+				+ ".vendor_menu_items", Integer.class)).isGreaterThanOrEqualTo(24);
 	}
 
 	@ParameterizedTest

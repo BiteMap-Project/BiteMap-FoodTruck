@@ -71,5 +71,19 @@ body:has(.ow-connected) { background: #f8f8f4; }
 .ow-connected .od-hero-copy { max-width: 100%; }
 .ow-connected .ow-cancel-confirm { flex-basis: 100%; }
 .ow-connected .ow-cancel-confirm button { margin: 0 8px 8px 0; }
+/* Schedule cards have no thumbnail: keep them independent of the menu grid. */
+.ow-connected .ow-schedule-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 260px); align-items: start; gap: 24px; padding: 22px; margin-top: 16px; border: 1px solid var(--od-line); border-radius: 12px; background: #fff; }
+.ow-connected .ow-schedule-details { min-width: 0; overflow-wrap: anywhere; }
+.ow-connected .ow-schedule-details h3 { margin: 0 0 10px; font-size: 20px; }
+.ow-connected .ow-schedule-details p { margin: 8px 0; }
+.ow-connected .ow-schedule-actions { display: grid; gap: 10px; min-width: 0; }
+.ow-connected .ow-schedule-actions button { width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.ow-connected .ow-schedule-card > .ow-cancel-confirm { grid-column: 1 / -1; padding-top: 16px; border-top: 1px solid var(--od-line); }
+@media(max-width: 1050px) {
+  .ow-connected .ow-schedule-card { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 18px; }
+  .ow-connected .ow-schedule-actions { display: flex; flex-wrap: wrap; }
+  .ow-connected .ow-schedule-actions button { width: auto; max-width: 100%; }
+}
+@media(max-width: 480px) { .ow-connected .ow-schedule-actions { display: grid; } .ow-connected .ow-schedule-actions button { width: 100%; } }
 @media(max-width: 900px) { .ow-connected .ow-menu-row { grid-template-columns: 80px 1fr; } .ow-connected .ow-item-actions { grid-column: 1 / -1; justify-items: start; } .ow-connected .ow-preset-grid { grid-template-columns: repeat(2, minmax(100px, 1fr)); } }
 @media(max-width: 700px) { .ow-connected .od-sidebar { position: static; height: auto; min-height: 0; } .ow-connected .od-sidebar-tip { display: none; } .ow-connected .od-topbar { padding: 16px; } .ow-connected .od-main { padding: 20px 16px; } .ow-connected .od-hero { padding: 22px; min-height: 160px; } .ow-connected .ow-panel, .ow-connected .ow-menu-panel { padding: 16px; } .ow-connected .ow-menu-heading { flex-direction: column; } .ow-connected .ow-status-buttons { width: 100%; flex-direction: column; } .ow-connected .ow-status-buttons button { text-align: left; } .ow-connected input, .ow-connected select, .ow-connected textarea { font-size: 16px; } }

@@ -6,7 +6,7 @@ import { presetArtwork } from "../menu/menuImages";
 import { ItemForm, VendorForm } from "./WorkspaceForms";
 import SchedulePanel from "./SchedulePanel";
 import OrdersPanel from "./OrdersPanel";
-import { previewState, readWorkspaceRestore, WORKSPACE_TABS, type WorkspaceTab } from "./ownerReturn";
+import { previewState, readWorkspaceRestore, workspaceRoute, workspaceUrl, WORKSPACE_TABS, type WorkspaceTab } from "./ownerReturn";
 import "./owner-design.css";
 import "./workspace.css";
 
@@ -23,33 +23,65 @@ export default function OperatorWorkspace({ account, onSignOut, signingOut, logo
   const navigate = useNavigate();
   const location = useLocation();
   // Coming back from "View customer menu" reopens the same truck and tab.
-  const [restore] = useState(() => readWorkspaceRestore(location.state));
-  const restoreVendorId = useRef(restore?.vendorId ?? null);
-  const [tab, setTab] = useState<Tab>(restore?.tab ?? "Overview");
+  const route = workspaceRoute(location.pathname);
+  const restore = route ?? readWorkspaceRestore(location.state);
+  const requestedId = restore?.vendorId ?? null;
+  const tab: Tab = restore?.tab ?? "Overview";
+  const invalidRoute = location.pathname.startsWith("/operator/vendors/") && !route;
+  const setTab = (next: Tab) => { if (selected) navigate(workspaceUrl(selected.id, next)); };
   const compactLayout = tab === "Schedule" || tab === "Orders";
   const [page, setPage] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [vendors, setVendors] = useState<Load<Page<Vendor>>>({ kind: "loading" });
   const [selected, setSelected] = useState<Vendor | null>(null);
   const [creating, setCreating] = useState(false);
+  const loaded = useRef<{ key: string; data: Page<Vendor> } | null>(null);
+  const paging = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
-    listOwnedVendors(page, controller.signal).then(data => {
+    const key = `${page}:${attempt}`;
+    if (loaded.current?.key === key && requestedId !== null && loaded.current.data.items.some(v => v.id === requestedId)) {
+      setVendors({ kind: "ready", data: loaded.current.data });
+      setSelected(loaded.current.data.items.find(v => v.id === requestedId)!);
+      return;
+    }
+    setVendors({ kind: "loading" });
+    setSelected(null);
+    async function load() {
+      let data = await listOwnedVendors(page, controller.signal);
+      // Resolve deep links only against the authenticated owner's trucks.
+      if (!paging.current && requestedId !== null && !data.items.some(v => v.id === requestedId)) {
+        const totalPages = data.totalPages;
+        for (let index = 0; index < totalPages; index++) {
+          if (index === page) continue;
+          const candidate = await listOwnedVendors(index, controller.signal);
+          if (candidate.items.some(v => v.id === requestedId)) { data = candidate; break; }
+        }
+      }
+      return data;
+    }
+    load().then(data => {
       if (controller.signal.aborted) return;
       setVendors({ kind: "ready", data });
-      const restoreId = restoreVendorId.current;
-      restoreVendorId.current = null;
-      setSelected(current => data.items.find(v => v.id === (current?.id ?? restoreId)) ?? data.items[0] ?? null);
+      loaded.current = { key, data };
+      if (paging.current) {
+        paging.current = false;
+        setSelected(data.items[0] ?? null);
+        if (data.items[0]) navigate(workspaceUrl(data.items[0].id, tab), { replace: true });
+        return;
+      }
+      setSelected(requestedId !== null ? data.items.find(v => v.id === requestedId) ?? null : data.items[0] ?? null);
     }, error => {
       if (controller.signal.aborted) return;
       if (error instanceof WorkspaceError && error.status === 401) navigate("/operator/login", { replace: true });
       else setVendors({ kind: "error", error });
     });
     return () => controller.abort();
-  }, [page, attempt, navigate]);
+  }, [page, attempt, navigate, requestedId, tab]);
 
-  function reload(nextPage = page) { setVendors({ kind: "loading" }); setSelected(null); setCreating(false); setPage(nextPage); setAttempt(a => a + 1); }
+  function reload(nextPage = vendors.kind === "ready" ? vendors.data.page : page) { paging.current = nextPage !== (vendors.kind === "ready" ? vendors.data.page : page); setVendors({ kind: "loading" }); setSelected(null); setCreating(false); setPage(nextPage); setAttempt(a => a + 1); }
+  if (invalidRoute) return <main><h1>Workspace page not found</h1><Link to="/operator">Back to overview</Link></main>;
   return <div className="od-app ow-connected">
     <aside className="od-sidebar"><Link className="od-brand" to="/">BiteMap<span className="od-brand-dot">.</span></Link>
       <p className="od-sidebar-label">OWNER WORKSPACE</p><nav aria-label="Owner navigation">{WORKSPACE_TABS.map(t => <button className={`od-nav-item ${tab === t ? "is-active" : ""}`} aria-current={tab === t ? "page" : undefined} key={t} onClick={() => { setTab(t); setCreating(false); }}>{t}</button>)}</nav>
@@ -62,9 +94,9 @@ export default function OperatorWorkspace({ account, onSignOut, signingOut, logo
         {vendors.kind === "loading" && <p role="status">Loading your trucks…</p>}
         {vendors.kind === "error" && <div role="alert"><p>{errorText(vendors.error)}</p><button onClick={() => reload()}>Retry trucks</button></div>}
         {vendors.kind === "ready" && <>
-          <div className="ow-toolbar"><label>Your truck<select aria-label="Your truck" value={selected?.id ?? ""} onChange={e => { setSelected(vendors.data.items.find(v => v.id === Number(e.target.value)) ?? null); setCreating(false); }}><option value="" disabled>Select a truck</option>{vendors.data.items.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label>{(!compactLayout || vendors.data.totalElements === 0) && <button className="od-button od-button-primary" onClick={() => setCreating(true)}>{vendors.data.totalElements === 0 ? "Create your first truck" : "New truck"}</button>}{!compactLayout && <button className="od-button od-button-secondary" onClick={() => reload()}>Refresh trucks</button>}</div>
+          <div className="ow-toolbar"><label>Your truck<select aria-label="Your truck" value={selected?.id ?? ""} onChange={e => { navigate(workspaceUrl(Number(e.target.value), tab)); setCreating(false); }}><option value="" disabled>Select a truck</option>{vendors.data.items.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label>{(!compactLayout || vendors.data.totalElements === 0) && <button className="od-button od-button-primary" onClick={() => setCreating(true)}>{vendors.data.totalElements === 0 ? "Create your first truck" : "New truck"}</button>}{!compactLayout && <button className="od-button od-button-secondary" onClick={() => reload()}>Refresh trucks</button>}</div>
           {(!compactLayout || vendors.data.totalPages > 1) && <Pager page={vendors.data.page} totalPages={vendors.data.totalPages} onPage={reload} label="Trucks" />}
-          {creating ? <NewVendor onSaved={() => reload(0)} onCancel={() => setCreating(false)} /> : selected ? <VendorWorkspace key={selected.id} vendor={selected} tab={tab} onSaved={v => { setSelected(v); setVendors({ kind: "ready", data: { ...vendors.data, items: vendors.data.items.map(old => old.id === v.id ? v : old) } }); }} /> : <section className="ow-panel"><h2>No trucks yet</h2><p>Create your first truck to start building its menu.</p></section>}
+          {creating ? <NewVendor onSaved={() => reload(0)} onCancel={() => setCreating(false)} /> : selected ? <VendorWorkspace key={selected.id} vendor={selected} tab={tab} onSaved={v => { if (loaded.current) loaded.current.data = { ...loaded.current.data, items: loaded.current.data.items.map(old => old.id === v.id ? v : old) }; setSelected(v); setVendors({ kind: "ready", data: { ...vendors.data, items: vendors.data.items.map(old => old.id === v.id ? v : old) } }); }} /> : <section className="ow-panel"><h2>{requestedId !== null ? "Truck unavailable" : "No trucks yet"}</h2><p>{requestedId !== null ? "This truck is not available to your account." : "Create your first truck to start building its menu."}</p></section>}
         </>}
       </main>
     </div>

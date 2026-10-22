@@ -8,6 +8,15 @@
 
 export const WORKSPACE_TABS = ["Overview", "Menu", "Schedule", "Truck Details", "Orders"] as const;
 export type WorkspaceTab = (typeof WORKSPACE_TABS)[number];
+const sections: Record<WorkspaceTab, string> = { Overview: "overview", Menu: "menu", Schedule: "schedule", "Truck Details": "details", Orders: "orders" };
+export const workspaceUrl = (vendorId: number, tab: WorkspaceTab) => `/operator/vendors/${vendorId}/${sections[tab]}`;
+export function workspaceRoute(path: string) {
+  const match = /^\/operator\/vendors\/(-?\d+)\/([^/]+)\/?$/.exec(path);
+  if (!match) return null;
+  const vendorId = Number(match[1]);
+  const tab = WORKSPACE_TABS.find(t => sections[t] === match[2]);
+  return Number.isSafeInteger(vendorId) && vendorId !== 0 && tab ? { vendorId, tab } : null;
+}
 
 /** Where an owner came from before opening a public truck page. */
 export type OwnerReturn =
@@ -47,7 +56,7 @@ export function readWorkspaceRestore(state: unknown): WorkspaceRestore | null {
 export function ownerBackLink(ownerReturn: OwnerReturn) {
   return ownerReturn.from === "workspace"
     ? {
-        to: "/operator",
+        to: workspaceUrl(ownerReturn.vendorId, ownerReturn.tab),
         label: "← Back to your dashboard",
         state: { restore: { vendorId: ownerReturn.vendorId, tab: ownerReturn.tab } satisfies WorkspaceRestore },
       }

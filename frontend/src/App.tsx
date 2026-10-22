@@ -22,6 +22,7 @@ function App() {
     <Routes>
       <Route path="/" element={<DiscoverPage />} />
       <Route path="/trucks" element={<DiscoverPage />} />
+      <Route path="/stops" element={<DiscoverPage />} />
 
       <Route path="/trucks/:id" element={<TruckMenuPage />} />
       <Route path="/cart" element={<CartPage />} />
@@ -33,6 +34,7 @@ function App() {
       <Route path="/account" element={<RequireAccount><AccountSettingsPage /></RequireAccount>} />
       <Route path="/owner" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />
       <Route path="/operator" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />
+      <Route path="/operator/vendors/:vendorId/:section" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />
       <Route path="/operator/login" element={<OperatorLoginPage />} />
       <Route path="/operator/register" element={<OperatorRegisterPage />} />
       <Route path="/operator/onboarding" element={<OperatorOnboardingPage />} />

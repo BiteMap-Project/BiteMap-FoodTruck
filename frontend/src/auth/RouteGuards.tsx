@@ -12,7 +12,7 @@ function GuardState({ children, role }: { children: ReactNode; role: "ROLE_OPERA
   if (status === "error") return <main><ErrorState message={error} onRetry={() => void refreshAccount().catch(() => undefined)} /></main>;
   if (!account) {
     const destination = role === "ROLE_OPERATOR" ? "/operator/login" : "/customer/login";
-    return <Navigate to={destination} replace state={{ returnTo: location.pathname }} />;
+    return <Navigate to={destination} replace state={{ returnTo: location.pathname + location.search }} />;
   }
   if (!hasRole(account, role)) {
     if (role === "ROLE_OPERATOR") return <Navigate to="/operator/onboarding" replace />;

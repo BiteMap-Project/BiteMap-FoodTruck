@@ -328,7 +328,12 @@ class DatabaseMigrationTests {
         var oldVendors = jdbc.queryForList("SELECT * FROM " + schema + ".vendors");
         migrateAndValidate(migrations(false));
         assertThat(jdbc.queryForList("SELECT id,display_name,email,password_hash,enabled,created_at,updated_at FROM " + schema + ".app_users ORDER BY id")).isEqualTo(oldAccounts);
-        assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendors")).isEqualTo(oldVendors);
+        var upgradedVendors = jdbc.queryForList("SELECT * FROM " + schema + ".vendors");
+        upgradedVendors.forEach(row -> {
+            assertThat(row.remove("accepting_orders")).isEqualTo(true);
+            assertThat(row.remove("ordering_version")).isEqualTo(0L);
+        });
+        assertThat(upgradedVendors).isEqualTo(oldVendors);
         assertThat(jdbc.queryForObject("SELECT user_id FROM " + schema + ".operators WHERE id=?", Long.class, owner)).isEqualTo(owner);
         assertThat(jdbc.queryForObject("SELECT enabled FROM " + schema + ".app_users WHERE id=?", Boolean.class, disabled)).isFalse();
         assertThat(jdbc.queryForList("SELECT role FROM " + schema + ".app_user_roles WHERE user_id=? ORDER BY role", String.class, owner))

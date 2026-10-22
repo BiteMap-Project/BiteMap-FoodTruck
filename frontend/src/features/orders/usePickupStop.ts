@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getPickupStop, type PickupDetails } from '../../services/orders';
+import { AuthApiError } from '../../services/auth';
 
 export function usePickupStop(vendorId?: number) {
   const [result, setResult] = useState<{ vendorId: number; revision: number; pickup: PickupDetails | null; error: string } | null>(null);
@@ -20,8 +21,11 @@ export function usePickupStop(vendorId?: number) {
         // Re-check periodically for long-lived stops; never overflow a browser timer.
         expiry = setTimeout(() => setRevision(value => value + 1), Math.min(remaining, 60_000));
       }
-    }).catch(() => {
-      if (!controller.signal.aborted) setResult({ vendorId, revision, pickup: null, error: 'Unable to load pickup details. Please try again.' });
+    }).catch((cause: unknown) => {
+      if (!controller.signal.aborted) {
+        setResult({ vendorId, revision, pickup: null, error: cause instanceof AuthApiError ? cause.message : 'Unable to load pickup details. Please try again.' });
+        if (cause instanceof AuthApiError && cause.status === 409) expiry = setTimeout(() => setRevision(value => value + 1), 30_000);
+      }
     }).finally(() => clearTimeout(timeout));
     return () => { controller.abort(); clearTimeout(expiry); clearTimeout(timeout); };
   }, [vendorId, revision]);

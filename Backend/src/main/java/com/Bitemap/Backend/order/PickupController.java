@@ -11,7 +11,7 @@ public class PickupController {
     public PickupController(PickupService service) { this.service=service; }
 
     @GetMapping
-    @io.swagger.v3.oas.annotations.Operation(summary="Get the truck's current scheduled pickup stop; 204 when ordering is unavailable")
+    @io.swagger.v3.oas.annotations.Operation(summary="Get the current pickup stop; 204 without an active stop, 409 when ordering is paused")
     public ResponseEntity<PickupDetails> current(@PathVariable long vendorId) {
         var pickup=service.current(vendorId);
         return pickup==null ? ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build()

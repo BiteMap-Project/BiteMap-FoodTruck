@@ -132,6 +132,20 @@ test("real customer checkout, lost response retry, owner processing, tracking an
 
     await ownerPage.reload();
     await ownerPage.getByRole("button", { name: "Orders", exact: true }).click();
+    await ownerPage.getByRole("button", { name: "Pause new orders", exact: true }).click();
+    await expect(ownerPage.getByRole("button", { name: "Resume new orders", exact: true })).toBeEnabled();
+    expect((await write(outsider.request, `/api/operator/vendors/${vendor.id}/ordering`,
+      { acceptingOrders: true, version: 1 }, "PUT")).status()).toBe(404);
+    expect((await write(customer.request, "/api/customer/orders", { ...submitted, idempotencyKey: randomUUID() })).status()).toBe(409);
+    const replayWhilePaused = await write(customer.request, "/api/customer/orders", submitted!);
+    expect(replayWhilePaused.status()).toBe(201);
+    expect((await replayWhilePaused.json()).id).toBe(savedId);
+    const pausedCart = await customer.newPage();
+    await pausedCart.goto(`/trucks/${vendor.id}`);
+    await pausedCart.getByRole("button", { name: "Add Campus Taco to cart" }).click();
+    await pausedCart.getByRole("link", { name: /Cart \(/ }).click();
+    await expect(pausedCart.getByText("Temporarily not accepting orders.", {exact: true})).toBeVisible();
+    await expect(pausedCart.getByRole("button", {name:"Place pickup order"})).toBeDisabled();
     await ownerPage.getByRole("button", { name: `View order #${savedId}`, exact: true }).click();
     for (const [button, message] of [
       ["Accept order", "Your order has been accepted."],
@@ -149,6 +163,11 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     await customerPage.getByRole("link", { name: `View order #${savedId}`, exact: true }).click();
     await expect(customerPage.getByRole("region", { name: "Order status", exact: true }).getByRole("status")).toHaveText("Your order has been collected.");
 
+    await ownerPage.getByRole("button", { name: "Resume new orders", exact: true }).click();
+    await expect(ownerPage.getByRole("button", { name: "Pause new orders", exact: true })).toBeEnabled();
+    await pausedCart.getByRole("button", { name: "Refresh pickup details" }).click();
+    await expect(pausedCart.getByRole("button", {name:"Place pickup order"})).toBeEnabled();
+    await pausedCart.close();
     // Competing first submissions (not merely retries after an existing order).
     const nextCommand = { ...submitted, idempotencyKey: randomUUID(), total: 0,
       items: [{ menuItemId: item.id, quantity: 2, unitPrice: 0 }] };

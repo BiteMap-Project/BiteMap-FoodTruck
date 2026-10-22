@@ -49,9 +49,10 @@ public class OrderService {
             return existing;
         }
 
-        String vendorName = jdbc.query("SELECT name FROM vendors WHERE id=? FOR SHARE", rs ->
-                rs.next() ? rs.getString(1) : null, request.vendorId());
-        if (vendorName == null) throw new OrderUnavailableException("The selected truck is not available.");
+        Boolean accepting = jdbc.query("SELECT accepting_orders FROM vendors WHERE id=? FOR SHARE", rs ->
+                rs.next() ? rs.getBoolean(1) : null, request.vendorId());
+        if (accepting == null) throw new OrderUnavailableException("The selected truck is not available.");
+        if (!accepting) throw new OrderUnavailableException("Temporarily not accepting orders.");
 
         // One bounded lookup, not one query per line. Lock in stable ID order.
         var parameters = new ArrayList<Object>();

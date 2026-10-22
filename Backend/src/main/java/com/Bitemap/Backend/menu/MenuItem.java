@@ -21,13 +21,26 @@ public class MenuItem {
     private MenuAvailability status;
     @Version
     private Long version;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "image_preset", nullable = false, length = 24)
+    private MenuImagePreset imagePreset = MenuImagePreset.GENERIC;
+    @Column(name = "image_data", columnDefinition = "bytea")
+    private byte[] imageData;
+    @Column(name = "image_media_type", length = 32)
+    private String imageMediaType;
 
     protected MenuItem() {}
 
-    MenuItem(long vendorId, String name, String description, BigDecimal price, MenuAvailability status) {
+    MenuItem(long vendorId, String name, String description, BigDecimal price, MenuAvailability status,
+             MenuImagePreset imagePreset) {
         this.vendorId = vendorId;
         edit(name, description, price);
         changeAvailability(status);
+        choosePreset(imagePreset);
+    }
+
+    MenuItem(long vendorId, String name, String description, BigDecimal price, MenuAvailability status) {
+        this(vendorId, name, description, price, status, MenuImagePreset.GENERIC);
     }
 
     void edit(String name, String description, BigDecimal price) {
@@ -37,6 +50,15 @@ public class MenuItem {
     }
 
     void changeAvailability(MenuAvailability status) { this.status = status; }
+    void choosePreset(MenuImagePreset preset) {
+        this.imagePreset = preset == null ? MenuImagePreset.GENERIC : preset;
+        this.imageData = null;
+        this.imageMediaType = null;
+    }
+    void uploadImage(byte[] data, String mediaType) {
+        this.imageData = data;
+        this.imageMediaType = mediaType;
+    }
     public Long getId() { return id; }
     public Long getVendorId() { return vendorId; }
     public String getName() { return name; }
@@ -44,4 +66,8 @@ public class MenuItem {
     public BigDecimal getPrice() { return price; }
     public MenuAvailability getStatus() { return status; }
     public Long getVersion() { return version; }
+    public MenuImagePreset getImagePreset() { return imagePreset; }
+    public byte[] getImageData() { return imageData; }
+    public String getImageMediaType() { return imageMediaType; }
+    public boolean hasCustomImage() { return imageData != null; }
 }

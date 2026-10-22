@@ -27,10 +27,12 @@ public class VendorService {
 		Vendor vendor = repository.findById(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Truck not found"));
 		var menu = jdbc.query("""
-				SELECT id, name, description, price, available FROM vendor_menu_items
+				SELECT id, name, description, price, available, image_preset, image_data IS NOT NULL AS has_custom_image
+				FROM vendor_menu_items
 				WHERE vendor_id = ? ORDER BY name, id
 				""", (row, index) -> new VendorProfile.MenuItem(row.getLong("id"), row.getString("name"),
-						row.getString("description"), row.getBigDecimal("price"), row.getBoolean("available")), id);
+						row.getString("description"), row.getBigDecimal("price"), row.getBoolean("available"),
+						row.getString("image_preset"), row.getBoolean("has_custom_image")), id);
 		return new VendorProfile(vendor.getId(), vendor.getName(), vendor.getCategory(), vendor.getLocation(), menu);
 	}
 

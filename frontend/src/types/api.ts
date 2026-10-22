@@ -20,6 +20,8 @@ export type PublicMenuItem = {
   description: string | null;
   price: number;
   available: boolean;
+  imagePreset?: MenuImagePreset;
+  hasCustomImage?: boolean;
 };
 
 export type VendorProfile = Vendor & { menu: PublicMenuItem[] };
@@ -34,6 +36,7 @@ export type Account = {
 };
 
 export type Availability = "ACTIVE" | "INACTIVE" | "SOLD_OUT";
+export type MenuImagePreset = "GENERIC" | "DRINK" | "TACO" | "INDIAN" | "DESSERT";
 
 export type ManagedMenuItem = {
   id: number;
@@ -43,6 +46,8 @@ export type ManagedMenuItem = {
   price: number;
   status: Availability;
   version: number;
+  imagePreset?: MenuImagePreset;
+  hasCustomImage?: boolean;
 };
 
 export type OrderStatus = "PLACED" | "ACCEPTED" | "READY" | "COMPLETED" | "CANCELLED";

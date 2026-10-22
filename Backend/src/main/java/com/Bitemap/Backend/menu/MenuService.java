@@ -23,7 +23,7 @@ public class MenuService {
     public MenuItemResponse create(String operatorEmail, long vendorId, @NotNull @Valid CreateMenuItemRequest request) {
         requireOwner(operatorEmail, vendorId);
         return MenuItemResponse.from(items.saveAndFlush(new MenuItem(vendorId, request.name(),
-                request.description(), request.price(), request.status())));
+                request.description(), request.price(), request.status(), request.imagePreset())));
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ)
@@ -44,6 +44,7 @@ public class MenuService {
         var item = findItem(vendorId, itemId);
         requireVersion(item, request.version());
         item.edit(request.name(), request.description(), request.price());
+        if (request.imagePreset() != null) item.choosePreset(request.imagePreset());
         items.flush(); // @Version check occurs before response mapping; response contains new version.
         return MenuItemResponse.from(item);
     }
@@ -54,6 +55,16 @@ public class MenuService {
         var item = findItem(vendorId, itemId);
         requireVersion(item, request.version());
         item.changeAvailability(request.status());
+        items.flush();
+        return MenuItemResponse.from(item);
+    }
+
+    public MenuItemResponse uploadImage(String operatorEmail, long vendorId, long itemId, long version,
+                                        byte[] data, String mediaType) {
+        requireOwner(operatorEmail, vendorId);
+        var item = findItem(vendorId, itemId);
+        requireVersion(item, version);
+        item.uploadImage(data, mediaType);
         items.flush();
         return MenuItemResponse.from(item);
     }

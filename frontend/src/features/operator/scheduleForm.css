@@ -1,0 +1,64 @@
+.ow-connected .sf-form {
+  max-width: 760px;
+}
+.ow-connected .sf-address,
+.ow-connected .sf-times {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--od-line);
+  border-radius: 12px;
+  background: #fff;
+  min-width: 0;
+}
+.ow-connected .sf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.ow-connected .sf-grid > label {
+  min-width: 0;
+}
+.ow-connected .sf-form input,
+.ow-connected .sf-form select {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+}
+.ow-connected .sf-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ow-connected .sf-matches {
+  display: grid;
+  gap: 10px;
+}
+.ow-connected .sf-matches button {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.ow-connected .sf-selected,
+.ow-connected .sf-summary {
+  padding: 12px;
+  border-radius: 8px;
+  background: #eef3e6;
+  overflow-wrap: anywhere;
+}
+.ow-connected .sf-hint {
+  color: #606953;
+  font-size: 14px;
+}
+.ow-connected .sf-form :is(input, select, button):focus-visible {
+  outline: 3px solid #a94725;
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .ow-connected .sf-grid {
+    grid-template-columns: 1fr;
+  }
+  .ow-connected .sf-address,
+  .ow-connected .sf-times {
+    padding: 14px;
+  }
+}

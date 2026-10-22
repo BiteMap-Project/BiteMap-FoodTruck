@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { cancelStop, createStop, editStop, listStops, type ManagedStop } from "../../services/operatorSchedules";
+import { cancelStop, createRepeatingStops, createStop, editStop, listStops, type ManagedStop } from "../../services/operatorSchedules";
 import { WorkspaceError, type Page } from "../../services/operatorWorkspace";
 import ScheduleForm from "./ScheduleForm";
 
@@ -34,10 +34,18 @@ export default function SchedulePanel({ vendorId }: { vendorId: number }) {
   function reload(nextPage = page) {
     setData(null); setEditor(null); setConfirm(null); setError(""); setPage(nextPage); setAttempt(a => a + 1);
   }
-  async function mutate(action: () => Promise<ManagedStop>) {
+  async function mutate(action: () => Promise<ManagedStop | ManagedStop[]>) {
     if (lock.current || blocked) return;
     lock.current = true; setBusy(true); setError(""); setMessage("");
-    try { await action(); if (mounted.current) { reload(); setMessage("Schedule saved to BiteMap."); } }
+    try {
+      const result = await action();
+      if (mounted.current) {
+        reload();
+        setMessage(Array.isArray(result)
+          ? `${result.length} stops saved to BiteMap. Edit or cancel each stop separately.`
+          : "Schedule saved to BiteMap.");
+      }
+    }
     catch (cause) {
       if (!mounted.current) return;
       if (cause instanceof WorkspaceError && cause.status === 401) navigate("/operator/login", { replace: true });
@@ -56,9 +64,53 @@ export default function SchedulePanel({ vendorId }: { vendorId: number }) {
     {message && <p role="status" className="ow-message">{message}</p>}
     {error && <p role="alert" className="ow-error">{error}{blocked && " Reload before making another change."}</p>}
     {!data && !error && <p role="status">Loading schedule…</p>}
-    {editor !== null && <section className="ow-editor"><h3>{editor === "new" ? "New stop" : repeat ? `Schedule ${editor.venueName} again` : `Edit ${editor.venueName}`}</h3>
-      <ScheduleForm key={editor === "new" ? "new" : `${editor.id}-${editor.version}-${repeat}`} initial={editor === "new" ? undefined : editor} repeat={editor !== "new" && repeat} busy={busy} blocked={blocked} onSave={stop => mutate(() => editor === "new" || repeat ? createStop(vendorId, stop) : editStop(vendorId, editor.id, stop, editor.version))} />
-      <button disabled={busy} onClick={() => setEditor(null)}>Discard editing</button></section>}
+    {editor !== null && (
+      <section className="ow-editor">
+        <h3>
+          {editor === "new"
+            ? "New stop"
+            : repeat
+              ? `Schedule ${editor.venueName} again`
+              : `Edit ${editor.venueName}`}
+        </h3>
+
+        <ScheduleForm
+          key={
+            editor === "new"
+              ? "new"
+              : `${editor.id}-${editor.version}-${repeat}`
+          }
+          initial={editor === "new" ? undefined : editor}
+          repeat={editor !== "new" && repeat}
+          busy={busy}
+          blocked={blocked}
+          onSave={(stop, repeatRule) =>
+            mutate(() => {
+              if (editor === "new") {
+                return repeatRule
+                  ? createRepeatingStops(vendorId, stop, repeatRule)
+                  : createStop(vendorId, stop);
+              }
+
+              if (repeat) {
+                return createStop(vendorId, stop);
+              }
+
+              return editStop(
+                vendorId,
+                editor.id,
+                stop,
+                editor.version,
+              );
+            })
+          }
+        />
+
+        <button disabled={busy} onClick={() => setEditor(null)}>
+          Discard editing
+        </button>
+      </section>
+    )}
     {data && <>
       <p>{data.totalElements} stops · newest start first</p>
       {!data.items.length && <p>No stops on this page. Add a stop or return to the previous page.</p>}

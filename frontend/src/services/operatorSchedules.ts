@@ -21,7 +21,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
   throw new WorkspaceError(response.status, message);
 }
-async function write(path: string, method: string, body: object): Promise<ManagedStop> {
+async function write<T = ManagedStop>(path: string, method: string, body: object): Promise<T> {
   const csrf = await request<{ headerName: string; token: string }>("/api/auth/csrf");
   return request(path, { method, headers: { "Content-Type": "application/json", [csrf.headerName]: csrf.token }, body: JSON.stringify(body) });
 }
@@ -30,3 +30,11 @@ export const listStops = (vendorId: number, page: number, signal?: AbortSignal) 
 export const createStop = (vendorId: number, stop: StopInput) => write(base(vendorId), "POST", stop);
 export const editStop = (vendorId: number, id: number, stop: StopInput, version: number) => write(`${base(vendorId)}/${id}`, "PUT", { stop, version });
 export const cancelStop = (vendorId: number, id: number, version: number) => write(`${base(vendorId)}/${id}/cancel`, "POST", { version });
+
+export type RepeatRule = {
+  frequency: "DAILY" | "EVERY_2_DAYS" | "WEEKLY" | "EVERY_2_WEEKS";
+  until: string;
+};
+
+export const createRepeatingStops = (vendorId: number, stop: StopInput, rule: RepeatRule) =>
+  write<ManagedStop[]>(`${base(vendorId)}/repeat`, "POST", { stop, ...rule });

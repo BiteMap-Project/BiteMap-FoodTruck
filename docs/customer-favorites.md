@@ -34,9 +34,10 @@ Responses use `Cache-Control: no-store`.
 ## Frontend
 
 - **Save button** (`features/favorites/FavoriteButton.tsx`) on truck cards,
-  schedule cards and the truck page. It is a toggle button (`aria-pressed`) named
-  "Save <truck name>", showing **Save** or **Saved**. Guests are sent to customer
-  sign-in and brought back to the same page.
+  schedule cards and the truck page. It is just a heart: outlined when the truck is
+  not saved, filled when it is. It is a toggle button (`aria-pressed`) named
+  "Save <truck name>" with a tooltip. Guests are sent to customer sign-in and
+  brought back to the same page.
 - One shared store (`favoritesStore.ts`) follows the signed-in account from
   `AuthContext`: it loads the saved IDs once per account, clears them on sign-out
   or when another account signs in, and a button only changes after the server

@@ -1,11 +1,13 @@
 /* SCRUM-78: Save / Unsave control and the Favorites page. */
-.favorite-control { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-.favorite-button { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 12px; border: 1px solid #d9c7b0; border-radius: 999px; background: #fff; color: #a54120; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
-.favorite-button:hover:not(:disabled) { border-color: #b64923; background: #fff9ef; }
-.favorite-button.is-saved { border-color: #b64923; background: #fbead6; }
-.favorite-button:disabled { opacity: .6; cursor: progress; }
+.favorite-control { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+/* Icon-only toggle: outlined heart = not saved, filled heart = saved. */
+.favorite-button { display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #b64923; cursor: pointer; transition: transform .12s ease, background-color .12s ease; }
+.favorite-button:hover:not(:disabled) { background: #fbead6; transform: scale(1.08); }
+.favorite-button:disabled { opacity: .5; cursor: progress; }
 .favorite-button:focus-visible { outline: 3px solid #b64923; outline-offset: 2px; }
-.favorite-heart { flex: none; }
+.favorite-heart, .discovery .favorite-button .favorite-heart, .truck-site .favorite-button .favorite-heart { flex: none; width: 24px; height: 24px; }
+.truck-hero-actions .favorite-button { width: 48px; height: 48px; }
+.truck-site .truck-hero-actions .favorite-button .favorite-heart { width: 30px; height: 30px; }
 .favorite-error { color: #a32d25; font-size: 13px; }
 
 .favorites-list { display: grid; gap: 14px; list-style: none; margin: 0; padding: 0; }
@@ -17,9 +19,8 @@
 .favorites-pager button, .favorites-retry { border: 0; cursor: pointer; font: inherit; font-weight: 700; }
 .favorites-pager button:disabled { background: #d7d8d2; color: #70756d; cursor: default; }
 
-/* The discover page styles every button; keep the pill look there too. */
-.discovery .favorite-button { min-height: 36px; padding: 6px 12px; border: 1px solid #d9c7b0; border-radius: 999px; background: #fff; color: #a54120; font-size: 14px; font-weight: 650; }
-.discovery .favorite-button.is-saved { border-color: #b64923; background: #fbead6; }
-.discovery .favorite-button:hover:not(:disabled) { border-color: #b64923; }
+/* The discover page styles every button; keep the plain heart there too. */
+.discovery .favorite-button { width: 44px; height: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #b64923; }
+.discovery .favorite-button:hover:not(:disabled) { background: #fbead6; border: 0; }
 .favorites-count { margin: 20px 0 12px; }
 .favorites-actions .cart-clear { font: inherit; font-size: 14px; }

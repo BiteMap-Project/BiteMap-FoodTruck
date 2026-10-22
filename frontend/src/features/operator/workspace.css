@@ -34,7 +34,9 @@ body:has(.ow-connected) { background: #f8f8f4; }
 .ow-connected .ow-menu-eyebrow { color: #a24a28; font-size: 11px; font-weight: 750; letter-spacing: 2px; }
 .ow-connected .ow-menu-heading-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .ow-connected .ow-menu-count { padding-bottom: 14px; border-bottom: 1px solid var(--od-line); color: #6f776e; font-size: 14px; }
-.ow-connected .ow-menu-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, auto); align-items: center; gap: 30px; padding: 22px; margin-top: 16px; border: 1px solid var(--od-line); border-radius: 12px; background: #fff; }
+.ow-connected .ow-menu-row { display: grid; grid-template-columns: 92px minmax(0, 1fr) minmax(360px, auto); align-items: center; gap: 24px; padding: 22px; margin-top: 16px; border: 1px solid var(--od-line); border-radius: 12px; background: #fff; }
+.ow-connected .ow-menu-thumbnail { display: grid; place-items: center; width: 92px; height: 78px; overflow: hidden; border-radius: 10px; background: #e5ead8; font-size: 38px; }
+.ow-connected .ow-menu-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
 .ow-connected .ow-menu-row > div { min-width: 0; overflow-wrap: anywhere; }
 .ow-connected .ow-menu-name { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ow-connected .ow-menu-name h3 { margin: 0; font-size: 20px; }
@@ -52,10 +54,22 @@ body:has(.ow-connected) { background: #f8f8f4; }
 .ow-connected .ow-pagination { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 20px 0; }
 .ow-connected .ow-editor { background: #f8f8f4; border-radius: 10px; padding: 20px; margin: 20px 0; }
 .ow-connected .ow-editor h3 { margin-bottom: 15px; }
+.ow-connected .ow-image-picker { padding: 16px; border: 1px solid var(--od-line); border-radius: 10px; }
+.ow-connected .ow-image-picker legend { padding: 0 6px; color: var(--od-ink); font-weight: 700; }
+.ow-connected .ow-image-picker > p { margin: 0 0 12px; color: #687268; font-size: 14px; }
+.ow-connected .ow-upload { display: inline-grid; width: fit-content; padding: 10px 14px; border: 1px solid #cbd1c6; border-radius: 8px; background: #fff; font-weight: 650; cursor: pointer; }
+.ow-connected .ow-upload input { padding: 8px 0 0; border: 0; }
+.ow-connected .ow-file-name { margin-top: 9px !important; color: #3f6446 !important; }
+.ow-connected .ow-preset-grid { display: grid; grid-template-columns: repeat(5, minmax(90px, 1fr)); gap: 9px; margin-top: 14px; }
+.ow-connected .ow-preset-grid label { position: relative; display: grid; justify-items: center; gap: 5px; padding: 12px 8px; border: 1px solid var(--od-line); border-radius: 9px; background: #fff; text-align: center; cursor: pointer; }
+.ow-connected .ow-preset-grid label.is-selected { border-color: #a24a28; box-shadow: 0 0 0 2px rgb(162 74 40 / 15%); }
+.ow-connected .ow-preset-grid input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.ow-connected .ow-preset-grid span { font-size: 34px; }
+.ow-connected .ow-preset-grid strong { font-size: 12px; }
 .ow-connected .ow-error { color: #a32d25; padding: 12px; background: #fff0eb; margin: 16px 0; }
 .ow-connected .ow-message { color: #3a602e; padding: 12px; margin: 12px 0; }
 .ow-connected .od-hero-copy { max-width: 100%; }
 .ow-connected .ow-cancel-confirm { flex-basis: 100%; }
 .ow-connected .ow-cancel-confirm button { margin: 0 8px 8px 0; }
-@media(max-width: 900px) { .ow-connected .ow-menu-row { grid-template-columns: 1fr; } .ow-connected .ow-item-actions { justify-items: start; } }
+@media(max-width: 900px) { .ow-connected .ow-menu-row { grid-template-columns: 80px 1fr; } .ow-connected .ow-item-actions { grid-column: 1 / -1; justify-items: start; } .ow-connected .ow-preset-grid { grid-template-columns: repeat(2, minmax(100px, 1fr)); } }
 @media(max-width: 700px) { .ow-connected .od-sidebar { position: static; height: auto; min-height: 0; } .ow-connected .od-sidebar-tip { display: none; } .ow-connected .od-topbar { padding: 16px; } .ow-connected .od-main { padding: 20px 16px; } .ow-connected .od-hero { padding: 22px; min-height: 160px; } .ow-connected .ow-panel, .ow-connected .ow-menu-panel { padding: 16px; } .ow-connected .ow-menu-heading { flex-direction: column; } .ow-connected .ow-status-buttons { width: 100%; flex-direction: column; } .ow-connected .ow-status-buttons button { text-align: left; } .ow-connected input, .ow-connected select, .ow-connected textarea { font-size: 16px; } }

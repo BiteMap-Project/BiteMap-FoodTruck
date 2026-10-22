@@ -22,6 +22,7 @@ beforeEach(() => {
     if (url === "/api/auth/csrf") return response(200, { headerName: "X-CSRF-TOKEN", token: "fresh-token" });
     if (url.startsWith("/api/operator/vendors?")) return response(200, page([vendor]));
     if (url.includes("menu-items?")) return response(200, page([item]));
+    if (url.includes("/stops?")) return response(200, page([]));
     if (url.includes("/orders?")) return response(200, page([]));
     return response(500);
   });
@@ -32,7 +33,6 @@ function show(path = "/owner") {
 }
 it("opens the Schedule tab for the selected owned truck", async () => {
   show(); await screen.findByRole("heading", { name: "Spicy Food" });
-  fetchMock.mockResolvedValueOnce(response(200, page([])));
   fireEvent.click(screen.getByRole("button", { name: "Schedule" }));
   expect(await screen.findByText(/No stops on this page/)).toBeInTheDocument();
   expect(screen.queryByText("Welcome, Owner")).not.toBeInTheDocument();
@@ -124,7 +124,7 @@ it("preserves entered fields on server failure and sends detail edits without st
   fireEvent.submit(screen.getByRole("form", { name: "Edit menu item" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("unavailable");
   expect(screen.getByLabelText("Price (USD)")).toHaveValue("7.25");
-  expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/menu-items/10", expect.objectContaining({ method: "PUT", body: JSON.stringify({ name: "Taco", description: "Fresh", price: 7.25, version: 3 }) }));
+  expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/menu-items/10", expect.objectContaining({ method: "PUT", body: JSON.stringify({ name: "Taco", description: "Fresh", price: 7.25, imagePreset: "GENERIC", version: 3 }) }));
 });
 
 it("validates menu prices before sending writes", async () => {
@@ -143,8 +143,26 @@ it("creates an item using the real status DTO and reloads the menu", async () =>
   fireEvent.change(screen.getByLabelText("Initial availability"), { target: { value: "INACTIVE" } });
   fetchMock.mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh-token" })).mockResolvedValueOnce(response(201, { ...item, name: "Bowl" }));
   fireEvent.submit(screen.getByRole("form", { name: "Add menu item" }));
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/menu-items", expect.objectContaining({ method: "POST", body: JSON.stringify({ name: "Bowl", description: null, price: 8.5, status: "INACTIVE" }) })));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/menu-items", expect.objectContaining({ method: "POST", body: JSON.stringify({ name: "Bowl", description: null, price: 8.5, imagePreset: "GENERIC", status: "INACTIVE" }) })));
   await waitFor(() => expect(screen.queryByRole("form", { name: "Add menu item" })).not.toBeInTheDocument());
+});
+
+it("uploads an operator photo after creating a menu item", async () => {
+  await openMenu(); fireEvent.click(screen.getByRole("button", { name: "Add menu item" }));
+  fireEvent.change(screen.getByLabelText("Item name"), { target: { value: "Photo Bowl" } });
+  fireEvent.change(screen.getByLabelText("Price (USD)"), { target: { value: "9.00" } });
+  const photo = new File([new Uint8Array([1, 2, 3])], "bowl.webp", { type: "image/webp" });
+  fireEvent.change(screen.getByLabelText("Upload a photo"), { target: { files: [photo] } });
+  fetchMock.mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh-token" }))
+    .mockResolvedValueOnce(response(201, { ...item, id: 12, name: "Photo Bowl", version: 0 }))
+    .mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh-token" }))
+    .mockResolvedValueOnce(response(200, { ...item, id: 12, name: "Photo Bowl", version: 1, hasCustomImage: true }))
+    .mockResolvedValueOnce(response(200, page([item])));
+  fireEvent.submit(screen.getByRole("form", { name: "Add menu item" }));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+    "/api/operator/vendors/7/menu-items/12/image?version=0",
+    expect.objectContaining({ method: "POST", body: expect.any(FormData) }),
+  ));
 });
 
 it("updates only the selected vendor's profile", async () => {

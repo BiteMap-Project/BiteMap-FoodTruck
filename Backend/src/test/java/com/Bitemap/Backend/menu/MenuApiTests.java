@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 import static org.assertj.core.api.Assertions.*;
@@ -47,6 +48,7 @@ class MenuApiTests {
         var result = mvc.perform(post(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf())
                 .contentType("application/json").content(CREATE)).andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Taco")).andExpect(jsonPath("$.description").value("Fresh"))
+                .andExpect(jsonPath("$.imagePreset").value("GENERIC")).andExpect(jsonPath("$.hasCustomImage").value(false))
                 .andExpect(jsonPath("$.version").value(0)).andExpect(header().string("Cache-Control", "no-store")).andReturn();
         long item = json.readTree(result.getResponse().getContentAsString()).get("id").asLong();
         assertThat(result.getResponse().getHeader("Location")).isEqualTo(root(vendor) + "/" + item);
@@ -61,6 +63,37 @@ class MenuApiTests {
         mvc.perform(get(root(vendor) + "/" + item).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SOLD_OUT"));
         mvc.perform(get("/api/vendors/" + vendor)).andExpect(status().isOk()).andExpect(jsonPath("$.menu[0].available").value(false));
+    }
+
+    @Test
+    void ownerCanUploadAndPublicCanReadMenuPhoto() throws Exception {
+        long item = item(vendor);
+        byte[] image = new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47};
+        var file = new MockMultipartFile("file", "plate.png", "image/png", image);
+        mvc.perform(multipart(root(vendor) + "/" + item + "/image").file(file).param("version", "0")
+                .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.hasCustomImage").value(true))
+                .andExpect(jsonPath("$.version").value(1));
+        mvc.perform(get("/api/vendors/" + vendor + "/menu-items/" + item + "/image"))
+                .andExpect(status().isOk()).andExpect(header().string("Content-Type", "image/png"))
+                .andExpect(content().bytes(image));
+    }
+
+    @Test
+    void photoUploadValidatesOwnershipTypeAndSize() throws Exception {
+        long item = item(vendor);
+        var text = new MockMultipartFile("file", "notes.txt", "text/plain", "no".getBytes());
+        mvc.perform(multipart(root(vendor) + "/" + item + "/image").file(text).param("version", "0")
+                .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()))
+                .andExpect(status().isBadRequest());
+        var tooLarge = new MockMultipartFile("file", "large.jpg", "image/jpeg", new byte[2 * 1024 * 1024 + 1]);
+        mvc.perform(multipart(root(vendor) + "/" + item + "/image").file(tooLarge).param("version", "0")
+                .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()))
+                .andExpect(status().isBadRequest());
+        var image = new MockMultipartFile("file", "plate.webp", "image/webp", new byte[] {1});
+        mvc.perform(multipart(root(foreign) + "/" + item + "/image").file(image).param("version", "0")
+                .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()))
+                .andExpect(status().isNotFound());
     }
 
     @Test

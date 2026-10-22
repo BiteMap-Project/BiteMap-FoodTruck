@@ -1,10 +1,10 @@
-import type { Availability, ManagedMenuItem, Page, Vendor } from "../types/api";
+import type { Availability, ManagedMenuItem, MenuImagePreset, Page, Vendor } from "../types/api";
 import { reportAuthorizationResponse } from "../auth/authEvents";
 
 export type { Availability, Page, Vendor } from "../types/api";
 export type { ManagedMenuItem as MenuItem } from "../types/api";
 export type VendorInput = Omit<Vendor, "id">;
-export type MenuDetails = Pick<ManagedMenuItem, "name" | "description" | "price">;
+export type MenuDetails = Pick<ManagedMenuItem, "name" | "description" | "price"> & { imagePreset: MenuImagePreset | null };
 
 export class WorkspaceError extends Error {
   status: number;
@@ -38,6 +38,14 @@ async function write<T>(path: string, method: string, body: object): Promise<T> 
   }))).json();
 }
 
+async function upload<T>(path: string, body: FormData): Promise<T> {
+  const csrf = await read<{ headerName: string; token: string }>("/api/auth/csrf");
+  return (await checked(await fetch(path, {
+    method: "POST", credentials: "same-origin",
+    headers: { Accept: "application/json", [csrf.headerName]: csrf.token }, body,
+  }))).json();
+}
+
 const vendors = "/api/operator/vendors";
 const menu = (vendorId: number) => `${vendors}/${vendorId}/menu-items`;
 export const listOwnedVendors = (page: number, signal?: AbortSignal) => read<Page<Vendor>>(`${vendors}?page=${page}&size=20`, signal);
@@ -46,3 +54,8 @@ export const listMenu = (vendorId: number, page: number, signal?: AbortSignal) =
 export const createMenuItem = (vendorId: number, input: MenuDetails & { status: Availability }) => write<ManagedMenuItem>(menu(vendorId), "POST", input);
 export const editMenuItem = (vendorId: number, itemId: number, input: MenuDetails & { version: number }) => write<ManagedMenuItem>(`${menu(vendorId)}/${itemId}`, "PUT", input);
 export const changeAvailability = (vendorId: number, itemId: number, status: Availability, version: number) => write<ManagedMenuItem>(`${menu(vendorId)}/${itemId}/availability`, "PATCH", { status, version });
+export const uploadMenuImage = (vendorId: number, itemId: number, version: number, file: File) => {
+  const body = new FormData();
+  body.append("file", file);
+  return upload<ManagedMenuItem>(`${menu(vendorId)}/${itemId}/image?version=${version}`, body);
+};

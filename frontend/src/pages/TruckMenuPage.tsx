@@ -5,6 +5,7 @@ import { EmptyState, ErrorState, LoadingState } from "../components/StatusViews"
 import "./truck-profile.css";
 import { addCartItem, cartItemCount, readCart } from "../features/cart/cart";
 import { ownerBackLink, readOwnerReturn } from "../features/operator/ownerReturn";
+import { presetArtwork } from "../features/menu/menuImages";
 
 type Result =
   | { status: "loading"; id: string }
@@ -14,7 +15,12 @@ type Result =
 
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
-function menuArtwork(name: string) {
+function menuArtwork(name: string, preset?: import("../types/api").MenuImagePreset) {
+  if (preset && preset !== "GENERIC") {
+    const choice = presetArtwork(preset);
+    const tones = { DRINK: "sage", TACO: "gold", INDIAN: "sage", DESSERT: "berry" } as const;
+    return { icon: choice.icon, tone: tones[preset] };
+  }
   const value = name.toLowerCase();
   if (value.includes("taco")) return { icon: "🌮", tone: "gold" };
   if (value.includes("quesadilla")) return { icon: "🫓", tone: "wheat" };
@@ -143,8 +149,8 @@ function TruckMenuPage() {
               <ul className="menu-items">
                 {current.truck.menu.map((item) => (
                   <li key={item.id}>
-                    <div className={`menu-item-art menu-item-art-${menuArtwork(item.name).tone}`} role="img" aria-label={`${item.name} illustration`}>
-                      <span aria-hidden="true">{menuArtwork(item.name).icon}</span>
+                    <div className={`menu-item-art menu-item-art-${menuArtwork(item.name, item.imagePreset).tone}`} role="img" aria-label={`${item.name} image`}>
+                      {item.hasCustomImage ? <img src={`/api/vendors/${current.truck.id}/menu-items/${item.id}/image`} alt="" /> : <span aria-hidden="true">{menuArtwork(item.name, item.imagePreset).icon}</span>}
                     </div>
                     <div className="menu-item-content">
                       <div className="menu-item-heading">

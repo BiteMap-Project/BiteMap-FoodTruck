@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -66,5 +67,23 @@ public class MenuController {
     public ResponseEntity<MenuItemResponse> availability(Authentication auth, @PathVariable long vendorId, @PathVariable long itemId,
                                                         @Valid @RequestBody ChangeMenuAvailabilityRequest request) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.changeAvailability(auth.getName(), vendorId, itemId, request));
+    }
+
+    @PostMapping(path = "/{itemId}/image", consumes = "multipart/form-data")
+    @Operation(summary = "Upload a JPEG, PNG or WebP menu photo up to 2 MB")
+    @SecurityRequirement(name = "csrfToken")
+    public ResponseEntity<MenuItemResponse> uploadImage(Authentication auth, @PathVariable long vendorId,
+            @PathVariable long itemId, @RequestParam long version, @RequestPart("file") MultipartFile file) throws java.io.IOException {
+        if (file.isEmpty() || file.getSize() > 2 * 1024 * 1024) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Choose an image no larger than 2 MB.");
+        }
+        String type = file.getContentType();
+        if (!java.util.Set.of("image/jpeg", "image/png", "image/webp").contains(type)) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Use a JPEG, PNG or WebP image.");
+        }
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(service.uploadImage(auth.getName(), vendorId, itemId, version, file.getBytes(), type));
     }
 }

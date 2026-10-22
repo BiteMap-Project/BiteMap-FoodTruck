@@ -1,0 +1,18 @@
+/* SCRUM-79 account settings; builds on the cart page layout in cart.css. */
+.account-settings h1 { margin-bottom: 12px; }
+.account-card { display: grid; gap: 8px; margin-top: 28px; padding: 28px; border: 1px solid #e1e4da; border-radius: 14px; background: white; }
+.account-card label { margin-top: 10px; color: #293c31; font-weight: 650; }
+.account-card label:first-child { margin-top: 0; }
+.account-card input { min-height: 46px; padding: 10px 12px; border: 1px solid #cfd5c8; border-radius: 9px; background: white; color: #293c31; font: inherit; }
+.account-card input:focus-visible { outline: 3px solid #b64923; outline-offset: 2px; }
+.account-card input[readonly] { background: #f3f4ee; color: #626b60; }
+.account-card input[aria-invalid="true"] { border-color: #a32d25; box-shadow: 0 0 0 1px #a32d25; }
+.account-hint { font-size: 14px; }
+.account-field-error, .account-error { color: #a32d25; font-size: 14px; }
+.account-success, .account-error { margin-top: 12px; padding: 10px 14px; border-radius: 8px; }
+.account-success { border: 1px solid #b8d8c1; background: #eef8f0; color: #285b36; }
+.account-error { border: 1px solid #efc2bd; background: #fff3f1; }
+.account-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 16px; }
+.account-actions .cart-primary { border: 0; font: inherit; font-weight: 700; cursor: pointer; }
+.account-actions .cart-primary:disabled { opacity: 0.55; cursor: default; }
+.account-actions a { color: #a54120; }

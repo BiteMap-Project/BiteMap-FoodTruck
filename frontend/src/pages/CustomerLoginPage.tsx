@@ -51,10 +51,10 @@ export default function CustomerLoginPage() {
         <input id="customer-login-email" type="email" autoComplete="email" maxLength={320} required value={email} onChange={(event) => setEmail(event.target.value)} />
         <label htmlFor="customer-login-password">Password</label>
         <PasswordInput id="customer-login-password" autoComplete="current-password" maxLength={128} required value={password} onChange={(event) => setPassword(event.target.value)} />
-        <button type="submit" disabled={submitting}>{submitting ? "Signing in…" : returnTo === "/cart" ? "Sign in and return to cart" : "Sign in and browse trucks"}</button>
+        <button type="submit" disabled={submitting}>{submitting ? "Signing in…" : returnTo === "/cart" ? "Sign in and return to cart" : returnTo === "/trucks" ? "Sign in and browse trucks" : "Sign in and continue"}</button>
       </form>
       <p className="auth-switch">New customer? <Link to="/customer/register" state={{ returnTo }}>Create an account</Link></p>
-      <Link className="auth-back" to={returnTo}>{returnTo === "/cart" ? "← Return to cart" : "← Browse trucks"}</Link>
+      <Link className="auth-back" to={returnTo === "/cart" ? "/cart" : "/trucks"}>{returnTo === "/cart" ? "← Return to cart" : "← Browse trucks"}</Link>
     </section>
   </main>;
 }

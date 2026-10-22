@@ -11,7 +11,7 @@ export async function getPickupStop(vendorId: number, signal?: AbortSignal): Pro
   if (response.status === 204) return null;
   if (!response.ok) {
     reportAuthorizationResponse(response.status);
-    throw new AuthApiError(response.status, 'Unable to load pickup details. Please try again.');
+    throw new AuthApiError(response.status, response.status === 409 ? 'Temporarily not accepting orders.' : 'Unable to load pickup details. Please try again.');
   }
   return response.json();
 }

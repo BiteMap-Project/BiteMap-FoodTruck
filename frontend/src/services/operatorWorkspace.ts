@@ -39,6 +39,9 @@ async function write<T>(path: string, method: string, body: object): Promise<T> 
 }
 
 const vendors = "/api/operator/vendors";
+export type OrderingSettings = { acceptingOrders: boolean; version: number };
+export const getOrderingSettings = (vendorId: number, signal?: AbortSignal) => read<OrderingSettings>(`${vendors}/${vendorId}/ordering`, signal);
+export const setOrderingSettings = (vendorId: number, input: OrderingSettings) => write<OrderingSettings>(`${vendors}/${vendorId}/ordering`, "PUT", input);
 const menu = (vendorId: number) => `${vendors}/${vendorId}/menu-items`;
 export const listOwnedVendors = (page: number, signal?: AbortSignal) => read<Page<Vendor>>(`${vendors}?page=${page}&size=20`, signal);
 export const saveVendor = (input: VendorInput, id?: number) => write<Vendor>(id === undefined ? vendors : `${vendors}/${id}`, id === undefined ? "POST" : "PUT", input);

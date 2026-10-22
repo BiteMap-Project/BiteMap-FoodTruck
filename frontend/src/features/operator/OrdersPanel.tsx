@@ -5,6 +5,7 @@ import { getOwnerOrder, listOwnerOrders, updateOwnerOrder, type OrderStatus, typ
 import type { Page } from "../../services/operatorWorkspace";
 import "./orders.css";
 import { PickupLocation } from "../orders/PickupLocation";
+import OrderingControl from "./OrderingControl";
 
 const labels: Record<OrderStatus, string> = { PLACED: "Placed", ACCEPTED: "Accepted", READY: "Ready", COMPLETED: "Completed", CANCELLED: "Cancelled" };
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -41,7 +42,9 @@ export default function OrdersPanel({ vendorId }: { vendorId: number }) {
     return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", tick); };
   }, [busy]);
 
-  return <section className="ow-panel ow-orders" aria-labelledby="orders-heading">
+  return <>
+    <OrderingControl key={vendorId} vendorId={vendorId} />
+    <section className="ow-panel ow-orders" aria-labelledby="orders-heading">
     <div className="ow-toolbar"><div><h2 id="orders-heading">Orders for your truck</h2><p>Real customer orders · newest first</p></div>
       <button className="od-button od-button-secondary" disabled={busy || loading} onClick={refresh}>Refresh orders</button></div>
     <label className="ow-order-filter">Order status<select value={filter} disabled={busy} onChange={event => {
@@ -71,7 +74,7 @@ export default function OrdersPanel({ vendorId }: { vendorId: number }) {
       {selected !== null ? <OrderDetail key={`${vendorId}-${selected}`} vendorId={vendorId} orderId={selected}
         onBusy={setBusy} onSaved={refresh} /> : <div className="ow-order-placeholder"><h3>Order details</h3><p>Select an order to review its items and manage preparation.</p></div>}
     </div>
-  </section>;
+  </section></>;
 }
 
 function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {

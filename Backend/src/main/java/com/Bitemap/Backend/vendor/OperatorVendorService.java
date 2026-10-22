@@ -48,6 +48,26 @@ public class OperatorVendorService {
 				.stream().findFirst().orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vendor not found."));
 	}
 
+    public OrderingControl ordering(String email, long vendorId) {
+        long owner = activeOwner(email);
+        return jdbc.query("SELECT accepting_orders,ordering_version FROM vendors WHERE id=? AND operator_id=? FOR SHARE",
+                (r, n) -> new OrderingControl(r.getBoolean(1), r.getLong(2)), vendorId, owner).stream().findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vendor not found."));
+    }
+
+    public OrderingControl updateOrdering(String email, long vendorId, OrderingControl.Update command) {
+        long owner = activeOwner(email);
+        // Conflicts with checkout's FOR SHARE. Keep this lock through commit.
+        var current = jdbc.query("SELECT accepting_orders,ordering_version FROM vendors WHERE id=? AND operator_id=? FOR UPDATE",
+                (r, n) -> new OrderingControl(r.getBoolean(1), r.getLong(2)), vendorId, owner).stream().findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vendor not found."));
+        if (current.version() != command.version())
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ordering settings changed. Refresh before trying again.");
+        if (current.acceptingOrders() == command.acceptingOrders()) return current;
+        jdbc.update("UPDATE vendors SET accepting_orders=?,ordering_version=ordering_version+1 WHERE id=?", command.acceptingOrders(), vendorId);
+        return new OrderingControl(command.acceptingOrders(), current.version() + 1);
+    }
+
 	private long activeOwner(String email) {
 		// Hold the account stable until this transaction ends: disabling/deleting it
 		// cannot race between this check and a vendor write. Never load password hashes.

@@ -7,13 +7,15 @@ import OperatorLoginPage from "./pages/OperatorLoginPage";
 import OperatorRegisterPage from "./pages/OperatorRegisterPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import CartPage from "./pages/CartPage";
+import FavoritesPage from "./pages/FavoritesPage";
 import CustomerLoginPage from "./pages/CustomerLoginPage";
 import CustomerRegisterPage from "./pages/CustomerRegisterPage";
 import OperatorOnboardingPage from "./pages/OperatorOnboardingPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import CustomerOrdersPage from "./pages/CustomerOrdersPage";
 import AdminApplicationsPage from "./pages/AdminApplicationsPage";
-import { RequireAdmin, RequireOperator } from "./auth/RouteGuards";
+import AccountSettingsPage from "./pages/AccountSettingsPage";
+import { RequireAccount, RequireAdmin, RequireOperator } from "./auth/RouteGuards";
 
 function App() {
   return (
@@ -23,10 +25,12 @@ function App() {
 
       <Route path="/trucks/:id" element={<TruckMenuPage />} />
       <Route path="/cart" element={<CartPage />} />
+      <Route path="/favorites" element={<RequireAccount><FavoritesPage /></RequireAccount>} />
       <Route path="/customer/login" element={<CustomerLoginPage />} />
       <Route path="/customer/register" element={<CustomerRegisterPage />} />
       <Route path="/orders/:id/confirmation" element={<OrderConfirmationPage />} />
       <Route path="/orders" element={<CustomerOrdersPage />} />
+      <Route path="/account" element={<RequireAccount><AccountSettingsPage /></RequireAccount>} />
       <Route path="/owner" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />
       <Route path="/operator" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />
       <Route path="/operator/login" element={<OperatorLoginPage />} />

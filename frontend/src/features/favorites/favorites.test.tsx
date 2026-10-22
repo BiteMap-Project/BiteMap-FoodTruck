@@ -79,11 +79,13 @@ it("saves and unsaves a truck from its card with CSRF and aria-pressed", async (
   const button = await screen.findByRole("button", { name: "Save Taco Truck" });
   await waitFor(() => expect(button).toBeEnabled());
   expect(button).toHaveAttribute("aria-pressed", "false");
-  expect(button).toHaveTextContent("Save");
+  // Icon only: an outlined heart, no text.
+  expect(button).toHaveTextContent("");
+  expect(button.querySelector("svg")).toHaveAttribute("fill", "none");
 
   fireEvent.click(button);
   await waitFor(() => expect(button).toHaveAttribute("aria-pressed", "true"));
-  expect(button).toHaveTextContent("Saved");
+  expect(button.querySelector("svg")).toHaveAttribute("fill", "currentColor");
   expect(writes()[0]).toEqual(["/api/customer/favorites/7", expect.objectContaining({
     method: "PUT", credentials: "same-origin", headers: expect.objectContaining({ "X-CSRF-TOKEN": "fresh-token" }),
   })]);

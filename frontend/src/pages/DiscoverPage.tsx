@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ClockIcon, PinIcon, SearchIcon } from "../components/icons";
 import StopResults from "../features/discover/StopResults";
 import VendorResults from "../features/discover/VendorResults";
@@ -93,7 +93,10 @@ function TruckIllustration() {
 }
 
 export default function DiscoverPage() {
-  const [view, setView] = useState<View>("trucks");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const view: View = location.pathname === "/stops" ? "stops" : "trucks";
+  const setView = (next: View) => navigate(next === "stops" ? "/stops" : "/trucks");
   const [search, setSearch] = useState("");
 
   return (

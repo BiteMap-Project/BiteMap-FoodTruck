@@ -1,6 +1,6 @@
 import { fireEvent, render as rtlRender, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import App from "../../App";
 import OperatorHomePage from "../../pages/OperatorHomePage";
@@ -15,6 +15,55 @@ const first = { id: 7, name: "Spicy Food", category: "Tacos", location: "CSUN" }
 const second = { id: 8, name: "Soup Cart", category: "Soup", location: "Reseda" };
 const page = (items: unknown[]) => ({ items, page: 0, size: 20, totalElements: items.length, totalPages: 1 });
 const response = (status: number, body?: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
+
+function HistoryControls() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return <><output aria-label="Current URL">{location.pathname}</output><button onClick={() => navigate(-1)}>Browser back</button><button onClick={() => navigate(1)}>Browser forward</button></>;
+}
+
+it("opens bookmarked schedule URLs and preserves navigation across Back and Forward", async () => {
+  render(<MemoryRouter initialEntries={["/operator/vendors/8/schedule"]}><HistoryControls /><App /></MemoryRouter>);
+  expect(await screen.findByLabelText("Your truck")).toHaveValue("8");
+  expect(screen.getByRole("button", { name: "Schedule" })).toHaveAttribute("aria-current", "page");
+  fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+  expect(screen.getByLabelText("Current URL")).toHaveTextContent("/operator/vendors/8/menu");
+  fireEvent.click(screen.getByRole("button", { name: "Browser back" }));
+  expect(screen.getByRole("button", { name: "Schedule" })).toHaveAttribute("aria-current", "page");
+  fireEvent.click(screen.getByRole("button", { name: "Browser forward" }));
+  expect(screen.getByRole("button", { name: "Menu" })).toHaveAttribute("aria-current", "page");
+});
+
+it("restores the selected truck and section on a fresh mount without router state", async () => {
+  const firstMount = render(<MemoryRouter initialEntries={["/operator/vendors/8/menu"]}><App /></MemoryRouter>);
+  expect(await screen.findByLabelText("Your truck")).toHaveValue("8");
+  firstMount.unmount();
+  render(<MemoryRouter initialEntries={["/operator/vendors/8/menu"]}><App /></MemoryRouter>);
+  expect(await screen.findByLabelText("Your truck")).toHaveValue("8");
+  expect(screen.getByRole("button", { name: "Menu" })).toHaveAttribute("aria-current", "page");
+});
+
+it("does not substitute another truck for an inaccessible deep link", async () => {
+  render(<MemoryRouter initialEntries={["/operator/vendors/999/schedule"]}><App /></MemoryRouter>);
+  expect(await screen.findByText("Truck unavailable")).toBeInTheDocument();
+  expect(fetchMock.mock.calls.some(([url]) => url.includes("/999/stops"))).toBe(false);
+});
+
+it("rejects unknown workspace sections", async () => {
+  render(<MemoryRouter initialEntries={["/operator/vendors/8/unknown"]}><App /></MemoryRouter>);
+  expect(await screen.findByText("Workspace page not found")).toBeInTheDocument();
+});
+
+it("resolves a bookmarked truck beyond the first owned-vendor page", async () => {
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url === "/api/auth/me") return response(200, account);
+    if (url.includes("vendors?page=0")) return response(200, { ...page([first]), totalPages: 2 });
+    if (url.includes("vendors?page=1")) return response(200, { ...page([second]), page: 1, totalPages: 2 });
+    return response(200, page([]));
+  });
+  render(<MemoryRouter initialEntries={["/operator/vendors/8/menu"]}><App /></MemoryRouter>);
+  expect(await screen.findByLabelText("Your truck")).toHaveValue("8");
+});
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -34,6 +83,7 @@ function ownerRoutes() {
   return (
     <Routes>
       <Route path="/operator" element={<OperatorHomePage />} />
+      <Route path="/operator/vendors/:vendorId/:section" element={<OperatorHomePage />} />
       <Route path="/operator/login" element={<p>Login screen</p>} />
       <Route path="/operator/analytics" element={<p>Business insights</p>} />
       <Route path="/trucks" element={<p>Customer homepage</p>} />
@@ -50,7 +100,7 @@ it("returns from the customer menu preview to the same truck and tab on the dash
   fireEvent.change(truckPicker, { target: { value: "8" } });
   const nav = screen.getByRole("navigation", { name: "Owner navigation" });
   fireEvent.click(within(nav).getByRole("button", { name: "Menu" }));
-  fireEvent.click(screen.getByRole("link", { name: /View customer menu/ }));
+  fireEvent.click(await screen.findByRole("link", { name: /View customer menu/ }));
 
   expect(await screen.findByRole("heading", { name: "Soup Cart" })).toBeInTheDocument();
   expect(screen.getByRole("note")).toHaveTextContent("previewing this menu");

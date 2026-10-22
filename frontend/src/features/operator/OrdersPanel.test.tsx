@@ -27,7 +27,7 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 async function show() {
-  render(<MemoryRouter><Routes><Route path="/" element={<OperatorWorkspace account={account} onSignOut={() => {}} signingOut={false} logoutError="" />} />
+  render(<MemoryRouter><Routes><Route path="*" element={<OperatorWorkspace account={account} onSignOut={() => {}} signingOut={false} logoutError="" />} />
     <Route path="/operator/login" element={<p>Sign in again</p>} /></Routes></MemoryRouter>);
   await screen.findByRole("heading", { name: "Spicy Food" });
   fireEvent.click(screen.getByRole("button", { name: "Orders" }));
@@ -38,6 +38,13 @@ async function detail() {
   await screen.findByText("Saved taco");
 }
 const writes = () => fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH");
+
+it("reopens a bookmarked order and queue filter without a previous component session", async () => {
+  render(<MemoryRouter initialEntries={["/operator/vendors/7/orders?order=42&status=PLACED&page=0"]}><OperatorWorkspace account={account} onSignOut={() => {}} signingOut={false} logoutError="" /></MemoryRouter>);
+  expect(await screen.findByText("Saved taco")).toBeInTheDocument();
+  expect(screen.getByLabelText("Order status")).toHaveValue("PLACED");
+  expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/orders?page=0&size=20&status=PLACED", expect.objectContaining({ credentials: "same-origin" }));
+});
 
 it("loads the selected truck queue and saved order detail", async () => {
   await detail();

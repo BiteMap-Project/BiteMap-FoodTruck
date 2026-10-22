@@ -29,7 +29,7 @@ beforeEach(() => {
 });
 
 function show(path = "/owner") {
-  render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/owner" element={<RequireOperator><OperatorHomePage /></RequireOperator>} /><Route path="/operator/login" element={<p>Login screen</p>} /></Routes></MemoryRouter>);
+  render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/owner" element={<RequireOperator><OperatorHomePage /></RequireOperator>} /><Route path="/operator/vendors/:vendorId/:section" element={<RequireOperator><OperatorHomePage /></RequireOperator>} /><Route path="/operator/login" element={<p>Login screen</p>} /></Routes></MemoryRouter>);
 }
 it("opens the Schedule tab for the selected owned truck", async () => {
   show(); await screen.findByRole("heading", { name: "Spicy Food" });

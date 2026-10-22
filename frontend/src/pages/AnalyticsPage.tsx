@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthApiError } from "../services/auth";
 import { PinIcon } from "../components/icons";
 import { downloadAnalyticsCsv } from "../features/analytics/exportCsv";
@@ -12,7 +12,9 @@ const date = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: 
 
 export default function AnalyticsPage() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState("");
+  const [params, setParams] = useSearchParams();
+  const selected = params.get("truck") ?? "";
+  const setSelected = (truck: string) => setParams(previous => { const next = new URLSearchParams(previous); if (truck) next.set("truck", truck); else next.delete("truck"); return next; });
   const [data, setData] = useState<TruckAnalytics | null>(null);
   const [error, setError] = useState(false);
   const [reload, setReload] = useState(0);

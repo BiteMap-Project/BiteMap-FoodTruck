@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthApiError } from "../../services/auth";
 import { getOwnerOrder, listOwnerOrders, updateOwnerOrder, type OrderStatus, type OwnerOrder, type OwnerOrderSummary } from "../../services/operatorOrders";
 import type { Page } from "../../services/operatorWorkspace";
@@ -14,13 +14,23 @@ const errorText = (error: unknown) => error instanceof AuthApiError ? error.mess
 
 export default function OrdersPanel({ vendorId }: { vendorId: number }) {
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<OrderStatus | "">("");
-  const [page, setPage] = useState(0);
+  const [params, setParams] = useSearchParams();
+  const filterValue = params.get("status") ?? "";
+  const filter: OrderStatus | "" = Object.hasOwn(labels, filterValue) ? filterValue as OrderStatus : "";
+  const pageValue = Number(params.get("page") ?? "0");
+  const page = Number.isSafeInteger(pageValue) && pageValue >= 0 ? pageValue : 0;
+  const setQuery = (updates: Record<string, string | null>) => setParams(previous => {
+    const next = new URLSearchParams(previous);
+    for (const [key, value] of Object.entries(updates)) { if (value === null) next.delete(key); else next.set(key, value); }
+    return next;
+  });
   const [attempt, setAttempt] = useState(0);
   const [data, setData] = useState<Page<OwnerOrderSummary> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selected, setSelected] = useState<number | null>(null);
+  const orderValue = Number(params.get("order"));
+  const selected = Number.isSafeInteger(orderValue) && orderValue > 0 ? orderValue : null;
+  const setSelected = (id: number | null) => setQuery({ order: id === null ? null : String(id) });
   const [busy, setBusy] = useState(false);
   const refresh = () => { setLoading(true); setAttempt(value => value + 1); };
   useEffect(() => {
@@ -31,7 +41,7 @@ export default function OrdersPanel({ vendorId }: { vendorId: number }) {
     }, cause => {
       if (controller.signal.aborted) return;
       if (cause instanceof AuthApiError && cause.status === 401) navigate("/operator/login", { replace: true });
-      else { setError(errorText(cause)); setLoading(false); setData(null); setSelected(null); }
+      else { setError(errorText(cause)); setLoading(false); setData(null); }
     });
     return () => controller.abort();
   }, [vendorId, page, filter, attempt, navigate]);
@@ -48,7 +58,7 @@ export default function OrdersPanel({ vendorId }: { vendorId: number }) {
     <div className="ow-toolbar"><div><h2 id="orders-heading">Orders for your truck</h2><p>Real customer orders · newest first</p></div>
       <button className="od-button od-button-secondary" disabled={busy || loading} onClick={refresh}>Refresh orders</button></div>
     <label className="ow-order-filter">Order status<select value={filter} disabled={busy} onChange={event => {
-      setLoading(true); setFilter(event.target.value as OrderStatus | ""); setPage(0); setData(null); setSelected(null);
+      setLoading(true); setQuery({ status: event.target.value || null, page: null, order: null }); setData(null);
     }}><option value="">All statuses</option>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
     <p className="ow-order-help">Updates every 30 seconds while this tab is visible. Times use your device’s time zone.</p>
     {loading && <p role="status">Refreshing orders…</p>}
@@ -65,9 +75,9 @@ export default function OrdersPanel({ vendorId }: { vendorId: number }) {
               aria-pressed={selected === order.id} onClick={() => setSelected(order.id)}>View order #{order.id}</button></div>
           </li>)}</ul>
           <nav className="ow-pagination" aria-label="Order pages">
-            <button disabled={busy || loading || page === 0} onClick={() => { setLoading(true); setPage(page - 1); setData(null); setSelected(null); }}>Previous orders</button>
+            <button disabled={busy || loading || page === 0} onClick={() => { setLoading(true); setQuery({ page: String(page - 1), order: null }); setData(null); }}>Previous orders</button>
             <span>Page {page + 1} of {Math.max(1, data.totalPages)}</span>
-            <button disabled={busy || loading || page + 1 >= data.totalPages} onClick={() => { setLoading(true); setPage(page + 1); setData(null); setSelected(null); }}>Next orders</button>
+            <button disabled={busy || loading || page + 1 >= data.totalPages} onClick={() => { setLoading(true); setQuery({ page: String(page + 1), order: null }); setData(null); }}>Next orders</button>
           </nav>
         </>}
       </div>

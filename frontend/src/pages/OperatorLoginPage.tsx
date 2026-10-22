@@ -3,14 +3,17 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthApiError, hasRole } from "../services/auth";
 import PasswordInput from "../components/PasswordInput";
 import { useAuth } from "../auth/authState";
+import { workspaceRoute } from "../features/operator/ownerReturn";
 import "./operator-auth.css";
 
-type RegistrationState = { registered?: boolean; email?: string } | null;
+type RegistrationState = { registered?: boolean; email?: string; returnTo?: string } | null;
 
 function OperatorLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const registration = location.state as RegistrationState;
+  const requested = registration?.returnTo;
+  const returnTo = typeof requested === "string" && (workspaceRoute(requested.split("?")[0]) || ["/operator", "/owner", "/operator/analytics"].includes(requested.split("?")[0])) ? requested : "/operator";
   const { account, signIn } = useAuth();
   const [email, setEmail] = useState(registration?.email || "");
   const [password, setPassword] = useState("");
@@ -18,8 +21,8 @@ function OperatorLoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (account) navigate(hasRole(account, "ROLE_OPERATOR") ? "/operator" : "/operator/onboarding", { replace: true });
-  }, [account, navigate]);
+    if (account) navigate(hasRole(account, "ROLE_OPERATOR") ? returnTo : "/operator/onboarding", { replace: true });
+  }, [account, navigate, returnTo]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -27,7 +30,7 @@ function OperatorLoginPage() {
     setSubmitting(true);
     try {
       const current = await signIn(email, password);
-      navigate(hasRole(current, "ROLE_OPERATOR") ? "/operator" : "/operator/onboarding", { replace: true });
+      navigate(hasRole(current, "ROLE_OPERATOR") ? returnTo : "/operator/onboarding", { replace: true });
     } catch (cause) {
       setError(cause instanceof AuthApiError ? cause.message : "Unable to sign in. Please try again.");
     } finally {

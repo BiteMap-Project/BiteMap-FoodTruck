@@ -118,10 +118,10 @@ export default function SchedulePanel({ vendorId }: { vendorId: number }) {
         const completed = stop.status === "ended" || Date.parse(stop.endsAt) <= now;
         const editable = !completed && stop.status === "scheduled" && Date.parse(stop.startsAt) > now;
         const cancellable = !completed && ["scheduled", "serving"].includes(stop.status);
-        return <article className="ow-menu-row" key={stop.id}><div><h3>{stop.venueName}</h3><p>{stop.address}</p>
+        return <article className="ow-schedule-card" key={stop.id}><div className="ow-schedule-details"><h3>{stop.venueName}</h3><p>{stop.address}</p>
           <p>{displayTime(stop.startsAt, stop.timeZone)} – {displayTime(stop.endsAt, stop.timeZone)} ({stop.timeZone})</p>
           <p>{stop.status === "cancelled" ? "Cancelled" : completed ? "Completed" : stop.status === "serving" ? "Serving" : "Scheduled"}</p></div>
-          <div className="ow-item-actions"><button aria-label={`Schedule ${stop.venueName} again`} disabled={unavailable || editor !== null || confirm !== null} onClick={() => { setRepeat(true); setEditor(stop); }}>Schedule again</button><button disabled={unavailable || !editable || editor !== null || confirm !== null} onClick={() => { setRepeat(false); setEditor(stop); }}>Edit {stop.venueName}</button>
+          <div className="ow-schedule-actions"><button aria-label={`Schedule ${stop.venueName} again`} disabled={unavailable || editor !== null || confirm !== null} onClick={() => { setRepeat(true); setEditor(stop); }}>Schedule again</button><button disabled={unavailable || !editable || editor !== null || confirm !== null} onClick={() => { setRepeat(false); setEditor(stop); }}>Edit {stop.venueName}</button>
             <button disabled={unavailable || !cancellable || editor !== null || confirm !== null} onClick={() => setConfirm(stop)}>Cancel {stop.venueName}</button></div>
           {confirm?.id === stop.id && <div className="ow-cancel-confirm" role="group" aria-label="Confirm cancellation"><p>Cancel {stop.venueName}? It will no longer be advertised as a scheduled stop. Its history is retained.</p><button disabled={unavailable} onClick={() => void mutate(() => cancelStop(vendorId, stop.id, stop.version))}>Confirm cancellation</button><button disabled={busy} onClick={() => setConfirm(null)}>Keep stop</button></div>}
         </article>;

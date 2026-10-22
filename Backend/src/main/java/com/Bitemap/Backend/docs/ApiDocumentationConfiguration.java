@@ -71,6 +71,15 @@ public class ApiDocumentationConfiguration {
 							.description("Authentication temporarily unavailable"));
 				}
 			}
+			var favorite = api.getPaths().get("/api/customer/favorites/{vendorId}");
+			if (favorite != null) {
+				for (var operation : java.util.Arrays.asList(favorite.getPut(), favorite.getDelete())) {
+					if (operation == null) continue;
+					operation.addSecurityItem(new SecurityRequirement().addList("csrfToken"));
+					operation.getResponses().addApiResponse("401", new io.swagger.v3.oas.models.responses.ApiResponse().description("Login required"));
+					operation.getResponses().addApiResponse("403", new io.swagger.v3.oas.models.responses.ApiResponse().description("Missing or invalid CSRF token, or not a customer"));
+				}
+			}
             var onboarding = api.getPaths().get("/api/auth/become-operator");
             if (onboarding != null && onboarding.getPost() != null) {
                 var operation = onboarding.getPost();
@@ -82,6 +91,15 @@ public class ApiDocumentationConfiguration {
                 operation.getResponses().addApiResponse("403", new io.swagger.v3.oas.models.responses.ApiResponse().description("Invalid CSRF, missing customer role, or revoked operator access"));
                 operation.getResponses().addApiResponse("503", new io.swagger.v3.oas.models.responses.ApiResponse().description("Authentication temporarily unavailable"));
             }
+			var profile = api.getPaths().get("/api/account/profile");
+			if (profile != null && profile.getPatch() != null) {
+				var operation = profile.getPatch();
+				operation.setDescription("Changes only the signed-in account's display name. Any id, email or roles in the body are ignored.");
+				operation.addSecurityItem(new SecurityRequirement().addList("csrfToken"));
+				operation.getResponses().addApiResponse("400", new io.swagger.v3.oas.models.responses.ApiResponse().description("Invalid display name"));
+				operation.getResponses().addApiResponse("401", new io.swagger.v3.oas.models.responses.ApiResponse().description("Login required"));
+				operation.getResponses().addApiResponse("403", new io.swagger.v3.oas.models.responses.ApiResponse().description("Missing or invalid CSRF token"));
+			}
 			var me = api.getPaths().get("/api/auth/me");
 			if (me != null && me.getGet() != null) {
 				me.getGet().setDescription("Returns unified account ID and current session ROLE_CUSTOMER/ROLE_OPERATOR grants. Requires the login session cookie.");

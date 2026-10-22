@@ -4,6 +4,7 @@ import { getVendor, type VendorProfile } from "../services/vendors";
 import { EmptyState, ErrorState, LoadingState } from "../components/StatusViews";
 import "./truck-profile.css";
 import { addCartItem, cartItemCount, readCart } from "../features/cart/cart";
+import FavoriteButton from "../features/favorites/FavoriteButton";
 import { ownerBackLink, readOwnerReturn } from "../features/operator/ownerReturn";
 
 type Result =
@@ -127,7 +128,10 @@ function TruckMenuPage() {
               <h1>{current.truck.name}</h1>
               <p>Category: {current.truck.category}</p>
               <p>Location: {current.truck.location}</p>
-              <a className="truck-menu-jump" href="#menu-heading">Explore the menu ↓</a>
+              <div className="truck-hero-actions">
+                <a className="truck-menu-jump" href="#menu-heading">Explore the menu ↓</a>
+                <FavoriteButton vendorId={current.truck.id} vendorName={current.truck.name} />
+              </div>
             </div>
             <ChefBearIllustration />
           </div>

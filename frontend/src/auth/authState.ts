@@ -11,6 +11,8 @@ export type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<Account>;
   signOut: () => Promise<void>;
   activateOperator: () => Promise<Account>;
+  /** Saves a new display name and updates every place that shows the account. */
+  updateProfile: (displayName: string) => Promise<Account>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

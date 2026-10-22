@@ -13,7 +13,8 @@ import OperatorOnboardingPage from "./pages/OperatorOnboardingPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import CustomerOrdersPage from "./pages/CustomerOrdersPage";
 import AdminApplicationsPage from "./pages/AdminApplicationsPage";
-import { RequireAdmin, RequireOperator } from "./auth/RouteGuards";
+import AccountSettingsPage from "./pages/AccountSettingsPage";
+import { RequireAccount, RequireAdmin, RequireOperator } from "./auth/RouteGuards";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
       <Route path="/customer/register" element={<CustomerRegisterPage />} />
       <Route path="/orders/:id/confirmation" element={<OrderConfirmationPage />} />
       <Route path="/orders" element={<CustomerOrdersPage />} />
+      <Route path="/account" element={<RequireAccount><AccountSettingsPage /></RequireAccount>} />
       <Route path="/owner" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />
       <Route path="/operator" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />
       <Route path="/operator/login" element={<OperatorLoginPage />} />

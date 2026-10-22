@@ -32,6 +32,7 @@ class ApiDocumentationTests {
 				.andExpect(jsonPath("$.paths['/api/auth/login'].post.security[0].csrfToken").isArray())
 				.andExpect(jsonPath("$.paths['/api/auth/login'].post.responses['401']").exists())
 				.andExpect(jsonPath("$.paths['/api/auth/me'].get.responses['401']").exists())
+				.andExpect(jsonPath("$.paths['/api/account/profile'].patch.security[0].csrfToken").isArray())
                 .andExpect(jsonPath("$.paths['/api/auth/become-operator'].post.security[0].csrfToken").isArray())
                 .andExpect(jsonPath("$.paths['/api/auth/become-operator'].post.responses['403']").exists())
                 .andExpect(jsonPath("$.components.schemas.AccountResponse.properties.roles").exists())

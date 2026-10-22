@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { BagIcon, ReceiptIcon, TruckIcon, LogoutIcon } from "../../components/icons";
+import { BagIcon, ReceiptIcon, TruckIcon, LogoutIcon, SettingsIcon } from "../../components/icons";
 import { hasRole } from "../../services/auth";
 import { useAuth } from "../../auth/authState";
 
@@ -41,6 +41,7 @@ export default function AccountNavigation() {
         <div className="discover-profile"><span className="discover-profile-initials" aria-hidden="true">{account.displayName.trim().split(/\s+/).slice(0, 2).map(part => Array.from(part)[0] ?? "").join("").toUpperCase()}</span>
           <p className="discover-account-name"><strong>{account.displayName}</strong><span>{hasRole(account, "ROLE_CUSTOMER") ? "Signed in · Customer" : "Signed in"}</span></p>
         </div>
+        <Link className="discover-menu-link" to="/account"><SettingsIcon />Account settings</Link>
         <button className="discover-menu-link discover-signout" type="button" disabled={signingOut} onClick={handleSignOut}><LogoutIcon />{signingOut ? "Signing out…" : "Sign out"}</button>
       </div>
     </> : <>

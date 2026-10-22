@@ -82,6 +82,15 @@ public class ApiDocumentationConfiguration {
                 operation.getResponses().addApiResponse("403", new io.swagger.v3.oas.models.responses.ApiResponse().description("Invalid CSRF, missing customer role, or revoked operator access"));
                 operation.getResponses().addApiResponse("503", new io.swagger.v3.oas.models.responses.ApiResponse().description("Authentication temporarily unavailable"));
             }
+			var profile = api.getPaths().get("/api/account/profile");
+			if (profile != null && profile.getPatch() != null) {
+				var operation = profile.getPatch();
+				operation.setDescription("Changes only the signed-in account's display name. Any id, email or roles in the body are ignored.");
+				operation.addSecurityItem(new SecurityRequirement().addList("csrfToken"));
+				operation.getResponses().addApiResponse("400", new io.swagger.v3.oas.models.responses.ApiResponse().description("Invalid display name"));
+				operation.getResponses().addApiResponse("401", new io.swagger.v3.oas.models.responses.ApiResponse().description("Login required"));
+				operation.getResponses().addApiResponse("403", new io.swagger.v3.oas.models.responses.ApiResponse().description("Missing or invalid CSRF token"));
+			}
 			var me = api.getPaths().get("/api/auth/me");
 			if (me != null && me.getGet() != null) {
 				me.getGet().setDescription("Returns unified account ID and current session ROLE_CUSTOMER/ROLE_OPERATOR grants. Requires the login session cookie.");

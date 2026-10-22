@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { becomeOperator, getCurrentAccount, loginAccount, logoutAccount, type Account } from "../services/auth";
+import { updateDisplayName } from "../services/account";
 import { AUTH_ACCESS_EVENT } from "./authEvents";
 import { AuthContext, type AuthContextValue, type AuthStatus } from "./authState";
 
@@ -87,6 +88,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccount(current);
       setError("");
       setStatus("ready");
+      return current;
+    },
+    updateProfile: async (displayName) => {
+      const current = await updateDisplayName(displayName);
+      setAccount(current);
       return current;
     },
   }), [account, error, refreshAccount, status]);

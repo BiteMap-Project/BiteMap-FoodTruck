@@ -35,6 +35,12 @@ it('fails closed on pickup lookup errors without clearing the cart',async()=>{
   expect(screen.getByRole('button',{name:'Place pickup order'})).toBeDisabled();
   expect(screen.getByRole('heading',{name:'Taco'})).toBeInTheDocument();
 });
+it('explains an ordering pause and retains the cart', async () => {
+  setup(response(409));
+  expect(await screen.findByText('Temporarily not accepting orders.')).toBeInTheDocument();
+  expect(screen.getByRole('button', {name:'Place pickup order'})).toBeDisabled();
+  expect(screen.getByRole('heading', {name:'Taco'})).toBeInTheDocument();
+});
 it('shows the exact address and coordinate-based directions',async()=>{
   setup(response(200,pickup));
   expect(await screen.findByText(pickup.address)).toBeInTheDocument();

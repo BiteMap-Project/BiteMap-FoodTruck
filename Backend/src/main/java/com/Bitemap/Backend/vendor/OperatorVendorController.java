@@ -31,6 +31,20 @@ public class OperatorVendorController {
 		this.service = service;
 	}
 
+    @GetMapping("/{id}/ordering")
+    @Operation(summary = "Read ordering controls for an owned truck")
+    public ResponseEntity<OrderingControl> ordering(Authentication authentication, @PathVariable long id) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.ordering(authentication.getName(), id));
+    }
+
+    @PutMapping("/{id}/ordering")
+    @Operation(summary = "Pause or resume new orders; existing orders are unchanged")
+    @SecurityRequirement(name = "csrfToken")
+    public ResponseEntity<OrderingControl> ordering(Authentication authentication, @PathVariable long id,
+            @Valid @RequestBody OrderingControl.Update command) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.updateOrdering(authentication.getName(), id, command));
+    }
+
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	@Operation(summary = "Create a vendor owned by the current operator")

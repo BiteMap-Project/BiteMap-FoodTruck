@@ -19,6 +19,8 @@ public class PickupService {
 
     @Transactional(readOnly=true)
     public PickupDetails current(long vendorId) {
+        Boolean accepting = jdbc.query("SELECT accepting_orders FROM vendors WHERE id=?", r -> r.next() ? r.getBoolean(1) : null, vendorId);
+        if (Boolean.FALSE.equals(accepting)) throw new OrderUnavailableException("Temporarily not accepting orders.");
         var now=Timestamp.from(clock.instant());
         var rows=jdbc.query("""
             SELECT id AS stop_id,venue_name,address,latitude,longitude,starts_at,ends_at,time_zone

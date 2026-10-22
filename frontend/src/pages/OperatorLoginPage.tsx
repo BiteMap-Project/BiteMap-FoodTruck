@@ -1,7 +1,8 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { AuthApiError, getCurrentAccount, hasRole, loginAccount } from "../services/auth";
+import { AuthApiError, hasRole } from "../services/auth";
 import PasswordInput from "../components/PasswordInput";
+import { useAuth } from "../auth/authState";
 import "./operator-auth.css";
 
 type RegistrationState = { registered?: boolean; email?: string } | null;
@@ -10,31 +11,23 @@ function OperatorLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const registration = location.state as RegistrationState;
+  const { account, signIn } = useAuth();
   const [email, setEmail] = useState(registration?.email || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Already signed in? Skip the form and go straight to the workspace.
-  // If the check fails or the visitor is signed out, the form simply stays.
   useEffect(() => {
-    const controller = new AbortController();
-    getCurrentAccount(controller.signal).then(
-      (account) => {
-        if (account && !controller.signal.aborted) navigate(hasRole(account, "ROLE_OPERATOR") ? "/operator" : "/operator/onboarding", { replace: true });
-      },
-      () => {},
-    );
-    return () => controller.abort();
-  }, [navigate]);
+    if (account) navigate(hasRole(account, "ROLE_OPERATOR") ? "/operator" : "/operator/onboarding", { replace: true });
+  }, [account, navigate]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setSubmitting(true);
     try {
-      const account = await loginAccount(email, password);
-      navigate(hasRole(account, "ROLE_OPERATOR") ? "/operator" : "/operator/onboarding", { replace: true });
+      const current = await signIn(email, password);
+      navigate(hasRole(current, "ROLE_OPERATOR") ? "/operator" : "/operator/onboarding", { replace: true });
     } catch (cause) {
       setError(cause instanceof AuthApiError ? cause.message : "Unable to sign in. Please try again.");
     } finally {

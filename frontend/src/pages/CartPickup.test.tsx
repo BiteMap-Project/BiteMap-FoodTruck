@@ -1,8 +1,11 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { addCartItem } from '../features/cart/cart';
 import CartPage from './CartPage';
+import AuthTestHarness from '../test/AuthTestHarness';
+const render = (ui: ReactElement) => rtlRender(<AuthTestHarness>{ui}</AuthTestHarness>);
 
 const fetchMock=vi.fn();
 const response=(status:number,body?:unknown)=>({ok:status>=200 && status<300,status,json:async()=>body}) as Response;

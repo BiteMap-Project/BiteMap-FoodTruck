@@ -1,9 +1,14 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import OperatorHomePage from "./OperatorHomePage";
 import OperatorLoginPage from "./OperatorLoginPage";
 import OperatorRegisterPage from "./OperatorRegisterPage";
+import AuthTestHarness from "../test/AuthTestHarness";
+import { RequireOperator } from "../auth/RouteGuards";
+
+const render = (ui: ReactElement) => rtlRender(<AuthTestHarness>{ui}</AuthTestHarness>);
 
 const fetchMock = vi.fn();
 const response = (status: number, body?: unknown) => ({
@@ -38,7 +43,7 @@ it("keeps registration password visibility controls independent", () => {
   fireEvent.click(screen.getAllByRole("button", { name: "Show password" })[0]);
   expect(screen.getByLabelText("Password")).toHaveAttribute("type", "text");
   expect(screen.getByLabelText("Confirm password")).toHaveAttribute("type", "password");
-  expect(fetchMock).not.toHaveBeenCalled();
+  expect(fetchMock.mock.calls.every(([url, init]) => url === "/api/auth/me" && !init?.method)).toBe(true);
 });
 
 it("logs in and opens the operator route", async () => {
@@ -126,7 +131,7 @@ it("shows a local confirmation error without sending the passwords", async () =>
   fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
   expect(await screen.findByText("Passwords do not match.")).toBeInTheDocument();
-  expect(fetchMock).not.toHaveBeenCalled();
+  expect(fetchMock.mock.calls.every(([url, init]) => url === "/api/auth/me" && !init?.method)).toBe(true);
 });
 
 it("redirects an anonymous operator session to login", async () => {
@@ -134,7 +139,7 @@ it("redirects an anonymous operator session to login", async () => {
   render(
     <MemoryRouter initialEntries={["/operator"]}>
       <Routes>
-        <Route path="/operator" element={<OperatorHomePage />} />
+        <Route path="/operator" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />
         <Route path="/operator/login" element={<p>Sign-in route</p>} />
       </Routes>
     </MemoryRouter>,

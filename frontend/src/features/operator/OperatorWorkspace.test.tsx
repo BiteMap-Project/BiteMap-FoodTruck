@@ -1,7 +1,11 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import OperatorHomePage from "../../pages/OperatorHomePage";
+import AuthTestHarness from "../../test/AuthTestHarness";
+import { RequireOperator } from "../../auth/RouteGuards";
+const render = (ui: ReactElement) => rtlRender(<AuthTestHarness>{ui}</AuthTestHarness>);
 
 const fetchMock = vi.fn();
 const account = { id: 2, displayName: "Owner", email: "owner@example.com", roles: ["ROLE_CUSTOMER", "ROLE_OPERATOR"] };
@@ -24,13 +28,17 @@ beforeEach(() => {
 });
 
 function show(path = "/owner") {
-  render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/owner" element={<OperatorHomePage />} /><Route path="/operator/login" element={<p>Login screen</p>} /></Routes></MemoryRouter>);
+  render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/owner" element={<RequireOperator><OperatorHomePage /></RequireOperator>} /><Route path="/operator/login" element={<p>Login screen</p>} /></Routes></MemoryRouter>);
 }
 it("opens the Schedule tab for the selected owned truck", async () => {
   show(); await screen.findByRole("heading", { name: "Spicy Food" });
   fetchMock.mockResolvedValueOnce(response(200, page([])));
   fireEvent.click(screen.getByRole("button", { name: "Schedule" }));
   expect(await screen.findByText(/No stops on this page/)).toBeInTheDocument();
+  expect(screen.queryByText("Welcome, Owner")).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "View customer menu →" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "New truck" })).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Your truck")).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/stops?page=0&size=20", expect.objectContaining({ credentials: "same-origin" }));
 });
 async function openMenu() {
@@ -52,6 +60,15 @@ it("shows owned vendor data, not local demo orders or sales", async () => {
   expect(screen.queryByText("The Rolling Kitchen")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Orders" }));
   expect(await screen.findByText("No orders match this filter.")).toBeInTheDocument();
+  expect(screen.queryByText("Welcome, Owner")).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "View customer menu →" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "New truck" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Refresh trucks" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Previous trucks" })).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Your truck")).toHaveValue("7");
+  fireEvent.click(screen.getByRole("button", { name: "Overview" }));
+  expect(screen.getByText("Welcome, Owner")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "View customer menu →" })).toBeInTheDocument();
 });
 
 it("offers first-vendor creation when the account owns no vendors", async () => {
@@ -62,7 +79,7 @@ it("offers first-vendor creation when the account owns no vendors", async () => 
     return response(200, page([]));
   });
   show(); await screen.findByText("No trucks yet");
-  fireEvent.click(screen.getByRole("button", { name: "New truck" }));
+  fireEvent.click(screen.getByRole("button", { name: "Create your first truck" }));
   fireEvent.change(screen.getByLabelText("Truck name"), { target: { value: "Spicy Food" } });
   fireEvent.change(screen.getByLabelText("Cuisine / category"), { target: { value: "Tacos" } });
   fireEvent.change(screen.getByLabelText("Location"), { target: { value: "CSUN" } });
@@ -75,27 +92,27 @@ it("sends fresh CSRF and the current version for a status change", async () => {
   fetchMock.mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh-token" }))
     .mockResolvedValueOnce(response(200, { ...item, status: "SOLD_OUT", version: 4 }))
     .mockResolvedValueOnce(response(200, page([{ ...item, status: "SOLD_OUT", version: 4 }])));
-  fireEvent.change(screen.getByLabelText("Availability for Taco"), { target: { value: "SOLD_OUT" } });
-  await waitFor(() => expect(screen.getByLabelText("Availability for Taco")).toHaveValue("SOLD_OUT"));
+  fireEvent.click(screen.getByRole("button", { name: "Sold out" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Sold out" })).toHaveAttribute("aria-pressed", "true"));
   expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/menu-items/10/availability", expect.objectContaining({ method: "PATCH", credentials: "same-origin", headers: expect.objectContaining({ "X-CSRF-TOKEN": "fresh-token" }), body: JSON.stringify({ status: "SOLD_OUT", version: 3 }) }));
 });
 
 it("blocks stale saves until explicit reload and does not retry writes", async () => {
   await openMenu();
   fetchMock.mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh-token" })).mockResolvedValueOnce(response(409));
-  fireEvent.change(screen.getByLabelText("Availability for Taco"), { target: { value: "INACTIVE" } });
+  fireEvent.click(screen.getByRole("button", { name: "Not on menu" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("changed elsewhere");
-  expect(screen.getByLabelText("Availability for Taco")).toBeDisabled();
-  expect(screen.getByLabelText("Availability for Taco")).toHaveValue("ACTIVE");
+  expect(screen.getByRole("button", { name: "Not on menu" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Available" })).toHaveAttribute("aria-pressed", "true");
   expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH")).toHaveLength(1);
   fireEvent.click(screen.getByRole("button", { name: "Reload menu" }));
-  await waitFor(() => expect(screen.getByLabelText("Availability for Taco")).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Not on menu" })).toBeEnabled());
 });
 
 it("redirects when a write reports an expired session", async () => {
   await openMenu();
   fetchMock.mockResolvedValueOnce(response(401));
-  fireEvent.change(screen.getByLabelText("Availability for Taco"), { target: { value: "SOLD_OUT" } });
+  fireEvent.click(screen.getByRole("button", { name: "Sold out" }));
   expect(await screen.findByText("Login screen")).toBeInTheDocument();
   expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH")).toHaveLength(0);
 });
@@ -142,7 +159,7 @@ it("updates only the selected vendor's profile", async () => {
 it.each([403, 404])("blocks mutations after a %s access rejection", async (status) => {
   await openMenu();
   fetchMock.mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh-token" })).mockResolvedValueOnce(response(status));
-  fireEvent.change(screen.getByLabelText("Availability for Taco"), { target: { value: "INACTIVE" } });
+  fireEvent.click(screen.getByRole("button", { name: "Not on menu" }));
   await screen.findByRole("alert");
   expect(screen.getByRole("button", { name: "Add menu item" })).toBeDisabled();
 });

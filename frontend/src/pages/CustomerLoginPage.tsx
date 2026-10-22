@@ -1,7 +1,8 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import PasswordInput from "../components/PasswordInput";
-import { AuthApiError, getCurrentAccount, loginAccount } from "../services/auth";
+import { AuthApiError } from "../services/auth";
+import { useAuth } from "../auth/authState";
 import "./operator-auth.css";
 
 type LoginState = { registered?: boolean; email?: string; returnTo?: string } | null;
@@ -11,25 +12,20 @@ export default function CustomerLoginPage() {
   const location = useLocation();
   const state = location.state as LoginState;
   const returnTo = state?.returnTo?.startsWith("/") ? state.returnTo : "/cart";
+  const { account, signIn } = useAuth();
   const [email, setEmail] = useState(state?.email ?? "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    getCurrentAccount(controller.signal).then((account) => {
-      if (account && !controller.signal.aborted) navigate(returnTo, { replace: true });
-    }, () => {});
-    return () => controller.abort();
-  }, [navigate, returnTo]);
+  useEffect(() => { if (account) navigate(returnTo, { replace: true }); }, [account, navigate, returnTo]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setSubmitting(true);
     try {
-      await loginAccount(email, password);
+      await signIn(email, password);
       navigate(returnTo, { replace: true });
     } catch (cause) {
       setError(cause instanceof AuthApiError ? cause.message : "Unable to sign in. Please try again.");

@@ -1,6 +1,5 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getCurrentAccount, hasRole } from "../services/auth";
 import { getPendingApplications, reviewOwnerApplication, type OwnerApplication } from "../services/ownerApplications";
 import "./admin-applications.css";
 
@@ -39,8 +38,6 @@ export default function AdminApplicationsPage() {
     async function load() {
       setLoading(true); setError(""); setItems([]);
       try {
-        const account = await getCurrentAccount(controller.signal);
-        if (!account || !hasRole(account,"ROLE_ADMIN")) throw new Error("Administrator access required. Sign in with an authorized account.");
         const rows = await getPendingApplications(page, controller.signal);
         if (!controller.signal.aborted) setItems(rows);
       } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Unable to load applications."); }

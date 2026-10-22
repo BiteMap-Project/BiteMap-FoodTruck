@@ -27,9 +27,28 @@ body:has(.ow-connected) { background: #f8f8f4; }
 .ow-connected fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 16px; min-width: 0; }
 .ow-connected button:not(.od-nav-item):not(.od-button) { padding: 10px 14px; border-radius: 7px; border: 1px solid var(--od-line); color: var(--od-ink); background: #f3f5eb; }
 .ow-connected button:disabled { opacity: .55; cursor: not-allowed; }
-.ow-connected .ow-menu-row { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 20px 0; border-top: 1px solid var(--od-line); }
+.ow-connected .ow-menu-panel { padding: 30px; }
+.ow-connected .ow-menu-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
+.ow-connected .ow-menu-heading h2 { margin: 5px 0 4px; font: 500 30px Georgia, serif; }
+.ow-connected .ow-menu-heading p { margin: 0; color: #6f776e; }
+.ow-connected .ow-menu-eyebrow { color: #a24a28; font-size: 11px; font-weight: 750; letter-spacing: 2px; }
+.ow-connected .ow-menu-heading-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.ow-connected .ow-menu-count { padding-bottom: 14px; border-bottom: 1px solid var(--od-line); color: #6f776e; font-size: 14px; }
+.ow-connected .ow-menu-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, auto); align-items: center; gap: 30px; padding: 22px; margin-top: 16px; border: 1px solid var(--od-line); border-radius: 12px; background: #fff; }
 .ow-connected .ow-menu-row > div { min-width: 0; overflow-wrap: anywhere; }
-.ow-connected .ow-item-actions { display: grid; gap: 10px; }
+.ow-connected .ow-menu-name { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ow-connected .ow-menu-name h3 { margin: 0; font-size: 20px; }
+.ow-connected .ow-menu-item-copy p { margin: 8px 0 13px; color: #687268; }
+.ow-connected .ow-status-badge { padding: 4px 9px; border-radius: 999px; background: #edf3e8; color: #3f6446; font-size: 12px; font-weight: 700; }
+.ow-connected .ow-status-badge.is-inactive { background: #f0f1ed; color: #687268; }
+.ow-connected .ow-status-badge.is-sold_out { background: #fff0e8; color: #9b4525; }
+.ow-connected .ow-item-actions { display: grid; justify-items: end; gap: 9px; }
+.ow-connected .ow-status-label { color: #687268; font-size: 13px; font-weight: 650; }
+.ow-connected .ow-status-buttons { display: flex; gap: 4px; padding: 4px; border: 1px solid var(--od-line); border-radius: 10px; background: #f8f8f4; }
+.ow-connected .ow-status-buttons button { min-height: 38px; padding: 8px 11px !important; border: 0 !important; border-radius: 7px !important; background: transparent !important; color: #687268 !important; font-size: 13px; font-weight: 650; }
+.ow-connected .ow-status-buttons button.is-selected { background: #fff !important; color: #3f6446 !important; box-shadow: 0 1px 4px rgba(29, 48, 35, .13); }
+.ow-connected .ow-status-buttons button.is-selected::before { content: "✓ "; }
+.ow-connected .ow-edit-item { padding: 4px 0 !important; border: 0 !important; background: transparent !important; color: #98401f !important; text-decoration: underline; }
 .ow-connected .ow-pagination { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 20px 0; }
 .ow-connected .ow-editor { background: #f8f8f4; border-radius: 10px; padding: 20px; margin: 20px 0; }
 .ow-connected .ow-editor h3 { margin-bottom: 15px; }
@@ -38,4 +57,5 @@ body:has(.ow-connected) { background: #f8f8f4; }
 .ow-connected .od-hero-copy { max-width: 100%; }
 .ow-connected .ow-cancel-confirm { flex-basis: 100%; }
 .ow-connected .ow-cancel-confirm button { margin: 0 8px 8px 0; }
-@media(max-width: 700px) { .ow-connected .od-sidebar { position: static; height: auto; min-height: 0; } .ow-connected .od-sidebar-tip { display: none; } .ow-connected .od-topbar { padding: 16px; } .ow-connected .od-main { padding: 20px 16px; } .ow-connected .od-hero { padding: 22px; min-height: 160px; } .ow-connected .ow-panel { padding: 16px; } .ow-connected input, .ow-connected select, .ow-connected textarea { font-size: 16px; } }
+@media(max-width: 900px) { .ow-connected .ow-menu-row { grid-template-columns: 1fr; } .ow-connected .ow-item-actions { justify-items: start; } }
+@media(max-width: 700px) { .ow-connected .od-sidebar { position: static; height: auto; min-height: 0; } .ow-connected .od-sidebar-tip { display: none; } .ow-connected .od-topbar { padding: 16px; } .ow-connected .od-main { padding: 20px 16px; } .ow-connected .od-hero { padding: 22px; min-height: 160px; } .ow-connected .ow-panel, .ow-connected .ow-menu-panel { padding: 16px; } .ow-connected .ow-menu-heading { flex-direction: column; } .ow-connected .ow-status-buttons { width: 100%; flex-direction: column; } .ow-connected .ow-status-buttons button { text-align: left; } .ow-connected input, .ow-connected select, .ow-connected textarea { font-size: 16px; } }

@@ -1,7 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import AccountNavigation from "./AccountNavigation";
+import AuthTestHarness from "../../test/AuthTestHarness";
+const render = (ui: ReactElement) => rtlRender(<AuthTestHarness>{ui}</AuthTestHarness>);
 
 const fetchMock = vi.fn();
 const account = { id: 7, displayName: "Spicy Food", email: "owner@example.com", roles: ["ROLE_CUSTOMER"] };

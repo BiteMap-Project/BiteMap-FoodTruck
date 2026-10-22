@@ -1,97 +1,54 @@
-# SCRUM-32: Integration / Demo Testing
+# SCRUM-32: Integration and demo testing
 
-### Purpose
-The purpose of this task is to test the main BiteMap features used during the Sprint 1 demonstration.
+## Demo use case
 
-### OWNER'S SIDE:
----
-### Owner Dashboard Testing
+A customer finds a food truck with an active stop, confirms the pickup details,
+adds an available item to the cart, signs in, and places a pickup order. The truck
+operator receives the same order and moves it through **Placed**, **Accepted**,
+**Ready**, and **Completed**. The customer can open order history and see the
+updated status.
 
-The Owner dashboard should display the truck's information clearly.
+## Customer checks
 
-Test the following:
+1. Open the homepage without signing in.
+2. Search for a truck with an active stop and open its menu.
+3. Confirm that the pickup location and time are shown, then add two items from
+   that truck to the cart.
+4. Try to add an item from another truck. Confirm that BiteMap asks the customer
+   to clear the current cart first.
+5. Open the cart and choose **Sign in to continue**.
+6. Register or sign in as a customer. Confirm that the cart is still present.
+7. Place the pickup order and record the order number.
+8. Confirm that the receipt shows the same pickup location selected before
+   checkout.
+9. Refresh the confirmation page. The saved order should still appear.
+10. Open **My orders** and confirm that the order is listed as **Placed**.
 
-- The Owner page loads successfully.
-- The truck name is displayed.
-- The truck's food category is displayed.
-- The business hours are displayed.
-- The truck can show whether it is open for business.
-- Completed sales are displayed.
-- Active orders are displayed.
-- Orders can appear in the Order Queue.
-- The Menu section can be accessed.
-- The Orders section can be accessed.
-- The My Truck section can be accessed.
+## Operator checks
 
-### Example Test Data
----
+1. Sign in as the operator who owns the selected truck.
+2. Open the truck's **Orders** tab.
+3. Find the customer's order by its order number.
+4. Change it from **Placed** to **Accepted**, then **Ready**.
+5. Use a customer window to refresh the order. It should now show **Ready**.
+6. Return to the operator window and mark it **Completed**.
+7. Confirm that another operator cannot open or update this truck's orders.
 
-Truck Name:
-The Rolling Kitchen
+## Expected result
 
-Food Type:
-Tacos & Bowls
+The same database order is visible to the customer and the truck owner. Menu
+prices, item names, and pickup instructions are saved with the order, so later
+menu or schedule edits do not change the receipt. Order status changes are limited
+to the owned truck and use the allowed sequence. The customer sees the latest
+status in order history.
 
-Business Hours:
-11:00 AM - 8:00 PM
+## Automated coverage
 
-Business Status:
-Open for business
+Real-browser regression coverage and isolated local/CI commands are documented
+in [Automated ordering journey](automated-ordering-journey.md).
 
-Example Completed Sales:
-$119.00
-
-Example Active Orders:
-1
-
-### Expected Result
-
-The Owner should be able to open the dashboard and see the truck information, sales information, and order information without errors.
-
----
-
-### CUSTOMER'S SIDE:
----
-
-### Main Test Scenario – Ordering From One Food Truck Only:
-
-1. The customer visits the food truck discovery page.
-2. The customer selects a specific food truck.
-3. The customer views the available food items from that truck.
-4. The customer adds an item to the order.
-5. The customer opens the cart and confirms that the selected item belongs to the correct food truck.
-6. The customer attempts to select an item from a different food truck.
-7. The system should prevent the customer from combining items from different trucks in the same order.
-
-8. The system should display a clear message such as:
-
-"You can only order from one food truck at a time. Please finish or clear your current order before ordering from another truck."
-
-9. The customer can either:
-Continue with the current food truck, or
-Clear the current cart and start a new order from the other food truck.
-10. Confirm that the cart and checkout continue to show only items from the selected food truck.
-
-Expected Result:
-The system allows customers to add multiple items from the same food truck, but prevents items from a different food truck from being added to the same order.
-
-Example:
-
-- Customer selects Taco Truck.
-- Adds tacos and a drink → Allowed.
-- Customer then selects Coffee Truck and tries to add coffee → Not allowed.
-- The system displays the one-truck-only message.
-- Customer must either continue ordering from Taco Truck or clear the cart before ordering from Coffee Truck.
-
-### Integration Testing Areas:
-
-- Food truck selection → food menu
-- Food menu → shopping cart
-- Shopping cart → checkout
-- Food truck information → order information
-- Cart validation → one-truck-only restriction
-- Error/message display when a second truck is selected
-
-### Demo Goal:
-Demonstrate a complete customer ordering flow using one food truck and show that the system correctly prevents a customer from mixing food items from two different trucks in one order.
-
+`EndToEndOrderDemoTests` follows the full API workflow from public menu and active
+stop lookup to customer order placement, operator processing, and customer
+history. The focused customer, pickup, and operator test classes cover validation,
+ownership, saved prices and pickup instructions, duplicate submissions, invalid
+status changes, and stale updates.

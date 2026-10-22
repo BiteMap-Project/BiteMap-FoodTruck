@@ -12,6 +12,11 @@ import "./workspace.css";
 type Tab = WorkspaceTab;
 type Load<T> = { kind: "loading" } | { kind: "error"; error: unknown } | { kind: "ready"; data: T };
 const errorText = (error: unknown) => error instanceof WorkspaceError ? error.message : "Unable to reach the server. Check your connection and try again.";
+const availabilityOptions: { value: Availability; label: string }[] = [
+  { value: "ACTIVE", label: "Available" },
+  { value: "INACTIVE", label: "Not on menu" },
+  { value: "SOLD_OUT", label: "Sold out" },
+];
 
 export default function OperatorWorkspace({ account, onSignOut, signingOut, logoutError }: { account: OperatorAccount; onSignOut: () => void; signingOut: boolean; logoutError: string }) {
   const navigate = useNavigate();
@@ -20,6 +25,7 @@ export default function OperatorWorkspace({ account, onSignOut, signingOut, logo
   const [restore] = useState(() => readWorkspaceRestore(location.state));
   const restoreVendorId = useRef(restore?.vendorId ?? null);
   const [tab, setTab] = useState<Tab>(restore?.tab ?? "Overview");
+  const compactLayout = tab === "Schedule" || tab === "Orders";
   const [page, setPage] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [vendors, setVendors] = useState<Load<Page<Vendor>>>({ kind: "loading" });
@@ -50,13 +56,13 @@ export default function OperatorWorkspace({ account, onSignOut, signingOut, logo
       <div className="od-owner"><div><strong>{account.displayName}</strong><p>{account.email}</p><button type="button" className="od-button od-button-secondary" disabled={signingOut} onClick={onSignOut}>{signingOut ? "Signing out…" : "Sign out"}</button></div></div>
     </aside>
     <div className="od-workspace"><header className="od-topbar"><span>Workspace / {tab}</span><Link to="/">Browse trucks →</Link></header>
-      <main className="od-main"><div className="od-page-heading"><div><p className="od-eyebrow">GOOD FOOD. YOUR BUSINESS.</p><h1>Welcome, {account.displayName}</h1><p>Manage only the trucks owned by your account.</p></div></div>
+      <main className="od-main">{compactLayout ? <h1>{tab}</h1> : <div className="od-page-heading"><div><p className="od-eyebrow">GOOD FOOD. YOUR BUSINESS.</p><h1>Welcome, {account.displayName}</h1><p>Manage only the trucks owned by your account.</p></div></div>}
         {logoutError && <p role="alert" className="ow-error">{logoutError}</p>}
         {vendors.kind === "loading" && <p role="status">Loading your trucks…</p>}
         {vendors.kind === "error" && <div role="alert"><p>{errorText(vendors.error)}</p><button onClick={() => reload()}>Retry trucks</button></div>}
         {vendors.kind === "ready" && <>
-          <div className="ow-toolbar"><label>Your truck<select aria-label="Your truck" value={selected?.id ?? ""} onChange={e => { setSelected(vendors.data.items.find(v => v.id === Number(e.target.value)) ?? null); setCreating(false); }}><option value="" disabled>Select a truck</option>{vendors.data.items.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label><button className="od-button od-button-primary" onClick={() => setCreating(true)}>New truck</button><button className="od-button od-button-secondary" onClick={() => reload()}>Refresh trucks</button></div>
-          <Pager page={vendors.data.page} totalPages={vendors.data.totalPages} onPage={reload} label="Trucks" />
+          <div className="ow-toolbar"><label>Your truck<select aria-label="Your truck" value={selected?.id ?? ""} onChange={e => { setSelected(vendors.data.items.find(v => v.id === Number(e.target.value)) ?? null); setCreating(false); }}><option value="" disabled>Select a truck</option>{vendors.data.items.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label>{(!compactLayout || vendors.data.totalElements === 0) && <button className="od-button od-button-primary" onClick={() => setCreating(true)}>{vendors.data.totalElements === 0 ? "Create your first truck" : "New truck"}</button>}{!compactLayout && <button className="od-button od-button-secondary" onClick={() => reload()}>Refresh trucks</button>}</div>
+          {(!compactLayout || vendors.data.totalPages > 1) && <Pager page={vendors.data.page} totalPages={vendors.data.totalPages} onPage={reload} label="Trucks" />}
           {creating ? <NewVendor onSaved={() => reload(0)} onCancel={() => setCreating(false)} /> : selected ? <VendorWorkspace key={selected.id} vendor={selected} tab={tab} onSaved={v => { setSelected(v); setVendors({ kind: "ready", data: { ...vendors.data, items: vendors.data.items.map(old => old.id === v.id ? v : old) } }); }} /> : <section className="ow-panel"><h2>No trucks yet</h2><p>Create your first truck to start building its menu.</p></section>}
         </>}
       </main>
@@ -111,21 +117,20 @@ function VendorWorkspace({ vendor, tab, onSaved }: { vendor: Vendor; tab: Tab; o
   }
   const unavailable = busy || blocked;
   return <>
-    <section className="od-hero"><div className="od-hero-copy"><span className="od-label">YOUR TRUCK</span><h2>{vendor.name}</h2><p>{vendor.category} · {vendor.location}</p><div className="od-hero-bottom"><Link className="od-button od-button-secondary" to={`/trucks/${vendor.id}`} state={previewState({ from: "workspace", vendorId: vendor.id, tab })}>View customer menu →</Link></div></div></section>
+    {tab !== "Schedule" && tab !== "Orders" && <section className="od-hero"><div className="od-hero-copy"><span className="od-label">YOUR TRUCK</span><h2>{vendor.name}</h2><p>{vendor.category} · {vendor.location}</p><div className="od-hero-bottom"><Link className="od-button od-button-secondary" to={`/trucks/${vendor.id}`} state={previewState({ from: "workspace", vendorId: vendor.id, tab })}>View customer menu →</Link></div></div></section>}
     {message && <p role="status" className="ow-message">{message}</p>}{error && <p role="alert" className="ow-error">{error}</p>}
     {tab === "Overview" && <section className="ow-panel"><h2>Your workspace is connected</h2><p>Use Menu to add items, edit prices and change availability. Use Truck Details to update this truck’s public profile. Use Schedule to publish, edit and cancel planned stops. Use Orders to review customer orders and manage preparation.</p><p>Revenue and opening-hours controls are not available yet.</p></section>}
     {tab === "Schedule" && <SchedulePanel key={vendor.id} vendorId={vendor.id} />}
     {tab === "Orders" && <OrdersPanel key={vendor.id} vendorId={vendor.id} />}
     {tab === "Truck Details" && <section className="ow-panel"><h2>Truck details</h2><VendorForm key={`${vendor.id}-${vendor.name}-${vendor.category}-${vendor.location}`} initial={vendor} busy={unavailable} onSave={input => mutate(() => saveVendor(input, vendor.id), result => onSaved(result as Vendor))} />{blocked && <p>Refresh trucks to reload your access before retrying.</p>}</section>}
-    {tab === "Menu" && <section className="ow-panel"><div className="ow-toolbar"><h2>Your menu</h2><button className="od-button od-button-primary" disabled={unavailable || menu.kind !== "ready"} onClick={() => setEditor("new")}>Add menu item</button><button disabled={busy} className="od-button od-button-secondary" onClick={() => reload()}>Reload menu</button></div>
-      <p>Active items are available. Inactive and sold-out items appear as unavailable on the current customer menu.</p>
+    {tab === "Menu" && <section className="ow-panel ow-menu-panel"><div className="ow-menu-heading"><div><span className="ow-menu-eyebrow">YOUR MENU</span><h2>Menu items</h2><p>Choose what customers can order from your current menu.</p></div><div className="ow-menu-heading-actions"><button className="od-button od-button-primary" disabled={unavailable || menu.kind !== "ready"} onClick={() => setEditor("new")}>Add menu item</button><button disabled={busy} className="od-button od-button-secondary" onClick={() => reload()}>Reload menu</button></div></div>
       {menu.kind === "loading" && <p role="status">Loading menu…</p>}
       {menu.kind === "error" && <p role="alert">{errorText(menu.error)}</p>}
       {menu.kind === "ready" && <>
-        <p>{menu.data.totalElements} menu items</p>
+        <p className="ow-menu-count">{menu.data.totalElements} menu {menu.data.totalElements === 1 ? "item" : "items"}</p>
         {editor !== null && <section className="ow-editor"><h3>{editor === "new" ? "New item" : `Edit ${editor.name}`}</h3><ItemForm key={editor === "new" ? "new" : `${editor.id}-${editor.version}`} initial={editor === "new" ? undefined : editor} busy={unavailable} onSave={(input, status) => mutate(() => editor === "new" ? createMenuItem(vendor.id, { ...input, status }) : editMenuItem(vendor.id, editor.id, { ...input, version: editor.version }), () => reload(editor === "new" ? 0 : page))} /><button disabled={busy} onClick={() => setEditor(null)}>Cancel editing</button></section>}
         {!menu.data.items.length && <p>No items on this page. Add an item or return to the previous page.</p>}
-        {menu.data.items.map(item => <article className="ow-menu-row" key={item.id}><div><h3>{item.name}</h3><p>{item.description}</p><strong>${item.price.toFixed(2)}</strong></div><div className="ow-item-actions"><label>Availability for {item.name}<select value={item.status} disabled={unavailable || editor !== null} onChange={e => { const status = e.target.value as Availability; void mutate(() => changeAvailability(vendor.id, item.id, status, item.version), () => reload()); }}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="SOLD_OUT">Sold out</option></select></label><button disabled={unavailable || editor !== null} onClick={() => setEditor(item)}>Edit {item.name}</button></div></article>)}
+        {menu.data.items.map(item => <article className="ow-menu-row" key={item.id}><div className="ow-menu-item-copy"><div className="ow-menu-name"><h3>{item.name}</h3><span className={`ow-status-badge is-${item.status.toLowerCase()}`}>{availabilityOptions.find(option => option.value === item.status)?.label}</span></div><p>{item.description}</p><strong>${item.price.toFixed(2)}</strong></div><div className="ow-item-actions"><span className="ow-status-label" id={`availability-${item.id}`}>Customer menu status</span><div className="ow-status-buttons" role="group" aria-labelledby={`availability-${item.id}`}>{availabilityOptions.map(option => <button type="button" key={option.value} className={item.status === option.value ? "is-selected" : ""} aria-pressed={item.status === option.value} disabled={unavailable || editor !== null} onClick={() => { if (item.status === option.value) return; void mutate(() => changeAvailability(vendor.id, item.id, option.value, item.version), () => reload()); }}>{option.label}</button>)}</div><button className="ow-edit-item" disabled={unavailable || editor !== null} onClick={() => setEditor(item)}>Edit {item.name}</button></div></article>)}
         <Pager page={menu.data.page} totalPages={menu.data.totalPages} onPage={reload} label="Menu" disabled={busy || editor !== null} />
       </>}
     </section>}

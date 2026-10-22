@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { cartTotal, clearCart, readCart, setCartQuantity } from "../features/cart/cart";
 import "./cart.css";
-import { getCurrentAccount, type Account } from "../services/auth";
+import { useAuth } from "../auth/authState";
 import { createCustomerOrder } from "../services/orders";
 import { PickupLocation } from "../features/orders/PickupLocation";
 import { usePickupStop } from "../features/orders/usePickupStop";
@@ -12,16 +12,10 @@ const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "U
 export default function CartPage() {
   const navigate = useNavigate();
   const [cart, setCart] = useState(readCart);
-  const [account, setAccount] = useState<Account | null>(null);
+  const { account } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState("");
   const stop = usePickupStop(cart?.vendorId);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    getCurrentAccount(controller.signal).then(setAccount, () => {});
-    return () => controller.abort();
-  }, []);
 
   async function placeOrder() {
     if (!cart || submitting || stop.loading || !stop.pickup) return;
@@ -54,11 +48,18 @@ export default function CartPage() {
           </li>)}
         </ul>
         <section className="cart-total"><span>Estimated total</span><strong>{dollars.format(cartTotal(cart))}</strong></section>
-        {stop.loading ? <p role="status">Checking current pickup location…</p>
-          : stop.error ? <p role="alert">{stop.error}</p>
-          : stop.pickup ? <PickupLocation pickup={stop.pickup} />
-          : <p role="status">No active pickup stop. You can keep browsing, but this truck is not accepting orders right now.</p>}
-        <button type="button" disabled={stop.loading || submitting} onClick={stop.refresh}>Refresh pickup details</button>
+        <section className={`cart-pickup ${stop.error ? "is-error" : stop.pickup ? "is-active" : "is-unavailable"}`} aria-label="Pickup availability">
+          {stop.pickup ? <PickupLocation pickup={stop.pickup} /> : <div className="cart-pickup-message">
+            <span className="cart-pickup-icon" aria-hidden="true">{stop.loading ? "…" : stop.error ? "!" : "×"}</span>
+            <div>
+              <p className="cart-pickup-label">Pickup availability</p>
+              {stop.loading ? <p role="status">Checking current pickup location…</p>
+                : stop.error ? <p role="alert">{stop.error}</p>
+                : <p role="status">No active pickup stop. You can keep browsing, but this truck is not accepting orders right now.</p>}
+            </div>
+          </div>}
+          <button className="cart-pickup-refresh" type="button" disabled={stop.loading || submitting} onClick={stop.refresh}>Refresh pickup details</button>
+        </section>
         <p className="cart-note">Your order total is calculated using current menu prices when you place your order. No online payment is collected here.</p>
         {account
           ? <><p className="cart-signed-in">Signed in as {account.displayName}</p>{orderError && <p className="cart-order-error" role="alert">{orderError}</p>}<button className="cart-checkout" type="button" disabled={submitting || stop.loading || !stop.pickup} onClick={placeOrder}>{submitting ? "Placing order…" : "Place pickup order"}</button></>

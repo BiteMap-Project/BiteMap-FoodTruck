@@ -1,10 +1,13 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen, within } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import App from "../../App";
 import OperatorHomePage from "../../pages/OperatorHomePage";
 import TruckMenuPage from "../../pages/TruckMenuPage";
 import { readOwnerReturn, readWorkspaceRestore } from "./ownerReturn";
+import AuthTestHarness from "../../test/AuthTestHarness";
+const render = (ui: ReactElement) => rtlRender(<AuthTestHarness>{ui}</AuthTestHarness>);
 
 const fetchMock = vi.fn();
 const account = { id: 2, displayName: "Owner", email: "owner@example.com", roles: ["ROLE_CUSTOMER", "ROLE_OPERATOR"] };

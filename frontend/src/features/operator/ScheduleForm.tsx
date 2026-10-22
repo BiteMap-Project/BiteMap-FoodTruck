@@ -32,11 +32,13 @@ function datePlus(date: string, days: number) {
 
 export default function ScheduleForm({
   initial,
+  repeat: copyExisting = false,
   busy,
   blocked = false,
   onSave,
 }: {
   initial?: ManagedStop;
+  repeat?: boolean;
   busy: boolean;
   blocked?: boolean;
   onSave: (stop: StopInput, repeat?: RepeatRule) => Promise<void>;
@@ -45,11 +47,17 @@ export default function ScheduleForm({
   const [suggested] = useState(
     () => Math.ceil((Date.now() + 60000) / 900000) * 900000,
   );
+  
   const [start, setStart] = useState(() =>
-    localTime(initial?.startsAt ?? suggested, zone),
+    copyExisting
+      ? ""
+      : localTime(initial?.startsAt ?? suggested, zone),
   );
+
   const [end, setEnd] = useState(() =>
-    localTime(initial?.endsAt ?? suggested + 7200000, zone),
+    copyExisting
+      ? ""
+      : localTime(initial?.endsAt ?? suggested + 7200000, zone),
   );
   const [startChoice, setStartChoice] = useState(
     () =>
@@ -97,17 +105,62 @@ export default function ScheduleForm({
     setError("");
   }
 
+    function copyToDate(date: string) {
+    if (!date || !initial) {
+      changeStart("");
+      changeEnd("");
+      return;
+    }
+
+    const originalStart = localTime(
+      initial.startsAt,
+      initial.timeZone,
+    );
+
+    const originalEnd = localTime(
+      initial.endsAt,
+      initial.timeZone,
+    );
+
+    const dayGap = Math.round(
+      (
+        Date.parse(`${originalEnd.slice(0, 10)}T12:00:00Z`) -
+        Date.parse(`${originalStart.slice(0, 10)}T12:00:00Z`)
+      ) / 86400000,
+    );
+
+    changeStart(`${date}T${originalStart.slice(11)}`);
+    changeEnd(
+      `${datePlus(date, dayGap)}T${originalEnd.slice(11)}`,
+    );
+  }
+
   function chooseDay(offset: number) {
-    const date = datePlus(localTime(Date.now(), zone).slice(0, 10), offset);
+    const date = datePlus(
+      localTime(Date.now(), zone).slice(0, 10),
+      offset,
+    );
+
+    if (copyExisting) {
+      copyToDate(date);
+      return;
+    }
+
     const oldDate = start.slice(0, 10);
     const dayGap = Math.round(
-      (Date.parse(`${end.slice(0, 10)}T12:00Z`) -
-        Date.parse(`${oldDate}T12:00Z`)) /
-        86400000,
+      (
+        Date.parse(`${end.slice(0, 10)}T12:00Z`) -
+        Date.parse(`${oldDate}T12:00Z`)
+      ) / 86400000,
     );
+
     changeStart(`${date}T${start.slice(11) || "11:00"}`);
+
     changeEnd(
-      `${datePlus(date, Number.isFinite(dayGap) ? Math.max(0, dayGap) : 0)}T${end.slice(11) || "13:00"}`,
+      `${datePlus(
+        date,
+        Number.isFinite(dayGap) ? Math.max(0, dayGap) : 0,
+      )}T${end.slice(11) || "13:00"}`,
     );
   }
 
@@ -181,6 +234,27 @@ export default function ScheduleForm({
       onSubmit={submit}
     >
       <fieldset disabled={busy || blocked}>
+                {copyExisting && (
+          <div className="sf-times">
+            <p>
+              Choose a new date to reuse this stop’s location and
+              local hours. The original stop stays unchanged.
+            </p>
+
+            <label>
+              New date
+              <input
+                type="date"
+                required
+                max="2099-12-31"
+                value={start.slice(0, 10)}
+                onChange={(event) =>
+                  copyToDate(event.target.value)
+                }
+              />
+            </label>
+          </div>
+        )}
         <label>
           Venue name
           <input

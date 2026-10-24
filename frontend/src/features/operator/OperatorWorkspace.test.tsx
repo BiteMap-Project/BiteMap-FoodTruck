@@ -109,6 +109,18 @@ it("blocks stale saves until explicit reload and does not retry writes", async (
   await waitFor(() => expect(screen.getByRole("button", { name: "Not on menu" })).toBeEnabled());
 });
 
+it("does not show Saving after a stale edit has finished and requires reload", async () => {
+  await openMenu();
+  fireEvent.click(screen.getByRole("button", { name: "Edit Taco" }));
+  fetchMock.mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "fresh-token" })).mockResolvedValueOnce(response(409));
+  fireEvent.submit(screen.getByRole("form", { name: "Edit menu item" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("changed elsewhere");
+  expect(screen.queryByRole("button", { name: "Saving…" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Save item" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Reload menu" })).toBeEnabled();
+  expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT")).toHaveLength(1);
+});
+
 it("redirects when a write reports an expired session", async () => {
   await openMenu();
   fetchMock.mockResolvedValueOnce(response(401));

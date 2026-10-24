@@ -35,22 +35,40 @@ async function read<T>(path: string, signal?: AbortSignal): Promise<T> {
   return (await checked(await fetch(path, { credentials: "same-origin", headers: { Accept: "application/json" }, signal }))).json();
 }
 
+// Bound the complete mutation, including CSRF and response-body consumption.
+// Aborting a request does not undo a server commit. Never automatically retry.
+async function boundedMutation<T>(action: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30_000);
+  try { return await action(controller.signal); }
+  catch (error) {
+    if (controller.signal.aborted) throw new WorkspaceError(408,
+      "Saving timed out. The change may already have been saved. Reload this page to check before retrying.");
+    if (error instanceof WorkspaceError) throw error;
+    throw new WorkspaceError(0, "Could not confirm the save. Reload this page to check before retrying.");
+  } finally { clearTimeout(timer); }
+}
+
 async function write<T>(path: string, method: string, body: object): Promise<T> {
   // Fetch after login and for every mutation; never persist session/CSRF tokens in localStorage.
-  const csrf = await read<{ headerName: string; token: string }>("/api/auth/csrf");
-  return (await checked(await fetch(path, {
-    method, credentials: "same-origin",
-    headers: { Accept: "application/json", "Content-Type": "application/json", [csrf.headerName]: csrf.token },
-    body: JSON.stringify(body),
-  }))).json();
+  return boundedMutation(async signal => {
+    const csrf = await read<{ headerName: string; token: string }>("/api/auth/csrf", signal);
+    return (await checked(await fetch(path, {
+      method, credentials: "same-origin", signal,
+      headers: { Accept: "application/json", "Content-Type": "application/json", [csrf.headerName]: csrf.token },
+      body: JSON.stringify(body),
+    }))).json();
+  });
 }
 
 async function upload<T>(path: string, body: FormData): Promise<T> {
-  const csrf = await read<{ headerName: string; token: string }>("/api/auth/csrf");
-  return (await checked(await fetch(path, {
-    method: "POST", credentials: "same-origin",
-    headers: { Accept: "application/json", [csrf.headerName]: csrf.token }, body,
-  }))).json();
+  return boundedMutation(async signal => {
+    const csrf = await read<{ headerName: string; token: string }>("/api/auth/csrf", signal);
+    return (await checked(await fetch(path, {
+      method: "POST", credentials: "same-origin", signal,
+      headers: { Accept: "application/json", [csrf.headerName]: csrf.token }, body,
+    }))).json();
+  });
 }
 
 const vendors = "/api/operator/vendors";

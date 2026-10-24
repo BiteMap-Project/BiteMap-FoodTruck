@@ -4,7 +4,7 @@ import type { Availability, MenuDetails, MenuItem, Vendor, VendorInput } from ".
 import { menuImagePresets } from "../menu/menuImages";
 import type { MenuImagePreset } from "../../types/api";
 
-export function VendorForm({ initial, onSave, busy }: { initial?: Vendor; onSave: (input: VendorInput) => Promise<void>; busy: boolean }) {
+export function VendorForm({ initial, onSave, busy, disabled = false }: { initial?: Vendor; onSave: (input: VendorInput) => Promise<void>; busy: boolean; disabled?: boolean }) {
   const [error, setError] = useState("");
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -15,7 +15,7 @@ export function VendorForm({ initial, onSave, busy }: { initial?: Vendor; onSave
     await onSave(input);
   }
   return <form className="ow-form" aria-label={initial ? "Edit truck" : "Create truck"} onSubmit={submit}>
-    <fieldset disabled={busy}><label>Truck name<input name="name" required maxLength={120} defaultValue={initial?.name} /></label>
+    <fieldset disabled={busy || disabled}><label>Truck name<input name="name" required maxLength={120} defaultValue={initial?.name} /></label>
       <label>Cuisine / category<input name="category" required maxLength={80} defaultValue={initial?.category} /></label>
       <label>Location<input name="location" required maxLength={200} defaultValue={initial?.location} /></label>
       {error && <p role="alert">{error}</p>}
@@ -23,7 +23,7 @@ export function VendorForm({ initial, onSave, busy }: { initial?: Vendor; onSave
   </form>;
 }
 
-export function ItemForm({ initial, onSave, busy }: { initial?: MenuItem; onSave: (input: MenuDetails, status: Availability, imageFile: File | null) => Promise<void>; busy: boolean }) {
+export function ItemForm({ initial, onSave, busy, disabled = false }: { initial?: MenuItem; onSave: (input: MenuDetails, status: Availability, imageFile: File | null) => Promise<void>; busy: boolean; disabled?: boolean }) {
   const [error, setError] = useState("");
   const [preset, setPreset] = useState<MenuImagePreset | null>(initial?.hasCustomImage ? null : initial?.imagePreset ?? "GENERIC");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -37,7 +37,7 @@ export function ItemForm({ initial, onSave, busy }: { initial?: MenuItem; onSave
     await onSave({ name, description, price, imagePreset: preset }, (fields.get("status") ?? initial?.status ?? "ACTIVE") as Availability, imageFile);
   }
   return <form className="ow-form" aria-label={initial ? "Edit menu item" : "Add menu item"} onSubmit={submit}>
-    <fieldset disabled={busy}><label>Item name<input name="name" required maxLength={150} defaultValue={initial?.name} /></label>
+    <fieldset disabled={busy || disabled}><label>Item name<input name="name" required maxLength={150} defaultValue={initial?.name} /></label>
       <label>Price (USD)<input name="price" required inputMode="decimal" defaultValue={initial?.price.toFixed(2)} /></label>
       <label>Description<textarea name="description" maxLength={500} defaultValue={initial?.description ?? ""} /></label>
       <fieldset className="ow-image-picker"><legend>Food card image</legend>

@@ -53,6 +53,15 @@ photo fails, the form switches to editing that saved item and tells the owner
 what happened. It does not silently repeat the create request. On ambiguous
 network failure, reload to check before retrying; no write is auto-retried.
 
+Workspace writes now have a 30-second deadline per operation, including CSRF
+lookup and reading the response body. The details save and photo upload are
+separate operations, each with this limit. A timeout does not roll back the server.
+After a timeout or unconfirmed network response, menu editing is blocked until
+the owner explicitly reloads the menu. The reload button remains usable, and
+the UI does not automatically retry or claim that the photo failed to save.
+The form's disabled state is separate from its in-flight state: a rejected,
+stale or timed-out save must not continue displaying `Saving…`.
+
 Existing photos are not rewritten or deleted. Old corrupt images may still fail
 to render, but now have a fallback; replace them through the validated endpoint.
 
@@ -69,3 +78,10 @@ The browser suite uses the existing randomly named disposable Docker stack:
 it submits an invalid photo, retries the same item with a real WebP, verifies
 JPEG delivery/rendering, and verifies owner/customer fallbacks. Application
 volumes and real customer data are never used by these tests.
+
+For a local reproduction with a specific photo, run
+`BITEMAP_E2E_PHOTO=/absolute/path/to/photo.jpg npm run test:e2e` from frontend.
+This uploads the file only into the disposable test stack, not your application
+database. Without the variable, CI uses the built-in WebP fixture. The browser
+test also withholds an upload response after the server commits and checks
+timeout recovery, explicit reload, and the absence of duplicate items.

@@ -1,6 +1,5 @@
 package com.Bitemap.Backend.menu;
 
-import java.util.concurrent.TimeUnit;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,7 +19,8 @@ public class PublicMenuImageController {
         var item = items.findByIdAndVendorId(itemId, vendorId).orElseThrow(MenuNotFoundException::new);
         if (!item.hasCustomImage()) throw new MenuNotFoundException();
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(5, TimeUnit.MINUTES).cachePublic())
+                .cacheControl(CacheControl.noCache().cachePublic())
+                .eTag(org.springframework.util.DigestUtils.md5DigestAsHex(item.getImageData()))
                 .header("Content-Type", item.getImageMediaType())
                 .body(item.getImageData());
     }

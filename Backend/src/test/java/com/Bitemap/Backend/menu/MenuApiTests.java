@@ -66,17 +66,43 @@ class MenuApiTests {
     }
 
     @Test
+    void rejectsForgedImageContentWithoutChangingMenu() throws Exception {
+        long item = item(vendor);
+        var fake = new MockMultipartFile("file", "plate.png", "image/png", new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47});
+        mvc.perform(multipart(root(vendor) + "/" + item + "/image").file(fake).param("version", "0")
+                .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()))
+                .andExpect(status().isBadRequest()).andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+        assertThat(jdbc.queryForObject("SELECT version FROM vendor_menu_items WHERE id=?", Long.class, item)).isZero();
+        assertThat(jdbc.queryForObject("SELECT image_data IS NULL FROM vendor_menu_items WHERE id=?", Boolean.class, item)).isTrue();
+    }
+
+    @Test
+    void publicMissingPhotoReturnsNotFound() throws Exception {
+        long item = item(vendor);
+        for (long id : new long[] {item, Long.MAX_VALUE}) {
+            mvc.perform(get("/api/vendors/" + vendor + "/menu-items/" + id + "/image"))
+                    .andExpect(status().isNotFound()).andExpect(content().contentTypeCompatibleWith("application/problem+json"));
+        }
+    }
+
+    @Test
     void ownerCanUploadAndPublicCanReadMenuPhoto() throws Exception {
         long item = item(vendor);
-        byte[] image = new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47};
+        byte[] image = MenuImageNormalizerTests.picture("png", 4, 3);
         var file = new MockMultipartFile("file", "plate.png", "image/png", image);
         mvc.perform(multipart(root(vendor) + "/" + item + "/image").file(file).param("version", "0")
                 .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.hasCustomImage").value(true))
                 .andExpect(jsonPath("$.version").value(1));
-        mvc.perform(get("/api/vendors/" + vendor + "/menu-items/" + item + "/image"))
-                .andExpect(status().isOk()).andExpect(header().string("Content-Type", "image/png"))
-                .andExpect(content().bytes(image));
+        var result = mvc.perform(get("/api/vendors/" + vendor + "/menu-items/" + item + "/image"))
+                .andExpect(status().isOk()).andExpect(header().string("Content-Type", "image/jpeg"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff")).andReturn();
+        var decoded = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(result.getResponse().getContentAsByteArray()));
+        assertThat(decoded.getWidth()).isEqualTo(4);
+        assertThat(decoded.getHeight()).isEqualTo(3);
+        mvc.perform(multipart(root(vendor) + "/" + item + "/image").file(file).param("version", "0")
+                .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()))
+                .andExpect(status().isConflict());
     }
 
     @Test
@@ -94,6 +120,16 @@ class MenuApiTests {
         mvc.perform(multipart(root(foreign) + "/" + item + "/image").file(image).param("version", "0")
                 .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()))
                 .andExpect(status().isNotFound());
+        var valid = new MockMultipartFile("file", "photo.png", "image/png", MenuImageNormalizerTests.picture("png", 2, 2));
+        mvc.perform(multipart(root(vendor) + "/" + item + "/image").file(valid).param("version", "0")
+                .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))).andExpect(status().isForbidden());
+        mvc.perform(multipart(root(vendor) + "/" + item + "/image").file(valid).param("version", "0").with(csrf()))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(multipart(root(vendor) + "/" + item + "/image").file(valid).param("version", "0")
+                .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("CUSTOMER")).with(csrf())).andExpect(status().isForbidden());
+        mvc.perform(multipart(root(vendor) + "/" + item + "/image").file(valid).param("version", "-1")
+                .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf())).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/vendors/" + foreign + "/menu-items/" + item + "/image")).andExpect(status().isNotFound());
     }
 
     @Test

@@ -7,6 +7,7 @@ import { addCartItem, cartItemCount, readCart } from "../features/cart/cart";
 import FavoriteButton from "../features/favorites/FavoriteButton";
 import { ownerBackLink, readOwnerReturn } from "../features/operator/ownerReturn";
 import { presetArtwork } from "../features/menu/menuImages";
+import MenuPhoto from "../features/menu/MenuPhoto";
 
 type Result =
   | { status: "loading"; id: string }
@@ -154,7 +155,7 @@ function TruckMenuPage() {
                 {current.truck.menu.map((item) => (
                   <li key={item.id}>
                     <div className={`menu-item-art menu-item-art-${menuArtwork(item.name, item.imagePreset).tone}`} role="img" aria-label={`${item.name} image`}>
-                      {item.hasCustomImage ? <img src={`/api/vendors/${current.truck.id}/menu-items/${item.id}/image`} alt="" /> : <span aria-hidden="true">{menuArtwork(item.name, item.imagePreset).icon}</span>}
+                      <MenuPhoto src={item.hasCustomImage ? `/api/vendors/${current.truck.id}/menu-items/${item.id}/image` : undefined} fallback={menuArtwork(item.name, item.imagePreset).icon} />
                     </div>
                     <div className="menu-item-content">
                       <div className="menu-item-heading">

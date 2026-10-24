@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { OperatorAccount } from "../../services/auth";
 import { listOwnedVendors, listMenu, saveVendor, createMenuItem, editMenuItem, changeAvailability, uploadMenuImage, WorkspaceError, type Vendor, type MenuItem, type Page, type Availability } from "../../services/operatorWorkspace";
 import { presetArtwork } from "../menu/menuImages";
+import MenuPhoto from "../menu/MenuPhoto";
 import { ItemForm, VendorForm } from "./WorkspaceForms";
 import SchedulePanel from "./SchedulePanel";
 import OrdersPanel from "./OrdersPanel";
@@ -163,10 +164,18 @@ function VendorWorkspace({ vendor, tab, onSaved }: { vendor: Vendor; tab: Tab; o
         <p className="ow-menu-count">{menu.data.totalElements} menu {menu.data.totalElements === 1 ? "item" : "items"}</p>
         {editor !== null && <section className="ow-editor"><h3>{editor === "new" ? "New item" : `Edit ${editor.name}`}</h3><ItemForm key={editor === "new" ? "new" : `${editor.id}-${editor.version}`} initial={editor === "new" ? undefined : editor} busy={unavailable} onSave={(input, status, imageFile) => mutate(async () => {
           const saved = editor === "new" ? await createMenuItem(vendor.id, { ...input, imagePreset: input.imagePreset ?? "GENERIC", status }) : await editMenuItem(vendor.id, editor.id, { ...input, version: editor.version });
-          return imageFile ? uploadMenuImage(vendor.id, saved.id, saved.version, imageFile) : saved;
+          if (!imageFile) return saved;
+          try { return await uploadMenuImage(vendor.id, saved.id, saved.version, imageFile); }
+          catch (error) {
+            // The details POST/PUT already committed. Retrying must edit that item,
+            // not create a duplicate or reuse its stale pre-save version.
+            if (mounted.current) setEditor(saved);
+            throw new WorkspaceError(error instanceof WorkspaceError ? error.status : 503,
+              `Item details were saved, but the photo was not confirmed. Reload the menu to check before retrying. ${errorText(error)}`);
+          }
         }, () => reload(editor === "new" ? 0 : page))} /><button disabled={busy} onClick={() => setEditor(null)}>Cancel editing</button></section>}
         {!menu.data.items.length && <p>No items on this page. Add an item or return to the previous page.</p>}
-        {menu.data.items.map(item => <article className="ow-menu-row" key={item.id}><div className="ow-menu-thumbnail">{item.hasCustomImage ? <img src={`/api/vendors/${vendor.id}/menu-items/${item.id}/image?v=${item.version}`} alt="" /> : <span aria-hidden="true">{presetArtwork(item.imagePreset).icon}</span>}</div><div className="ow-menu-item-copy"><div className="ow-menu-name"><h3>{item.name}</h3><span className={`ow-status-badge is-${item.status.toLowerCase()}`}>{availabilityOptions.find(option => option.value === item.status)?.label}</span></div><p>{item.description}</p><strong>${item.price.toFixed(2)}</strong></div><div className="ow-item-actions"><span className="ow-status-label" id={`availability-${item.id}`}>Customer menu status</span><div className="ow-status-buttons" role="group" aria-labelledby={`availability-${item.id}`}>{availabilityOptions.map(option => <button type="button" key={option.value} className={item.status === option.value ? "is-selected" : ""} aria-pressed={item.status === option.value} disabled={unavailable || editor !== null} onClick={() => { if (item.status === option.value) return; void mutate(() => changeAvailability(vendor.id, item.id, option.value, item.version), () => reload()); }}>{option.label}</button>)}</div><button className="ow-edit-item" disabled={unavailable || editor !== null} onClick={() => setEditor(item)}>Edit {item.name}</button></div></article>)}
+        {menu.data.items.map(item => <article className="ow-menu-row" key={item.id}><div className="ow-menu-thumbnail"><MenuPhoto src={item.hasCustomImage ? `/api/vendors/${vendor.id}/menu-items/${item.id}/image?v=${item.version}` : undefined} fallback={presetArtwork(item.imagePreset).icon} /></div><div className="ow-menu-item-copy"><div className="ow-menu-name"><h3>{item.name}</h3><span className={`ow-status-badge is-${item.status.toLowerCase()}`}>{availabilityOptions.find(option => option.value === item.status)?.label}</span></div><p>{item.description}</p><strong>${item.price.toFixed(2)}</strong></div><div className="ow-item-actions"><span className="ow-status-label" id={`availability-${item.id}`}>Customer menu status</span><div className="ow-status-buttons" role="group" aria-labelledby={`availability-${item.id}`}>{availabilityOptions.map(option => <button type="button" key={option.value} className={item.status === option.value ? "is-selected" : ""} aria-pressed={item.status === option.value} disabled={unavailable || editor !== null} onClick={() => { if (item.status === option.value) return; void mutate(() => changeAvailability(vendor.id, item.id, option.value, item.version), () => reload()); }}>{option.label}</button>)}</div><button className="ow-edit-item" disabled={unavailable || editor !== null} onClick={() => setEditor(item)}>Edit {item.name}</button></div></article>)}
         <Pager page={menu.data.page} totalPages={menu.data.totalPages} onPage={reload} label="Menu" disabled={busy || editor !== null} />
       </>}
     </section>}

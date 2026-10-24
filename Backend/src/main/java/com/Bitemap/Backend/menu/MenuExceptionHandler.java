@@ -16,8 +16,22 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(assignableTypes = MenuController.class)
+@RestControllerAdvice(assignableTypes = {MenuController.class, PublicMenuImageController.class})
 public class MenuExceptionHandler {
+    @ExceptionHandler(InvalidMenuImageException.class)
+    org.springframework.http.ResponseEntity<ProblemDetail> invalidImage(InvalidMenuImageException error) {
+        return org.springframework.http.ResponseEntity.badRequest().cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, error.getMessage()));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    ProblemDetail tooLarge() { return ProblemDetail.forStatusAndDetail(HttpStatus.PAYLOAD_TOO_LARGE, "Choose an image no larger than 2 MB."); }
+
+    @ExceptionHandler(MenuImageNormalizer.ImageProcessingBusyException.class)
+    org.springframework.http.ResponseEntity<ProblemDetail> imageBusy() {
+        return org.springframework.http.ResponseEntity.status(503).header("Retry-After", "3").cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "Photo processing is busy. Please try again shortly."));
+    }
     @ExceptionHandler(MenuNotFoundException.class)
     ProblemDetail notFound() { return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Menu resource not found."); }
 

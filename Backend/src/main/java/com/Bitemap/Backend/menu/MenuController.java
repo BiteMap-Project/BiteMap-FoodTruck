@@ -73,16 +73,11 @@ public class MenuController {
     @Operation(summary = "Upload a JPEG, PNG or WebP menu photo up to 2 MB")
     @SecurityRequirement(name = "csrfToken")
     public ResponseEntity<MenuItemResponse> uploadImage(Authentication auth, @PathVariable long vendorId,
-            @PathVariable long itemId, @RequestParam long version, @RequestPart("file") MultipartFile file) throws java.io.IOException {
+            @PathVariable long itemId, @RequestParam @Min(0) long version, @RequestPart("file") MultipartFile file) throws java.io.IOException {
         if (file.isEmpty() || file.getSize() > 2 * 1024 * 1024) {
-            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Choose an image no larger than 2 MB.");
+            throw new InvalidMenuImageException("Choose an image no larger than 2 MB.");
         }
         String type = file.getContentType();
-        if (!java.util.Set.of("image/jpeg", "image/png", "image/webp").contains(type)) {
-            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Use a JPEG, PNG or WebP image.");
-        }
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(service.uploadImage(auth.getName(), vendorId, itemId, version, file.getBytes(), type));
     }

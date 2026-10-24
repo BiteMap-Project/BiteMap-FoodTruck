@@ -41,7 +41,7 @@ export function ItemForm({ initial, onSave, busy }: { initial?: MenuItem; onSave
       <label>Price (USD)<input name="price" required inputMode="decimal" defaultValue={initial?.price.toFixed(2)} /></label>
       <label>Description<textarea name="description" maxLength={500} defaultValue={initial?.description ?? ""} /></label>
       <fieldset className="ow-image-picker"><legend>Food card image</legend>
-        <p>Upload your own photo or choose a BiteMap illustration.</p>
+        <p>Upload a JPEG, PNG or WebP photo (up to 2 MB, 6000 pixels per side, 12 megapixels) or choose an illustration. Animated images are not supported. Photos are resized and saved as JPEG; transparency uses white.</p>
         <label className="ow-upload">Upload a photo<input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => {
           const file = event.target.files?.[0] ?? null;
           if (file && file.size > 2 * 1024 * 1024) { setError("Choose an image no larger than 2 MB."); event.target.value = ""; return; }

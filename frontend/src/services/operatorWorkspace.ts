@@ -20,7 +20,14 @@ async function checked(response: Response): Promise<Response> {
     403: "Request denied. Refresh your session before trying again.",
     404: "This vendor or menu item is no longer available to your account.",
     409: "This item changed elsewhere. Reload the menu before editing again.",
+    413: "Choose an image no larger than 2 MB.",
   };
+  if ([400, 413].includes(response.status)) {
+    try {
+      const body = await response.json();
+      if (typeof body.detail === "string" && body.detail.length <= 300) throw new WorkspaceError(response.status, body.detail);
+    } catch (error) { if (error instanceof WorkspaceError) throw error; }
+  }
   throw new WorkspaceError(response.status, messages[response.status] ?? "The server is unavailable. Try again later.");
 }
 

@@ -5,6 +5,63 @@ import { fileURLToPath } from "node:url";
 
 const baseURL = "http://127.0.0.1:15173";
 const password = "E2e-Disposable-Only-93!";
+
+test("menu photos validate real bytes, normalize uploads and fall back in owner/customer browsers", async ({ browser }, testInfo) => {
+  const owner = await browser.newContext({ baseURL });
+  const customer = await browser.newContext({ baseURL });
+  try {
+    const email = `photo-${randomUUID()}@example.test`;
+    expect((await write(owner.request, "/api/auth/register", { displayName: "Photo Owner", email, password })).status()).toBe(201);
+    sql(`INSERT INTO app_user_roles(user_id,role) SELECT id,'OPERATOR' FROM app_users WHERE email='${email}';
+      INSERT INTO operators(user_id) SELECT id FROM app_users WHERE email='${email}';`);
+    const page = await owner.newPage();
+    await login(page, email, true);
+    const created = await write(owner.request, "/api/operator/vendors", { name: "Photo Test Truck", category: "Tacos", location: "CSUN" });
+    expect(created.status()).toBe(201);
+    const vendor = await created.json();
+    await page.goto(`/operator/vendors/${vendor.id}/menu`);
+    await page.getByRole("button", { name: "Add menu item", exact: true }).click();
+    await page.getByLabel("Item name", { exact: true }).fill("Photo Taco");
+    await page.getByLabel("Price (USD)").fill("4.50");
+    await page.getByLabel("Upload a photo").setInputFiles({ name: "fake.png", mimeType: "image/png", buffer: Buffer.from("not an image") });
+    await page.getByRole("button", { name: "Add item", exact: true }).click();
+    await expect(page.getByRole("alert")).toContainText("Item details were saved");
+    await expect(page.getByRole("alert")).toContainText("valid, non-animated");
+    await expect(page.getByRole("form", { name: "Edit menu item" })).toBeVisible();
+    // Retry the already-created item with a real 1x1 lossless WebP, not another POST.
+    await page.getByLabel("Upload a photo").setInputFiles({ name: "dish.webp", mimeType: "image/webp",
+      buffer: Buffer.from("UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==", "base64") });
+    await page.getByRole("button", { name: "Save item", exact: true }).click();
+    await expect(page.getByText("Saved to BiteMap.", { exact: true })).toBeVisible();
+    const listed = await (await owner.request.get(`/api/operator/vendors/${vendor.id}/menu-items`)).json();
+    expect(listed.totalElements).toBe(1);
+    const item = listed.items[0];
+    const photoPath = `/api/vendors/${vendor.id}/menu-items/${item.id}/image`;
+    const photo = await customer.request.get(photoPath);
+    expect(photo.status()).toBe(200);
+    expect(photo.headers()["content-type"]).toBe("image/jpeg");
+    expect(photo.headers()["x-content-type-options"]).toBe("nosniff");
+    const ownerCard = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Photo Taco", exact: true }) });
+    await expect.poll(() => ownerCard.locator("img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(1);
+    await page.screenshot({ path: testInfo.outputPath("owner-valid-photo.png"), fullPage: true });
+    const publicPage = await customer.newPage();
+    await publicPage.goto(`/trucks/${vendor.id}`);
+    const publicCard = publicPage.getByRole("listitem").filter({ has: publicPage.getByRole("heading", { name: "Photo Taco", exact: true }) });
+    await publicCard.scrollIntoViewIfNeeded();
+    await expect.poll(() => publicCard.locator("img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(1);
+    const missing = await customer.request.get(`/api/vendors/${vendor.id}/menu-items/9223372036854775807/image`);
+    expect(missing.status()).toBe(404);
+    expect((await missing.json()).status).toBe(404);
+    // Simulate a lost/deleted photo while retaining the API's hasCustomImage flag.
+    for (const target of [page, publicPage]) {
+      await target.route(`**${photoPath}*`, route => route.fulfill({ status: 404, contentType: "application/problem+json", body: '{"status":404}' }));
+      await target.reload();
+      if (target === publicPage) await publicCard.scrollIntoViewIfNeeded();
+      await expect(target.getByTestId("menu-photo-fallback")).toBeVisible();
+      await target.screenshot({ path: testInfo.outputPath(target === page ? "owner-photo-fallback.png" : "customer-photo-fallback.png"), fullPage: true });
+    }
+  } finally { await owner.close(); await customer.close(); }
+});
 const root = fileURLToPath(new URL("../../", import.meta.url));
 
 function sql(statement: string) {

@@ -17,8 +17,9 @@ import org.springframework.validation.annotation.Validated;
 @Transactional
 public class MenuService {
     private final MenuItemRepository items;
+    private final MenuImageNormalizer images;
 
-    public MenuService(MenuItemRepository items) { this.items = items; }
+    public MenuService(MenuItemRepository items, MenuImageNormalizer images) { this.items = items; this.images = images; }
 
     public MenuItemResponse create(String operatorEmail, long vendorId, @NotNull @Valid CreateMenuItemRequest request) {
         requireOwner(operatorEmail, vendorId);
@@ -64,7 +65,7 @@ public class MenuService {
         requireOwner(operatorEmail, vendorId);
         var item = findItem(vendorId, itemId);
         requireVersion(item, version);
-        item.uploadImage(data, mediaType);
+        item.uploadImage(images.normalize(data, mediaType), "image/jpeg");
         items.flush();
         return MenuItemResponse.from(item);
     }

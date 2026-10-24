@@ -30,6 +30,12 @@
 		<java.version>21</java.version>
 	</properties>
 	<dependencies>
+        <!-- Pure-Java WebP reader; JPEG/PNG decoding and JPEG output use the JDK. -->
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-webp</artifactId>
+            <version>3.15.0</version>
+        </dependency>
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>

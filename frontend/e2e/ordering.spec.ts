@@ -2,6 +2,7 @@ import { test, expect, type APIRequestContext, type Page } from "@playwright/tes
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 
 const baseURL = "http://127.0.0.1:15173";
 const password = "E2e-Disposable-Only-93!";
@@ -28,9 +29,11 @@ test("menu photos validate real bytes, normalize uploads and fall back in owner/
     await expect(page.getByRole("alert")).toContainText("Item details were saved");
     await expect(page.getByRole("alert")).toContainText("valid, non-animated");
     await expect(page.getByRole("form", { name: "Edit menu item" })).toBeVisible();
-    // Retry the already-created item with a real 1x1 lossless WebP, not another POST.
-    await page.getByLabel("Upload a photo").setInputFiles({ name: "dish.webp", mimeType: "image/webp",
-      buffer: Buffer.from("UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==", "base64") });
+    // Optional local reproduction file is uploaded only to this disposable stack.
+    // CI uses a self-contained real WebP fixture, never a developer's private file.
+    const validPhoto = process.env.BITEMAP_E2E_PHOTO || { name: "dish.webp", mimeType: "image/webp",
+      buffer: Buffer.from("UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==", "base64") };
+    await page.getByLabel("Upload a photo").setInputFiles(validPhoto);
     await page.getByRole("button", { name: "Save item", exact: true }).click();
     await expect(page.getByText("Saved to BiteMap.", { exact: true })).toBeVisible();
     const listed = await (await owner.request.get(`/api/operator/vendors/${vendor.id}/menu-items`)).json();
@@ -42,13 +45,47 @@ test("menu photos validate real bytes, normalize uploads and fall back in owner/
     expect(photo.headers()["content-type"]).toBe("image/jpeg");
     expect(photo.headers()["x-content-type-options"]).toBe("nosniff");
     const ownerCard = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Photo Taco", exact: true }) });
-    await expect.poll(() => ownerCard.locator("img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(1);
+    await expect.poll(() => ownerCard.locator("img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
     await page.screenshot({ path: testInfo.outputPath("owner-valid-photo.png"), fullPage: true });
     const publicPage = await customer.newPage();
     await publicPage.goto(`/trucks/${vendor.id}`);
     const publicCard = publicPage.getByRole("listitem").filter({ has: publicPage.getByRole("heading", { name: "Photo Taco", exact: true }) });
     await publicCard.scrollIntoViewIfNeeded();
-    await expect.poll(() => publicCard.locator("img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(1);
+    await expect.poll(() => publicCard.locator("img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+    await publicPage.screenshot({ path: testInfo.outputPath("customer-valid-photo.png"), fullPage: true });
+    // Lose the upload response AFTER the server commits. The UI must stop waiting,
+    // require a reload, and never blindly retry or create a second menu item.
+    await page.getByRole("button", { name: "Edit Photo Taco", exact: true }).click();
+    await page.getByLabel("Upload a photo").setInputFiles(validPhoto);
+    let releaseResponse!: () => void;
+    const delayedResponse = new Promise<void>(resolve => { releaseResponse = resolve; });
+    let uploads = 0;
+    await page.route(`**/api/operator/vendors/${vendor.id}/menu-items/${item.id}/image?*`, async route => {
+      uploads++;
+      // Chromium interception can omit file bytes from multipart postData.
+      // Replay the exact fixture through the context's real API client instead.
+      const committed = await owner.request.post(route.request().url(), {
+        headers: { "X-CSRF-TOKEN": route.request().headers()["x-csrf-token"] },
+        multipart: { file: typeof validPhoto === "string"
+          ? { name: "photo.jpg", mimeType: "image/jpeg", buffer: readFileSync(validPhoto) }
+          : validPhoto },
+      });
+      expect(committed.status()).toBe(200);
+      await delayedResponse;
+      await route.fulfill({ response: committed }).catch(() => {}); // Client may have aborted.
+    }, { times: 1 });
+    try {
+      await page.getByRole("button", { name: "Save item", exact: true }).click();
+      await expect(page.getByRole("alert")).toContainText("Saving timed out", { timeout: 40_000 });
+      await expect(page.getByRole("button", { name: "Save item", exact: true })).toBeDisabled();
+      await expect(page.getByRole("button", { name: "Reload menu", exact: true })).toBeEnabled();
+      expect(uploads).toBe(1);
+      await page.screenshot({ path: testInfo.outputPath("upload-timeout-recovery.png"), fullPage: true });
+    } finally { releaseResponse(); }
+    await page.getByRole("button", { name: "Reload menu", exact: true }).click();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Photo Taco", exact: true })).toBeVisible();
+    expect((await (await owner.request.get(`/api/operator/vendors/${vendor.id}/menu-items`)).json()).totalElements).toBe(1);
     const missing = await customer.request.get(`/api/vendors/${vendor.id}/menu-items/9223372036854775807/image`);
     expect(missing.status()).toBe(404);
     expect((await missing.json()).status).toBe(404);

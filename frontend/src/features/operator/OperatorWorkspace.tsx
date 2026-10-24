@@ -146,7 +146,7 @@ function VendorWorkspace({ vendor, tab, onSaved }: { vendor: Vendor; tab: Tab; o
     catch (e) {
       if (!mounted.current) return;
       if (e instanceof WorkspaceError && e.status === 401) navigate("/operator/login", { replace: true });
-      else { setError(errorText(e)); if (e instanceof WorkspaceError && [403, 404, 409].includes(e.status)) setBlocked(true); }
+      else { setError(errorText(e)); if (e instanceof WorkspaceError && [0, 403, 404, 408, 409].includes(e.status)) setBlocked(true); }
     } finally { lock.current = false; if (mounted.current) setBusy(false); }
   }
   const unavailable = busy || blocked;
@@ -156,13 +156,13 @@ function VendorWorkspace({ vendor, tab, onSaved }: { vendor: Vendor; tab: Tab; o
     {tab === "Overview" && <section className="ow-panel"><h2>Your workspace is connected</h2><p>Use Menu to add items, edit prices and change availability. Use Truck Details to update this truck’s public profile. Use Schedule to publish, edit and cancel planned stops. Use Orders to review customer orders and manage preparation.</p><p>Revenue and opening-hours controls are not available yet.</p></section>}
     {tab === "Schedule" && <SchedulePanel key={vendor.id} vendorId={vendor.id} />}
     {tab === "Orders" && <OrdersPanel key={vendor.id} vendorId={vendor.id} />}
-    {tab === "Truck Details" && <section className="ow-panel"><h2>Truck details</h2><VendorForm key={`${vendor.id}-${vendor.name}-${vendor.category}-${vendor.location}`} initial={vendor} busy={unavailable} onSave={input => mutate(() => saveVendor(input, vendor.id), result => onSaved(result as Vendor))} />{blocked && <p>Refresh trucks to reload your access before retrying.</p>}</section>}
+    {tab === "Truck Details" && <section className="ow-panel"><h2>Truck details</h2><VendorForm key={`${vendor.id}-${vendor.name}-${vendor.category}-${vendor.location}`} initial={vendor} busy={busy} disabled={blocked} onSave={input => mutate(() => saveVendor(input, vendor.id), result => onSaved(result as Vendor))} />{blocked && <p>Refresh trucks to reload your access before retrying.</p>}</section>}
     {tab === "Menu" && <section className="ow-panel ow-menu-panel"><div className="ow-menu-heading"><div><span className="ow-menu-eyebrow">YOUR MENU</span><h2>Menu items</h2><p>Choose what customers can order from your current menu.</p></div><div className="ow-menu-heading-actions"><button className="od-button od-button-primary" disabled={unavailable || menu.kind !== "ready"} onClick={() => setEditor("new")}>Add menu item</button><button disabled={busy} className="od-button od-button-secondary" onClick={() => reload()}>Reload menu</button></div></div>
       {menu.kind === "loading" && <p role="status">Loading menu…</p>}
       {menu.kind === "error" && <p role="alert">{errorText(menu.error)}</p>}
       {menu.kind === "ready" && <>
         <p className="ow-menu-count">{menu.data.totalElements} menu {menu.data.totalElements === 1 ? "item" : "items"}</p>
-        {editor !== null && <section className="ow-editor"><h3>{editor === "new" ? "New item" : `Edit ${editor.name}`}</h3><ItemForm key={editor === "new" ? "new" : `${editor.id}-${editor.version}`} initial={editor === "new" ? undefined : editor} busy={unavailable} onSave={(input, status, imageFile) => mutate(async () => {
+        {editor !== null && <section className="ow-editor"><h3>{editor === "new" ? "New item" : `Edit ${editor.name}`}</h3><ItemForm key={editor === "new" ? "new" : `${editor.id}-${editor.version}`} initial={editor === "new" ? undefined : editor} busy={busy} disabled={blocked} onSave={(input, status, imageFile) => mutate(async () => {
           const saved = editor === "new" ? await createMenuItem(vendor.id, { ...input, imagePreset: input.imagePreset ?? "GENERIC", status }) : await editMenuItem(vendor.id, editor.id, { ...input, version: editor.version });
           if (!imageFile) return saved;
           try { return await uploadMenuImage(vendor.id, saved.id, saved.version, imageFile); }

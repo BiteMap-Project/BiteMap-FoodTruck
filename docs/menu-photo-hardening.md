@@ -85,3 +85,21 @@ This uploads the file only into the disposable test stack, not your application
 database. Without the variable, CI uses the built-in WebP fixture. The browser
 test also withholds an upload response after the server commits and checks
 timeout recovery, explicit reload, and the absence of duplicate items.
+
+### File-picker session-refresh regression
+
+Closing a native file picker can trigger window focus. Previously the shared
+session refresh switched to `loading`, causing the route guard to unmount the
+menu editor before Save was clicked. Focus checks now run in the background
+without removing an already-authorized page. A successful check for the same
+account preserves the draft and selected file. Expired sessions, revoked roles,
+and failed session checks still block protected content; switching accounts
+discards the old account's draft. Late checks cannot restore a session after
+logout or a 401 response.
+
+Regression tests cover all three shared route guards. The real-browser photo
+test opens the file chooser and explicitly simulates focus both before and after
+file selection, with a delayed real `/api/auth/me` response. This covers the
+lifecycle missed by the original `setInputFiles`-only test. Native macOS dialog
+behavior should also be checked manually: Edit item → choose photo → confirm the
+editor and filename remain visible → Save item → confirm the rendered photo.

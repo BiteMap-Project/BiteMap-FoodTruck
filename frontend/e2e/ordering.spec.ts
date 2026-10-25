@@ -33,7 +33,39 @@ test("menu photos validate real bytes, normalize uploads and fall back in owner/
     // CI uses a self-contained real WebP fixture, never a developer's private file.
     const validPhoto = process.env.BITEMAP_E2E_PHOTO || { name: "dish.webp", mimeType: "image/webp",
       buffer: Buffer.from("UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==", "base64") };
-    await page.getByLabel("Upload a photo").setInputFiles(validPhoto);
+    // File-dialog close can deliver focus before or after the input change.
+    // Exercise both orders: setInputFiles alone never tested this lifecycle.
+    for (const focusFirst of [true, false]) {
+      let releaseSession!: () => void;
+      let sessionStarted!: () => void;
+      const sessionGate = new Promise<void>(resolve => { releaseSession = resolve; });
+      const started = new Promise<void>(resolve => { sessionStarted = resolve; });
+      await page.route("**/api/auth/me", async route => {
+        sessionStarted();
+        await sessionGate;
+        await route.continue(); // Real session response; no mocked authorization.
+      }, { times: 1 });
+      const input = page.getByLabel("Upload a photo");
+      await input.evaluate(node => node.setAttribute("data-picker-draft", "original"));
+      const chooserEvent = page.waitForEvent("filechooser");
+      await input.click();
+      const chooser = await chooserEvent;
+      try {
+        if (!focusFirst) await chooser.setFiles(validPhoto);
+        await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+        await started;
+        await expect(page.getByRole("form", { name: "Edit menu item" })).toBeVisible();
+        await expect(input).toHaveAttribute("data-picker-draft", "original");
+        if (focusFirst) await chooser.setFiles(validPhoto);
+        await expect.poll(() => input.evaluate((node: HTMLInputElement) => node.files?.length)).toBe(1);
+        const checked = page.waitForResponse(response => response.url().endsWith("/api/auth/me"));
+        releaseSession();
+        expect((await checked).status()).toBe(200);
+        await expect(page.getByLabel("Item name", { exact: true })).toHaveValue("Photo Taco");
+        await expect(input).toHaveAttribute("data-picker-draft", "original");
+      } finally { releaseSession(); }
+    }
+    await page.screenshot({ path: testInfo.outputPath("photo-picker-draft-retained.png"), fullPage: true });
     await page.getByRole("button", { name: "Save item", exact: true }).click();
     await expect(page.getByText("Saved to BiteMap.", { exact: true })).toBeVisible();
     const listed = await (await owner.request.get(`/api/operator/vendors/${vendor.id}/menu-items`)).json();

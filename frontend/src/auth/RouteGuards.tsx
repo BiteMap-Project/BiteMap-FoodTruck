@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { ErrorState, LoadingState } from "../components/StatusViews";
 import { hasRole } from "../services/auth";
@@ -18,7 +18,8 @@ function GuardState({ children, role }: { children: ReactNode; role: "ROLE_OPERA
     if (role === "ROLE_OPERATOR") return <Navigate to="/operator/onboarding" replace />;
     return <main><section role="alert"><h1>Administrator access required</h1><p>This account cannot review owner applications.</p><Link to="/trucks">Return to BiteMap</Link></section></main>;
   }
-  return children;
+  // Preserve drafts for the same account, never carry them into another account.
+  return <Fragment key={account.id}>{children}</Fragment>;
 }
 
 /** Any signed-in account (customer, owner or admin). Guests go to customer sign-in and come back. */
@@ -28,7 +29,7 @@ export function RequireAccount({ children }: { children: ReactNode }) {
   if (status === "loading") return <main><LoadingState label="Checking your session…" /></main>;
   if (status === "error") return <main><ErrorState message={error} onRetry={() => void refreshAccount().catch(() => undefined)} /></main>;
   if (!account) return <Navigate to="/customer/login" replace state={{ returnTo: location.pathname }} />;
-  return children;
+  return <Fragment key={account.id}>{children}</Fragment>;
 }
 
 export const RequireOperator = ({ children }: { children: ReactNode }) => <GuardState role="ROLE_OPERATOR">{children}</GuardState>;

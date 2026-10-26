@@ -1,5 +1,7 @@
 package com.Bitemap.Backend.auth;
 
+import com.Bitemap.Backend.auth.limit.AuthenticationRateLimiter;
+import com.Bitemap.Backend.auth.limit.ClientAddressResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -22,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 public class SessionController {
+    private final AuthenticationRateLimiter limiter;
+    private final ClientAddressResolver addresses;
 	private final AuthenticationManager authenticationManager;
 	private final AccountDetailsService accounts;
 	private final SecurityContextRepository contexts;
@@ -31,7 +35,10 @@ public class SessionController {
 
 	public SessionController(AuthenticationManager authenticationManager, AccountDetailsService accounts,
 			SecurityContextRepository contexts, SessionAuthenticationStrategy sessions, CsrfTokenRepository csrf,
-            AccountService onboarding) {
+            AccountService onboarding, AuthenticationRateLimiter limiter,
+            ClientAddressResolver addresses) {
+        this.limiter = limiter;
+        this.addresses = addresses;
         this.onboarding = onboarding;
 		this.authenticationManager = authenticationManager;
 		this.accounts = accounts;
@@ -46,6 +53,7 @@ public class SessionController {
 	@PostMapping("/login")
 	ResponseEntity<AccountResponse> login(@Valid @RequestBody LoginRequest body,
 			HttpServletRequest request, HttpServletResponse response) {
+		limiter.login(addresses.resolve(request), body.email());
 		var authentication = authenticationManager.authenticate(
 				UsernamePasswordAuthenticationToken.unauthenticated(body.email(), body.password()));
 		var account = accounts.account(authentication.getName());

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthApiError, hasRole } from "../services/auth";
 import PasswordInput from "../components/PasswordInput";
 import { useAuth } from "../auth/authState";
+import { useAuthCooldown } from "../auth/useAuthCooldown";
 import { workspaceRoute } from "../features/operator/ownerReturn";
 import "./operator-auth.css";
 
@@ -19,6 +20,7 @@ function OperatorLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { seconds, handleRateLimit } = useAuthCooldown();
 
   useEffect(() => {
     if (account) navigate(hasRole(account, "ROLE_OPERATOR") ? returnTo : "/operator/onboarding", { replace: true });
@@ -26,12 +28,14 @@ function OperatorLoginPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting || seconds > 0) return;
     setError("");
     setSubmitting(true);
     try {
       const current = await signIn(email, password);
       navigate(hasRole(current, "ROLE_OPERATOR") ? returnTo : "/operator/onboarding", { replace: true });
     } catch (cause) {
+      handleRateLimit(cause);
       setError(cause instanceof AuthApiError ? cause.message : "Unable to sign in. Please try again.");
     } finally {
       setSubmitting(false);
@@ -73,8 +77,8 @@ function OperatorLoginPage() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
-          <button type="submit" disabled={submitting}>
-            {submitting ? "Signing in…" : "Sign in"}
+          <button type="submit" disabled={submitting || seconds > 0}>
+            {seconds > 0 ? `Try again in ${seconds}s` : submitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
         <p className="auth-switch">New to BiteMap? <Link to="/operator/register">Create an account</Link></p>

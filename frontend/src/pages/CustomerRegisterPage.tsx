@@ -2,6 +2,7 @@ import { type FormEvent, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import PasswordInput from "../components/PasswordInput";
 import { AuthApiError, registerAccount } from "../services/auth";
+import { useAuthCooldown } from "../auth/useAuthCooldown";
 import "./operator-auth.css";
 
 export default function CustomerRegisterPage() {
@@ -16,9 +17,11 @@ export default function CustomerRegisterPage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const { seconds, handleRateLimit } = useAuthCooldown();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting || seconds > 0) return;
     setError("");
     setFieldErrors({});
     if (password !== confirmation) { setFieldErrors({ confirmation: "Passwords do not match." }); return; }
@@ -27,6 +30,7 @@ export default function CustomerRegisterPage() {
       const account = await registerAccount(displayName, email, password);
       navigate("/customer/login", { replace: true, state: { registered: true, email: account.email, returnTo } });
     } catch (cause) {
+      handleRateLimit(cause);
       if (cause instanceof AuthApiError) { setError(cause.message); setFieldErrors(cause.fieldErrors); }
       else setError("Unable to create the account. Please try again.");
     } finally { setSubmitting(false); }
@@ -46,7 +50,7 @@ export default function CustomerRegisterPage() {
       <span className="field-hint">Use at least 15 characters.</span>{fieldErrors.password && <span className="field-error">{fieldErrors.password}</span>}
       <label htmlFor="customer-register-confirmation">Confirm password</label><PasswordInput id="customer-register-confirmation" autoComplete="new-password" minLength={15} maxLength={128} required value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
       {fieldErrors.confirmation && <span className="field-error">{fieldErrors.confirmation}</span>}
-      <button type="submit" disabled={submitting}>{submitting ? "Creating account…" : "Create account"}</button>
+      <button type="submit" disabled={submitting || seconds > 0}>{seconds > 0 ? `Try again in ${seconds}s` : submitting ? "Creating account…" : "Create account"}</button>
     </form>
     <p className="auth-switch">Already have a BiteMap account—even as a truck owner? Use the same email and password. <Link to="/customer/login" state={{ returnTo }}>Customer sign in</Link></p>
     <Link className="auth-back" to="/cart">← Return to cart</Link>

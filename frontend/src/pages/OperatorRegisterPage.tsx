@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthApiError, registerOperator } from "../services/auth";
+import { useAuthCooldown } from "../auth/useAuthCooldown";
 import PasswordInput from "../components/PasswordInput";
 import "./operator-auth.css";
 
@@ -13,9 +14,11 @@ function OperatorRegisterPage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const { seconds, handleRateLimit } = useAuthCooldown();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting || seconds > 0) return;
     setError("");
     setFieldErrors({});
     if (password !== confirmation) {
@@ -30,6 +33,7 @@ function OperatorRegisterPage() {
         state: { registered: true, email: account.email },
       });
     } catch (cause) {
+      handleRateLimit(cause);
       if (cause instanceof AuthApiError) {
         setError(cause.message);
         setFieldErrors(cause.fieldErrors);
@@ -103,8 +107,8 @@ function OperatorRegisterPage() {
             <span id="register-confirmation-error" className="field-error">{fieldErrors.confirmation}</span>
           )}
 
-          <button type="submit" disabled={submitting}>
-            {submitting ? "Creating account…" : "Create account"}
+          <button type="submit" disabled={submitting || seconds > 0}>
+            {seconds > 0 ? `Try again in ${seconds}s` : submitting ? "Creating account…" : "Create account"}
           </button>
         </form>
         <p className="auth-switch">Already registered? <Link to="/operator/login">Sign in</Link></p>

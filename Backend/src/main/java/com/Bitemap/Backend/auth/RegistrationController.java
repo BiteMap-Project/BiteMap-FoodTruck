@@ -1,5 +1,8 @@
 package com.Bitemap.Backend.auth;
 
+import com.Bitemap.Backend.auth.limit.AuthenticationRateLimiter;
+import com.Bitemap.Backend.auth.limit.ClientAddressResolver;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import org.springframework.http.CacheControl;
@@ -16,9 +19,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 public class RegistrationController {
 	private final AccountRegistrationService registration;
+    private final AuthenticationRateLimiter limiter;
+    private final ClientAddressResolver addresses;
 
-	public RegistrationController(AccountRegistrationService registration) {
+	public RegistrationController(AccountRegistrationService registration,
+            AuthenticationRateLimiter limiter, ClientAddressResolver addresses) {
 		this.registration = registration;
+        this.limiter = limiter;
+        this.addresses = addresses;
 	}
 
 	@GetMapping("/csrf")
@@ -29,7 +37,8 @@ public class RegistrationController {
 
 	@PostMapping("/register")
 	ResponseEntity<AccountResponse> register(
-			@Valid @RequestBody RegisterAccountRequest request) {
+			@Valid @RequestBody RegisterAccountRequest request, HttpServletRequest servletRequest) {
+        limiter.registration(addresses.resolve(servletRequest));
 		return ResponseEntity.status(HttpStatus.CREATED).cacheControl(CacheControl.noStore())
 				.body(registration.register(request));
 	}

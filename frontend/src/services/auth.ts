@@ -18,17 +18,26 @@ type ProblemResponse = {
 export class AuthApiError extends Error {
   status: number;
   fieldErrors: Record<string, string>;
+  retryAfterSeconds: number | null;
 
-  constructor(status: number, message: string, fieldErrors: Record<string, string> = {}) {
+  constructor(status: number, message: string, fieldErrors: Record<string, string> = {}, retryAfterSeconds: number | null = null) {
     super(message);
     this.name = "AuthApiError";
     this.status = status;
     this.fieldErrors = fieldErrors;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
 async function readProblem(response: Response, fallback: string): Promise<AuthApiError> {
   reportAuthorizationResponse(response.status);
+  const retryAfter = response.headers?.get("Retry-After");
+  const delay = retryAfter && /^\d+$/.test(retryAfter) ? Number(retryAfter) : NaN;
+  const safeDelay = Number.isFinite(delay) && delay > 0 ? Math.min(86400, Math.ceil(delay)) : 60;
+  if (response.status === 429) {
+    // Do not display arbitrary proxy bodies or turn throttling into sign-out.
+    return new AuthApiError(429, "Too many authentication attempts. Please wait before trying again.", {}, safeDelay);
+  }
   try {
     const body = await response.json() as ProblemResponse;
     return new AuthApiError(response.status, body.detail || fallback, body.errors || {});

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import PasswordInput from "../components/PasswordInput";
 import { AuthApiError } from "../services/auth";
 import { useAuth } from "../auth/authState";
+import { useAuthCooldown } from "../auth/useAuthCooldown";
 import "./operator-auth.css";
 
 type LoginState = { registered?: boolean; email?: string; returnTo?: string } | null;
@@ -17,17 +18,20 @@ export default function CustomerLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { seconds, handleRateLimit } = useAuthCooldown();
 
   useEffect(() => { if (account) navigate(returnTo, { replace: true }); }, [account, navigate, returnTo]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting || seconds > 0) return;
     setError("");
     setSubmitting(true);
     try {
       await signIn(email, password);
       navigate(returnTo, { replace: true });
     } catch (cause) {
+      handleRateLimit(cause);
       setError(cause instanceof AuthApiError ? cause.message : "Unable to sign in. Please try again.");
     } finally {
       setSubmitting(false);
@@ -51,7 +55,7 @@ export default function CustomerLoginPage() {
         <input id="customer-login-email" type="email" autoComplete="email" maxLength={320} required value={email} onChange={(event) => setEmail(event.target.value)} />
         <label htmlFor="customer-login-password">Password</label>
         <PasswordInput id="customer-login-password" autoComplete="current-password" maxLength={128} required value={password} onChange={(event) => setPassword(event.target.value)} />
-        <button type="submit" disabled={submitting}>{submitting ? "Signing in…" : returnTo === "/cart" ? "Sign in and return to cart" : returnTo === "/trucks" ? "Sign in and browse trucks" : "Sign in and continue"}</button>
+        <button type="submit" disabled={submitting || seconds > 0}>{seconds > 0 ? `Try again in ${seconds}s` : submitting ? "Signing in…" : returnTo === "/cart" ? "Sign in and return to cart" : returnTo === "/trucks" ? "Sign in and browse trucks" : "Sign in and continue"}</button>
       </form>
       <p className="auth-switch">New customer? <Link to="/customer/register" state={{ returnTo }}>Create an account</Link></p>
       <Link className="auth-back" to={returnTo === "/cart" ? "/cart" : "/trucks"}>{returnTo === "/cart" ? "← Return to cart" : "← Browse trucks"}</Link>

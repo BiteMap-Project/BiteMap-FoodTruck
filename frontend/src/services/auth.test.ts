@@ -57,3 +57,13 @@ it("handles the empty successful logout response", async () => {
   await expect(logoutOperator()).resolves.toBeUndefined();
   expect(fetchMock).toHaveBeenLastCalledWith("/api/auth/logout", expect.objectContaining({ method: "POST" }));
 });
+
+it("preserves a rate-limit retry delay without repeating the login request", async () => {
+  fetchMock.mockResolvedValueOnce(response(200, { headerName: "X-CSRF-TOKEN", token: "token" }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ detail: "Please wait.", retryAfterSeconds: 20 }),
+      { status: 429, headers: { "Retry-After": "45" } }));
+  await expect(loginOperator("owner@example.com", "private password")).rejects.toMatchObject({
+    status: 429, retryAfterSeconds: 45,
+  });
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});

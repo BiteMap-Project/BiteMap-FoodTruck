@@ -49,6 +49,9 @@ place an order → operator processes it → customer sees the updated status
 - Ownership checks keep one operator from accessing another operator's trucks.
 - Session authentication, CSRF protection, and PBKDF2 password hashing protect
   account operations.
+- Shared PostgreSQL rate limits protect login and registration, with retry
+  countdowns in the UI. See [authentication rate limiting](docs/authentication-rate-limiting.md)
+  for policies, deployment requirements, and tests.
 
 ## Technology
 
@@ -237,7 +240,13 @@ BiteMap-FoodTruck/
 
 For development without Docker, install Java 21, Node.js, and PostgreSQL 15.
 Create a local `.env` from `.env.example`, configure `DB_URL`, `DB_USERNAME`, and
-`DB_PASSWORD`, and load those variables before starting Spring Boot:
+`DB_PASSWORD`, and load those variables before starting Spring Boot. Without the
+`dev` profile, also set `AUTH_RATE_LIMIT_SECRET` to a randomly generated secret
+of at least 32 characters (for example, generate it with `openssl rand -hex 32`).
+Use the same secret across backend instances and never commit it. The local
+Compose development profile supplies a development-only fallback key.
+
+Start Spring Boot after loading the variables:
 
 ```bash
 set -a

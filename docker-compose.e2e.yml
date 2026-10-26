@@ -19,6 +19,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/bitemap_e2e
       DB_USERNAME: bitemap_e2e
       DB_PASSWORD: disposable_e2e_only
+      AUTH_RATE_LIMIT_SECRET: disposable-e2e-auth-limit-secret-32-characters
     depends_on:
       postgres:
         condition: service_healthy

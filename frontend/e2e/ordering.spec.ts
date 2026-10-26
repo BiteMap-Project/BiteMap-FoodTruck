@@ -7,6 +7,43 @@ import { readFileSync } from "node:fs";
 const baseURL = "http://127.0.0.1:15173";
 const password = "E2e-Disposable-Only-93!";
 
+// The suite uses a single local proxy IP. Reset only the disposable limiter
+// fixtures between independent tests, never disable enforcement in the app.
+test.beforeEach(() => { sql("DELETE FROM auth_rate_limits"); });
+
+test("real login throttling shows a cooldown and recovers without automatic retries", async ({ browser }, testInfo) => {
+  const context = await browser.newContext({ baseURL });
+  try {
+    const email = `throttle-${randomUUID()}@example.test`;
+    expect((await write(context.request, "/api/auth/register", { displayName: "Throttle Test", email, password })).status()).toBe(201);
+    for (let i = 0; i < 10; i++) {
+      expect((await write(context.request, "/api/auth/login", { email, password: "Incorrect password" })).status()).toBe(401);
+    }
+    const rejected = await write(context.request, "/api/auth/login", { email, password });
+    expect(rejected.status()).toBe(429);
+    expect(Number(rejected.headers()["retry-after"])).toBeGreaterThan(0);
+    expect((await context.request.get("/api/auth/me")).status()).toBe(401);
+    // Fast-forward only the isolated fixture's refill baseline so the browser
+    // exercises real recovery without spending a minute sleeping in CI.
+    sql("UPDATE auth_rate_limits SET updated_at=clock_timestamp()-interval '55 seconds' WHERE scope='login-account'");
+    const page = await context.newPage();
+    await page.goto("/customer/login");
+    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(password);
+    let submissions = 0;
+    page.on("request", request => { if (request.url().endsWith("/api/auth/login")) submissions++; });
+    await page.getByRole("button", { name: "Sign in and return to cart", exact: true }).click();
+    await expect(page.getByRole("alert")).toContainText("Too many authentication attempts");
+    await expect(page.getByRole("button", { name: /Try again in/ })).toBeDisabled();
+    await page.screenshot({ path: testInfo.outputPath("login-cooldown.png"), fullPage: true });
+    await expect(page.getByRole("button", { name: "Sign in and return to cart", exact: true })).toBeEnabled({ timeout: 10000 });
+    expect(submissions).toBe(1);
+    await page.getByRole("button", { name: "Sign in and return to cart", exact: true }).click();
+    await expect(page).toHaveURL(/\/cart$/);
+    expect((await context.request.get("/api/auth/me")).status()).toBe(200);
+  } finally { await context.close(); }
+});
+
 test("menu photos validate real bytes, normalize uploads and fall back in owner/customer browsers", async ({ browser }, testInfo) => {
   const owner = await browser.newContext({ baseURL });
   const customer = await browser.newContext({ baseURL });

@@ -1,4 +1,5 @@
 server:
+  forward-headers-strategy: none
   servlet:
     session:
       timeout: 30m
@@ -46,3 +47,7 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+
+bitemap:
+  auth-limit:
+    secret: ${AUTH_RATE_LIMIT_SECRET:}

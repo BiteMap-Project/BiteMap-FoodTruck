@@ -30,14 +30,14 @@ public class MenuService {
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     public MenuPage list(String operatorEmail, long vendorId, @Min(0) @Max(10000) int page, @Min(1) @Max(100) int size) {
         requireOwner(operatorEmail, vendorId);
-        var result = items.findAllByVendorId(vendorId, PageRequest.of(page, size, Sort.by("name", "id")));
-        return new MenuPage(result.stream().map(MenuItemResponse::from).toList(), page, size,
+        var result = items.findMetadataByVendorId(vendorId, PageRequest.of(page, size, Sort.by("name", "id")));
+        return new MenuPage(result.getContent(), page, size,
                 result.getTotalElements(), result.getTotalPages());
     }
 
     public MenuItemResponse get(String operatorEmail, long vendorId, long itemId) {
         requireOwner(operatorEmail, vendorId);
-        return MenuItemResponse.from(findItem(vendorId, itemId));
+        return items.findMetadataByIdAndVendorId(itemId, vendorId).orElseThrow(MenuNotFoundException::new);
     }
 
     public MenuItemResponse update(String operatorEmail, long vendorId, long itemId, @NotNull @Valid UpdateMenuItemRequest request) {

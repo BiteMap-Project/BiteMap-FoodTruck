@@ -57,6 +57,7 @@ export default function CustomerLoginPage() {
         <PasswordInput id="customer-login-password" autoComplete="current-password" maxLength={128} required value={password} onChange={(event) => setPassword(event.target.value)} />
         <button type="submit" disabled={submitting || seconds > 0}>{seconds > 0 ? `Try again in ${seconds}s` : submitting ? "Signing in…" : returnTo === "/cart" ? "Sign in and return to cart" : returnTo === "/trucks" ? "Sign in and browse trucks" : "Sign in and continue"}</button>
       </form>
+      <p className="auth-switch"><Link to="/forgot-password">Forgot password?</Link></p>
       <p className="auth-switch">New customer? <Link to="/customer/register" state={{ returnTo }}>Create an account</Link></p>
       <Link className="auth-back" to={returnTo === "/cart" ? "/cart" : "/trucks"}>{returnTo === "/cart" ? "← Return to cart" : "← Browse trucks"}</Link>
     </section>

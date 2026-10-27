@@ -7,6 +7,66 @@ import { readFileSync } from "node:fs";
 const baseURL = "http://127.0.0.1:15173";
 const password = "E2e-Disposable-Only-93!";
 
+test("password recovery through real email revokes old sessions and rejects token reuse", async ({ browser, request }, testInfo) => {
+  const oldCustomer = await browser.newContext({ baseURL });
+  const oldOwner = await browser.newContext({ baseURL });
+  const recovery = await browser.newContext({ baseURL });
+  try {
+    const email = `recovery-${randomUUID()}@example.test`;
+    expect((await write(oldCustomer.request, "/api/auth/register", { displayName: "Recovery Test", email, password })).status()).toBe(201);
+    sql(`INSERT INTO app_user_roles(user_id,role) SELECT id,'OPERATOR' FROM app_users WHERE email='${email}';
+      INSERT INTO operators(user_id) SELECT id FROM app_users WHERE email='${email}';`);
+    for (const context of [oldCustomer, oldOwner]) expect((await write(context.request, "/api/auth/login", { email, password })).status()).toBe(200);
+    const page = await recovery.newPage();
+    await page.goto("/customer/login");
+    await page.getByRole("link", { name: "Forgot password?" }).click();
+    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page.getByRole("button", { name: "Send reset link" }).click();
+    await expect(page.getByRole("status")).toContainText("If an eligible account exists");
+    await page.screenshot({ path: testInfo.outputPath("recovery-requested.png"), fullPage: true });
+    let mailId = "";
+    await expect.poll(async () => {
+      const inbox = await (await request.get("http://127.0.0.1:18025/api/v1/messages")).json();
+      const message = inbox.messages.find((m: { ID: string; Subject: string; To: { Address: string }[] }) =>
+        m.Subject === "Reset your BiteMap password" && m.To.some(to => to.Address === email));
+      mailId = message?.ID ?? "";
+      return Boolean(mailId);
+    }, { timeout: 20000 }).toBe(true);
+    const mail = await (await request.get(`http://127.0.0.1:18025/api/v1/message/${mailId}`)).json();
+    const link = mail.Text.match(/http:\/\/127\.0\.0\.1:15173\/reset-password#token=[A-Za-z0-9_-]{43}/)?.[0];
+    expect(Boolean(link)).toBe(true);
+    await page.goto(link);
+    await expect(page).toHaveURL(`${baseURL}/reset-password`);
+    const newPassword = "Fresh disposable password-42!";
+    await page.getByLabel("New password", { exact: true }).fill(newPassword);
+    await page.getByLabel("Confirm new password", { exact: true }).fill(newPassword);
+    await page.screenshot({ path: testInfo.outputPath("recovery-form.png"), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("recovery-mobile.png"), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.getByRole("button", { name: "Update password" }).click();
+    await expect(page.getByRole("status")).toContainText("Password updated");
+    await page.screenshot({ path: testInfo.outputPath("recovery-completed.png"), fullPage: true });
+    for (const context of [oldCustomer, oldOwner]) expect((await context.request.get("/api/auth/me")).status()).toBe(401);
+    expect((await recovery.request.get("/api/auth/me")).status()).toBe(401);
+    expect((await write(recovery.request, "/api/auth/login", { email, password })).status()).toBe(401);
+    await page.getByRole("link", { name: "Customer sign in", exact: true }).click();
+    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(newPassword);
+    await page.getByRole("button", { name: "Sign in and return to cart", exact: true }).click();
+    await expect(page).toHaveURL(/\/cart$/);
+    const me = await (await recovery.request.get("/api/auth/me")).json();
+    expect(me.roles).toEqual(["ROLE_CUSTOMER", "ROLE_OPERATOR"]);
+    expect((await recovery.request.get("/api/operator/vendors")).status()).toBe(200);
+    await page.goto(link);
+    await page.getByLabel("New password", { exact: true }).fill(newPassword);
+    await page.getByLabel("Confirm new password", { exact: true }).fill(newPassword);
+    await page.getByRole("button", { name: "Update password" }).click();
+    await expect(page.getByRole("alert")).toContainText("invalid or expired");
+  } finally { await oldCustomer.close(); await oldOwner.close(); await recovery.close(); }
+});
+
 // The suite uses a single local proxy IP. Reset only the disposable limiter
 // fixtures between independent tests, never disable enforcement in the app.
 test.beforeEach(() => { sql("DELETE FROM auth_rate_limits"); });

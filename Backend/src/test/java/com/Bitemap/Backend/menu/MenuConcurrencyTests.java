@@ -19,6 +19,7 @@ class MenuConcurrencyTests {
     @Autowired JdbcTemplate jdbc;
     @Autowired DataSource dataSource;
     @Autowired MenuService service;
+    @Autowired MenuItemRepository items;
     @Autowired PlatformTransactionManager transactions;
 
     @Test
@@ -39,7 +40,9 @@ class MenuConcurrencyTests {
             var nested = new TransactionTemplate(transactions);
             nested.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
             assertThatThrownBy(() -> tx.executeWithoutResult(status -> {
-                service.get(email, vendor, first.id()); // load version 0 into the outer persistence context
+                // Metadata reads deliberately do not populate the persistence context.
+                // Explicitly load an entity to exercise the database optimistic-lock race.
+                items.findByIdAndVendorId(first.id(), vendor).orElseThrow();
                 nested.executeWithoutResult(inner -> service.changeAvailability(email, vendor, first.id(),
                         new ChangeMenuAvailabilityRequest(MenuAvailability.SOLD_OUT, 0L)));
                 service.update(email, vendor, first.id(), new UpdateMenuItemRequest("Stale overwrite", null, BigDecimal.TEN, 0L));

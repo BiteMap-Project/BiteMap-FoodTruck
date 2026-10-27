@@ -9,8 +9,9 @@ JDK ImageIO handles JPEG/PNG input and JPEG output. Review decoder dependency
 updates regularly; accepting untrusted images is not risk-free.
 
 For a larger deployment, evaluate object storage/CDN delivery and per-owner quotas
-separately. The current menu entity eagerly loads photo bytes; large menus should
-eventually use metadata projections rather than fetching blobs for list pages.
+separately. Owner menu list and detail reads now use metadata projections, so
+they do not fetch photo bytes. Entity-based writes and the photo endpoint still
+load the stored image. See [menu read verification](menu-metadata-reads.md).
 
 ## Upload contract
 

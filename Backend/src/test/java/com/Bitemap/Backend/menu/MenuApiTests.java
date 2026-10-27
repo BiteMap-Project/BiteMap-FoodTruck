@@ -100,6 +100,24 @@ class MenuApiTests {
         var decoded = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(result.getResponse().getContentAsByteArray()));
         assertThat(decoded.getWidth()).isEqualTo(4);
         assertThat(decoded.getHeight()).isEqualTo(3);
+        byte[] savedPhoto = result.getResponse().getContentAsByteArray();
+        String imageUrl = "/api/vendors/" + vendor + "/menu-items/" + item + "/image";
+        mvc.perform(put(root(vendor) + "/" + item).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf())
+                .contentType("application/json").content("{\"name\":\"Updated photo item\",\"description\":\"New description\",\"price\":5.25,\"version\":1}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.hasCustomImage").value(true))
+                .andExpect(jsonPath("$.version").value(2));
+        mvc.perform(patch(root(vendor) + "/" + item + "/availability").with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf())
+                .contentType("application/json").content("{\"status\":\"SOLD_OUT\",\"version\":2}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.hasCustomImage").value(true))
+                .andExpect(jsonPath("$.version").value(3));
+        mvc.perform(get(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].hasCustomImage").value(true))
+                .andExpect(jsonPath("$.items[0].status").value("SOLD_OUT"));
+        mvc.perform(get(root(vendor) + "/" + item).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.hasCustomImage").value(true))
+                .andExpect(jsonPath("$.version").value(3));
+        mvc.perform(get(imageUrl)).andExpect(status().isOk()).andExpect(content().bytes(savedPhoto))
+                .andExpect(header().string("ETag", result.getResponse().getHeader("ETag")));
         mvc.perform(multipart(root(vendor) + "/" + item + "/image").file(file).param("version", "0")
                 .with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()))
                 .andExpect(status().isConflict());

@@ -1,4 +1,5 @@
 import { useState, type SubmitEvent } from "react";
+import ActionError from "../../components/ActionError";
 import type { ManagedStop, StopInput, RepeatRule } from "../../services/operatorSchedules";
 import { localTime, timeCandidates } from "./scheduleTime";
 import ScheduleAddressFields, {
@@ -424,11 +425,7 @@ export default function ScheduleForm({
           {busy ? "Saving…" : repeat && !initial ? `Save ${preview.dates.length || "repeating"} stops` : "Save stop"}
         </button>
       </fieldset>
-      {error && (
-        <p role="alert" className="ow-error">
-          {error}
-        </p>
-      )}
+      <ActionError className="ow-error" message={error} />
     </form>
   );
 }

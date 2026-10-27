@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { cancelStop, createRepeatingStops, createStop, editStop, listStops, type ManagedStop } from "../../services/operatorSchedules";
 import { WorkspaceError, type Page } from "../../services/operatorWorkspace";
 import ScheduleForm from "./ScheduleForm";
+import ActionError from "../../components/ActionError";
 
 const errorText = (error: unknown) => error instanceof WorkspaceError ? error.message : "Connection interrupted. Reload the schedule to check whether your change was saved before trying again.";
 const displayTime = (instant: string, timeZone: string) => new Intl.DateTimeFormat(undefined, { timeZone, dateStyle: "medium", timeStyle: "short" }).format(new Date(instant));
@@ -62,7 +63,7 @@ export default function SchedulePanel({ vendorId }: { vendorId: number }) {
       <button className="od-button od-button-secondary" disabled={busy || (editor !== null && !blocked)} onClick={() => reload()}>Reload schedule{editor !== null && blocked ? " (discard draft)" : ""}</button></div>
     <p>Planned locations, not live GPS. Times are shown in each stop’s time zone. Cancelled and completed stops remain in your history.</p>
     {message && <p role="status" className="ow-message">{message}</p>}
-    {error && <p role="alert" className="ow-error">{error}{blocked && " Reload before making another change."}</p>}
+    <ActionError className="ow-error" message={error ? error + (blocked ? " Reload before making another change." : "") : ""} />
     {!data && !error && <p role="status">Loading schedule…</p>}
     {editor !== null && (
       <section className="ow-editor">

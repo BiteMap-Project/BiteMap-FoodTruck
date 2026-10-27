@@ -87,3 +87,16 @@ body:has(.ow-connected) { background: #f8f8f4; }
 @media(max-width: 480px) { .ow-connected .ow-schedule-actions { display: grid; } .ow-connected .ow-schedule-actions button { width: 100%; } }
 @media(max-width: 900px) { .ow-connected .ow-menu-row { grid-template-columns: 80px 1fr; } .ow-connected .ow-item-actions { grid-column: 1 / -1; justify-items: start; } .ow-connected .ow-preset-grid { grid-template-columns: repeat(2, minmax(100px, 1fr)); } }
 @media(max-width: 700px) { .ow-connected .od-sidebar { position: static; height: auto; min-height: 0; } .ow-connected .od-sidebar-tip { display: none; } .ow-connected .od-topbar { padding: 16px; } .ow-connected .od-main { padding: 20px 16px; } .ow-connected .od-hero { padding: 22px; min-height: 160px; } .ow-connected .ow-panel, .ow-connected .ow-menu-panel { padding: 16px; } .ow-connected .ow-menu-heading { flex-direction: column; } .ow-connected .ow-status-buttons { width: 100%; flex-direction: column; } .ow-connected .ow-status-buttons button { text-align: left; } .ow-connected input, .ow-connected select, .ow-connected textarea { font-size: 16px; } }
+
+/* SCRUM-99: owner order/schedule controls retain focus and fit phones. */
+.ow-connected a:focus-visible,
+.ow-connected [tabindex="-1"]:focus {
+  outline: 3px solid #a54120;
+  outline-offset: 4px;
+}
+.ow-connected .ow-panel { min-width: 0; overflow-wrap: anywhere; }
+.ow-connected .ow-panel button { min-height: 44px; max-width: 100%; white-space: normal; }
+.ow-connected .ow-toolbar > * { min-width: 0; }
+@media (max-width: 480px) {
+  .ow-connected .ow-editor { padding: 12px; }
+}

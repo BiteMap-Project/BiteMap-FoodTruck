@@ -6,6 +6,7 @@ import type { Page } from "../../services/operatorWorkspace";
 import "./orders.css";
 import { PickupLocation } from "../orders/PickupLocation";
 import OrderingControl from "./OrderingControl";
+import ActionError from "../../components/ActionError";
 
 const labels: Record<OrderStatus, string> = { PLACED: "Placed", ACCEPTED: "Accepted", READY: "Ready", COMPLETED: "Completed", CANCELLED: "Cancelled" };
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -125,6 +126,7 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
         status, version: order.version, ...(status === "CANCELLED" ? { cancellationReason: reason.trim() } : {}),
       });
       if (!mounted.current) return;
+      title.current?.focus();
       setOrder(updated); setCancelling(false); setReason(""); setMessage(`Order #${orderId} updated to ${labels[updated.status]}.`); onSaved();
     } catch (cause) {
       if (!mounted.current) return;
@@ -145,7 +147,7 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
       setLoading(true); setOrder(null); setError(""); setMessage(""); setAttempt(value => value + 1);
     }}>Refresh order details</button>
     {loading && <p role="status">Loading order details…</p>}
-    {error && <p role="alert" className="ow-error">{error}</p>}
+    <ActionError className="ow-error" message={error} />
     {blocked && <p>Refresh order details before taking another action. The previous request may already have succeeded.</p>}
     {message && <p role="status" className="ow-message">{message}</p>}
     {order && <>

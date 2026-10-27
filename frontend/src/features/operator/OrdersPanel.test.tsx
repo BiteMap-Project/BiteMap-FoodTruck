@@ -57,6 +57,7 @@ it("sends current version and fresh CSRF then exposes only the next action", asy
   await detail();
   fireEvent.click(screen.getByRole("button", { name: "Accept order" }));
   expect(await screen.findByRole("button", { name: "Mark ready" })).toBeEnabled();
+  expect(screen.getByRole("heading", { name: "Order #42 details" })).toHaveFocus();
   expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/orders/42/status", expect.objectContaining({
     method: "PATCH", credentials: "same-origin", headers: expect.objectContaining({ "X-CSRF-TOKEN": "fresh" }),
     body: JSON.stringify({ status: "ACCEPTED", version: 0 }),
@@ -81,7 +82,7 @@ it.each([409, 503])("blocks stale or uncertain writes after %s until explicit de
   const original = fetchMock.getMockImplementation()!;
   fetchMock.mockImplementation((url: string, init?: RequestInit) => init?.method === "PATCH" ? response(code, { detail: "Refresh required" }) : original(url, init));
   fireEvent.click(screen.getByRole("button", { name: "Accept order" }));
-  await screen.findByText(/Refresh required/);
+  expect(await screen.findByText(/Refresh required/)).toHaveFocus();
   expect(screen.getByRole("button", { name: "Accept order" })).toBeDisabled();
   expect(writes()).toHaveLength(1);
   current = { ...current, status: "ACCEPTED", version: 1 };

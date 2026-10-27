@@ -1,0 +1,2 @@
+.action-error { overflow-wrap: anywhere; scroll-margin-block: 24px; }
+.action-error:focus { outline: 3px solid #a54120; outline-offset: 4px; }

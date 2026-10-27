@@ -65,3 +65,22 @@ body:has(.cart-site) { background: #f8f8f4; }
 .customer-order-progress [aria-current="step"] > span { outline: 2px solid #b64923; outline-offset: 3px; }
 @media(max-width: 480px) { .customer-order-progress { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; } .customer-order-status { padding: 18px; } }
 @media(max-width: 650px) { .cart-items li { grid-template-columns: 1fr auto; } .cart-items button { grid-column: 1 / -1; justify-self: start; } .cart-pickup { padding: 18px; } .cart-pickup-refresh { margin-left: 48px; } }
+
+/* SCRUM-99: keep cart/receipt controls usable on narrow screens. */
+.cart-site :is(a, button, select):focus-visible {
+  outline: 3px solid #a54120;
+  outline-offset: 4px;
+}
+.cart-site :is(.cart-items button, .cart-clear, .cart-pickup-refresh, select) { min-height: 44px; }
+.cart-header { flex-wrap: wrap; gap: 12px 20px; }
+.cart-header a { display: inline-flex; align-items: center; min-height: 44px; }
+.cart-page { overflow-wrap: anywhere; }
+.cart-summary > *, .cart-items li > * { min-width: 0; }
+.cart-summary a { display: inline-flex; align-items: center; min-height: 44px; }
+.cart-items button { text-align: left; overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  .cart-summary { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .cart-items li { grid-template-columns: minmax(0, 1fr) auto; padding: 18px; gap: 14px; }
+  .cart-total { flex-wrap: wrap; gap: 12px; padding: 18px; }
+  .cart-pickup-refresh { max-width: 100%; margin-left: 0; }
+}

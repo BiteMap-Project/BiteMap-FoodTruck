@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ActionError from "../components/ActionError";
 import { Link, useNavigate } from "react-router-dom";
 import { cartTotal, clearCart, readCart, setCartQuantity } from "../features/cart/cart";
 import "./cart.css";
@@ -62,7 +63,7 @@ export default function CartPage() {
         </section>
         <p className="cart-note">Your order total is calculated using current menu prices when you place your order. No online payment is collected here.</p>
         {account
-          ? <><p className="cart-signed-in">Signed in as {account.displayName}</p>{orderError && <p className="cart-order-error" role="alert">{orderError}</p>}<button className="cart-checkout" type="button" disabled={submitting || stop.loading || !stop.pickup} onClick={placeOrder}>{submitting ? "Placing order…" : "Place pickup order"}</button></>
+          ? <><p className="cart-signed-in">Signed in as {account.displayName}</p><ActionError className="cart-order-error" message={orderError} /><button className="cart-checkout" type="button" disabled={submitting || stop.loading || !stop.pickup} onClick={placeOrder}>{submitting ? "Placing order…" : "Place pickup order"}</button></>
           : <Link className="cart-checkout cart-checkout-link" to="/customer/login" state={{ returnTo: "/cart" }}>Sign in to continue</Link>}
         <button className="cart-clear" type="button" onClick={() => { clearCart(); setCart(null); }}>Clear cart</button>
       </>}

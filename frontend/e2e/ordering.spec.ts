@@ -20,8 +20,19 @@ test("password recovery through real email revokes old sessions and rejects toke
     const page = await recovery.newPage();
     await page.goto("/customer/login");
     await page.getByRole("link", { name: "Forgot password?" }).click();
-    await page.getByLabel("Email", { exact: true }).fill(email);
-    await page.getByRole("button", { name: "Send reset link" }).click();
+    // Both routes have an Email field. Wait for the destination to render before
+    // filling, otherwise React can discard a fill made on the old login page.
+    await expect(page).toHaveURL(`${baseURL}/forgot-password`);
+    const recoveryForm = page.getByRole("region", { name: "Forgot password?", exact: true });
+    await expect(recoveryForm).toBeVisible();
+    await recoveryForm.getByLabel("Email", { exact: true }).fill(email);
+    await expect(recoveryForm.getByLabel("Email", { exact: true })).toHaveValue(email);
+    const [resetRequest] = await Promise.all([
+      page.waitForResponse(response => response.url() === `${baseURL}/api/auth/forgot-password`
+        && response.request().method() === "POST"),
+      recoveryForm.getByRole("button", { name: "Send reset link" }).click(),
+    ]);
+    expect(resetRequest.status(), "Password recovery request must be accepted").toBe(202);
     await expect(page.getByRole("status")).toContainText("If an eligible account exists");
     await page.screenshot({ path: testInfo.outputPath("recovery-requested.png"), fullPage: true });
     let mailId = "";
@@ -52,6 +63,8 @@ test("password recovery through real email revokes old sessions and rejects toke
     expect((await recovery.request.get("/api/auth/me")).status()).toBe(401);
     expect((await write(recovery.request, "/api/auth/login", { email, password })).status()).toBe(401);
     await page.getByRole("link", { name: "Customer sign in", exact: true }).click();
+    await expect(page).toHaveURL(`${baseURL}/customer/login`);
+    await expect(page.getByRole("heading", { name: "Customer sign in", exact: true })).toBeVisible();
     await page.getByLabel("Email", { exact: true }).fill(email);
     await page.getByLabel("Password", { exact: true }).fill(newPassword);
     await page.getByRole("button", { name: "Sign in and return to cart", exact: true }).click();

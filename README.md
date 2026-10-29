@@ -161,7 +161,7 @@ Use two browser sessions so the customer and operator remain signed in separatel
 
 The current verified baseline on `main` is:
 
-- 296 frontend tests passing.
+- 300 frontend tests passing.
 - 397 backend tests passing.
 - Frontend lint and production build passing. Lint reports three existing
   warnings in schedule and legacy owner-dashboard files.

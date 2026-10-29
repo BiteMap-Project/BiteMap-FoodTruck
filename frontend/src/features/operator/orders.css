@@ -24,3 +24,7 @@
   .ow-connected .ow-ordering-actions { flex-direction: column; align-items: stretch; }
   .ow-connected .ow-ordering-actions .od-button { width: 100%; justify-content: center; }
 }
+.ow-order-estimate { display: flex; justify-content: space-between; gap: 16px; padding: 14px 16px; border-radius: 10px; background: #f4f1e7; color: #2f4638; }
+.ow-estimate-control { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin: 18px 0; }
+.ow-estimate-control label { display: grid; gap: 7px; color: #344c31; font-weight: 700; }
+.ow-estimate-control select { min-height: 42px; padding: 8px 34px 8px 10px; border: 1px solid #d6dacf; border-radius: 8px; background: white; color: #293c31; font: inherit; }

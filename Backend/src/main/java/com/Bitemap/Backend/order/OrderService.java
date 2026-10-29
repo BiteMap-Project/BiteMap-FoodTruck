@@ -139,21 +139,23 @@ public class OrderService {
 
     private OrderResponse load(long orderId) {
         var header = jdbc.queryForObject("""
-                SELECT o.id,o.vendor_id,v.name,o.status,o.total,o.created_at,o.cancellation_reason
+                SELECT o.id,o.vendor_id,v.name,o.status,o.total,o.created_at,o.estimated_ready_at,o.cancellation_reason
                 FROM customer_orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=?
                 """, (rs, row) -> new Header(rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4),
-                        rs.getBigDecimal(5), rs.getTimestamp(6).toInstant(), rs.getString(7)), orderId);
+                        rs.getBigDecimal(5), rs.getTimestamp(6).toInstant(),
+                        rs.getTimestamp(7) == null ? null : rs.getTimestamp(7).toInstant(), rs.getString(8)), orderId);
         var items = jdbc.query("""
                 SELECT menu_item_id,name_snapshot,unit_price,quantity,line_total
                 FROM customer_order_items WHERE order_id=? ORDER BY id
                 """, (rs, row) -> new OrderResponse.Item(rs.getLong(1), rs.getString(2), rs.getBigDecimal(3),
                         rs.getInt(4), rs.getBigDecimal(5)), orderId);
         return new OrderResponse(header.id(), header.vendorId(), header.vendorName(), header.status(),
-                header.total(), header.createdAt(), items, header.cancellationReason(), pickups.saved(orderId));
+                header.total(), header.createdAt(), header.estimatedReadyAt(), items,
+                header.cancellationReason(), pickups.saved(orderId));
     }
 
     private record MenuLine(long id, String name, BigDecimal price, String status) {}
 
     private record Header(long id, long vendorId, String vendorName, String status,
-            BigDecimal total, Instant createdAt, String cancellationReason) {}
+            BigDecimal total, Instant createdAt, Instant estimatedReadyAt, String cancellationReason) {}
 }

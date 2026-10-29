@@ -359,6 +359,7 @@ class DatabaseMigrationTests {
         assertThat(after.remove("version")).isEqualTo(0L);
         assertThat(after.remove("updated_at")).isEqualTo(before.get("created_at"));
         assertThat(after.remove("cancellation_reason")).isNull();
+        assertThat(after.remove("estimated_ready_at")).isNull();
         assertThat(after).isEqualTo(before);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".customer_order_status_history",Integer.class)).isZero();
         assertThat(migrations(false).migrate().migrationsExecuted).isZero();
@@ -372,7 +373,9 @@ class DatabaseMigrationTests {
         jdbc.update("INSERT INTO " + schema + ".customer_orders(customer_user_id,vendor_id,idempotency_key,total) VALUES (?,?,?,5)",user,vendor,UUID.randomUUID());
         var before=jdbc.queryForMap("SELECT * FROM " + schema + ".customer_orders");
         migrateAndValidate(migrations(false));
-        assertThat(jdbc.queryForMap("SELECT * FROM " + schema + ".customer_orders")).isEqualTo(before);
+        var after=jdbc.queryForMap("SELECT * FROM " + schema + ".customer_orders");
+        assertThat(after.remove("estimated_ready_at")).isNull();
+        assertThat(after).isEqualTo(before);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".customer_order_pickups",Integer.class)).isZero();
         assertThat(migrations(false).migrate().migrationsExecuted).isZero();
     }

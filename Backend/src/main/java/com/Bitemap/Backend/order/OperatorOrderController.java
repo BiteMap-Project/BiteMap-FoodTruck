@@ -45,4 +45,15 @@ public class OperatorOrderController {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(service.update(authentication.getName(), vendorId, orderId, request));
     }
+
+    @PatchMapping("/{orderId}/estimate")
+    @Operation(summary = "Set an estimated ready time using the current order version",
+            description = "The estimate must be 1 minute to 24 hours in the future and may be changed while an order is placed or accepted.")
+    @SecurityRequirement(name = "csrfToken")
+    public ResponseEntity<OperatorOrderResponse> updateEstimate(Authentication authentication,
+            @PathVariable long vendorId, @PathVariable long orderId,
+            @Valid @RequestBody OrderEstimateRequest request) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(service.updateEstimate(authentication.getName(), vendorId, orderId, request));
+    }
 }

@@ -5,7 +5,7 @@ import OrderConfirmationPage from "./OrderConfirmationPage";
 
 const fetchMock = vi.fn();
 const order = { id: 42, vendorId: 7, vendorName: "Spicy Food", status: "PLACED", total: 8.5,
-  createdAt: "2026-10-15T18:00:00Z", cancellationReason: null,
+  createdAt: "2026-10-15T18:00:00Z", estimatedReadyAt: null, cancellationReason: null,
   items: [{ menuItemId: 1, name: "Taco", quantity: 2, unitPrice: 4.25, lineTotal: 8.5 }] };
 const response = (body: unknown, status = 200) => ({ ok: status === 200, status, json: async () => body });
 beforeEach(() => {
@@ -34,6 +34,14 @@ it("shows placed, accepted, ready and collected status without reloading", async
   const count = fetchMock.mock.calls.length;
   await tick(60000); expect(fetchMock).toHaveBeenCalledTimes(count);
   expect(fetchMock.mock.calls.every(([, init]) => !init.method)).toBe(true);
+});
+it("shows the operator's ready-time estimate while the order is being prepared", async () => {
+  fetchMock.mockResolvedValue(response({ ...order, status: "ACCEPTED", estimatedReadyAt: "2026-10-15T18:30:00Z" }));
+  await show();
+  expect(screen.getByText("Estimated ready time")).toBeInTheDocument();
+  expect(
+    document.querySelector('time[datetime="2026-10-15T18:30:00Z"]'),
+  ).toBeInTheDocument();
 });
 it("shows cancellation reason as text and stops polling", async () => {
   fetchMock.mockResolvedValue(response({ ...order, status: "CANCELLED", cancellationReason: "<b>Kitchen closed</b>" }));

@@ -3,6 +3,8 @@ package com.Bitemap.Backend.order;
 import com.Bitemap.Backend.TestAccounts;
 import java.util.Map;
 import java.util.UUID;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,6 +59,10 @@ class OperatorOrderApiTests {
     String path(long truck) { return "/api/operator/vendors/" + truck + "/orders"; }
     String update(String status, long version, String reason) throws Exception {
         return json.writeValueAsString(Map.of("status", status, "version", version, "cancellationReason", reason));
+    }
+
+    String estimate(Instant readyAt, long version) throws Exception {
+        return json.writeValueAsString(Map.of("estimatedReadyAt", readyAt, "version", version));
     }
 
     @Test
@@ -136,6 +142,44 @@ class OperatorOrderApiTests {
                 .andExpect(jsonPath("$.cancellationReason").value("Kitchen closed"));
         mvc.perform(get("/api/customer/orders/"+order).with(TestAccounts.user(OWNER).roles("CUSTOMER")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.cancellationReason").value("Kitchen closed"));
+    }
+
+    @Test
+    void ownerSetsAndUpdatesEstimateVisibleToCustomer() throws Exception {
+        Instant first = Instant.now().truncatedTo(ChronoUnit.MILLIS).plus(20, ChronoUnit.MINUTES);
+        mvc.perform(patch(path(vendor)+"/"+order+"/estimate")
+                .with(TestAccounts.user(OWNER).roles("OPERATOR")).with(csrf())
+                .contentType("application/json").content(estimate(first, 0)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1))
+                .andExpect(jsonPath("$.estimatedReadyAt").exists());
+        mvc.perform(get("/api/customer/orders/"+order).with(TestAccounts.user(OWNER).roles("CUSTOMER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.estimatedReadyAt").exists());
+
+        Instant second = first.plus(10, ChronoUnit.MINUTES);
+        mvc.perform(patch(path(vendor)+"/"+order+"/estimate")
+                .with(TestAccounts.user(OWNER).roles("OPERATOR")).with(csrf())
+                .contentType("application/json").content(estimate(second, 1)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(2));
+        assertThat(jdbc.queryForObject("SELECT estimated_ready_at FROM customer_orders WHERE id=?",
+                java.sql.Timestamp.class, order).toInstant()).isEqualTo(second);
+    }
+
+    @Test
+    void estimateRequiresCurrentVersionFutureWindowAndEditableStatus() throws Exception {
+        Instant valid = Instant.now().truncatedTo(ChronoUnit.MILLIS).plus(20, ChronoUnit.MINUTES);
+        mvc.perform(patch(path(vendor)+"/"+order+"/estimate")
+                .with(TestAccounts.user(OWNER).roles("OPERATOR")).with(csrf())
+                .contentType("application/json").content(estimate(valid, 1)))
+                .andExpect(status().isConflict());
+        mvc.perform(patch(path(vendor)+"/"+order+"/estimate")
+                .with(TestAccounts.user(OWNER).roles("OPERATOR")).with(csrf())
+                .contentType("application/json").content(estimate(Instant.now(), 0)))
+                .andExpect(status().isBadRequest());
+        jdbc.update("UPDATE customer_orders SET status='READY' WHERE id=?", order);
+        mvc.perform(patch(path(vendor)+"/"+order+"/estimate")
+                .with(TestAccounts.user(OWNER).roles("OPERATOR")).with(csrf())
+                .contentType("application/json").content(estimate(valid, 0)))
+                .andExpect(status().isConflict());
     }
 
     @Test

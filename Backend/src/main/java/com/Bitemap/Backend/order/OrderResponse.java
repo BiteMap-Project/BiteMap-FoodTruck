@@ -5,7 +5,8 @@ import java.time.Instant;
 import java.util.List;
 
 public record OrderResponse(long id, long vendorId, String vendorName, String status,
-        BigDecimal total, Instant createdAt, List<Item> items, String cancellationReason, PickupDetails pickup) {
+        BigDecimal total, Instant createdAt, Instant estimatedReadyAt, List<Item> items,
+        String cancellationReason, PickupDetails pickup) {
 
     public record Item(long menuItemId, String name, BigDecimal unitPrice, int quantity, BigDecimal lineTotal) {}
 }

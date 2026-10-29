@@ -44,7 +44,9 @@ export default function CartPage() {
             <div><h3>{item.name}</h3><p>{dollars.format(item.price)} each</p></div>
             <label>Quantity for {item.name}<select value={item.quantity} onChange={(event) => setCart(setCartQuantity(item.id, Number(event.target.value)))}>{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((quantity) => <option key={quantity} value={quantity}>{quantity}</option>)}</select></label>
             <strong>{dollars.format(item.price * item.quantity)}</strong>
-            <button type="button" onClick={() => setCart(setCartQuantity(item.id, 0))}>Remove {item.name}</button>
+            <button className="cart-remove-item" type="button" aria-label={`Remove ${item.name}`} title="Remove item" onClick={() => setCart(setCartQuantity(item.id, 0))}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></svg>
+            </button>
           </li>)}
         </ul>
         <section className="cart-total"><span>Estimated total</span><strong>{dollars.format(cartTotal(cart))}</strong></section>

@@ -60,6 +60,9 @@ it("recognizes a signed-in customer without changing the cart", async () => {
 it("removes the final item", () => {
   addCartItem(4, "Taco Truck", { id: 8, name: "Taco", price: 4.5 });
   render(<MemoryRouter><CartPage /></MemoryRouter>);
-  fireEvent.click(screen.getByRole("button", { name: "Remove Taco" }));
+  const remove = screen.getByRole("button", { name: "Remove Taco" });
+  expect(remove).toHaveTextContent(/^$/);
+  expect(remove.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+  fireEvent.click(remove);
   expect(screen.getByRole("heading", { name: "Your cart is empty." })).toBeInTheDocument();
 });

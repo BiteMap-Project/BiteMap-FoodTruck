@@ -28,6 +28,10 @@ body:has(.cart-site) { background: #f8f8f4; }
 .cart-items label { font-size: 0; }
 .cart-items select { min-width: 64px; min-height: 42px; padding: 6px; border: 1px solid #d6dacf; border-radius: 8px; background: white; color: #293c31; font: 16px system-ui; }
 .cart-items button, .cart-clear { border: 0; background: transparent; color: #a54120; text-decoration: underline; cursor: pointer; }
+.cart-items .cart-remove-item { display: grid; place-items: center; width: 44px; height: 44px; padding: 10px; border-radius: 50%; text-decoration: none; }
+.cart-items .cart-remove-item svg { width: 24px; height: 24px; }
+.cart-items .cart-remove-item:hover { background: #fff0e8; }
+.cart-items .cart-remove-item:focus-visible { outline: 2px solid #b64923; outline-offset: 2px; }
 .cart-total { display: flex; justify-content: space-between; margin-top: 20px; padding: 24px; color: #293c31; font-size: 20px; }
 .cart-pickup { margin: 20px 0 0; padding: 20px 22px; border: 1px solid #e3d5c8; border-radius: 14px; background: #fffaf5; }
 .cart-pickup.is-active { padding: 0; border: 0; background: transparent; }
@@ -65,3 +69,4 @@ body:has(.cart-site) { background: #f8f8f4; }
 .customer-order-progress [aria-current="step"] > span { outline: 2px solid #b64923; outline-offset: 3px; }
 @media(max-width: 480px) { .customer-order-progress { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; } .customer-order-status { padding: 18px; } }
 @media(max-width: 650px) { .cart-items li { grid-template-columns: 1fr auto; } .cart-items button { grid-column: 1 / -1; justify-self: start; } .cart-pickup { padding: 18px; } .cart-pickup-refresh { margin-left: 48px; } }
+@media(max-width: 650px) { .cart-items .cart-remove-item { grid-column: 2; justify-self: end; } }

@@ -41,6 +41,13 @@ body:has(.truck-site) { background: #f8f8f4; }
 .truck-site .unavailable { display: inline-block; padding: 3px 10px; border-radius: 6px; background: #fff0e8; }
 .truck-site .add-to-cart { margin-top: 4px; min-height: 42px; padding: 9px 16px; border: 1px solid #b64923; border-radius: 8px; background: #b64923; color: white; font: inherit; font-weight: 700; cursor: pointer; }
 .truck-site .add-to-cart:hover { background: #963a1b; }
+.truck-site .menu-cart-controls { display: grid; grid-template-columns: 44px 44px minmax(0, 1fr) 44px; align-items: center; gap: 2px; margin-top: 12px; padding: 6px; border-radius: 999px; background: #b64923; color: #fff; }
+.truck-site .menu-cart-controls button { display: grid; place-items: center; width: 44px; height: 44px; min-width: 0; padding: 10px; margin: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
+.truck-site .menu-cart-controls button:hover:not(:disabled) { background: #963a1b; }
+.truck-site .menu-cart-controls button:disabled { opacity: .45; cursor: not-allowed; }
+.truck-site .menu-cart-controls button:focus-visible { outline: 2px solid white; outline-offset: -3px; background: #963a1b; }
+.truck-site .menu-cart-controls svg { width: 24px; height: 24px; }
+.truck-site .menu-cart-label { min-width: 0; text-align: center; font-size: 14px; line-height: 1.35; font-weight: 650; font-variant-numeric: tabular-nums; }
 .truck-site .cart-message { margin: 14px 0; padding: 12px 14px; border: 1px solid #d9c7b0; border-radius: 8px; background: #fff9ef; color: #4d5a50; }
 .truck-site .owner-preview-note { margin-top: 12px; padding: 10px 14px; border: 1px solid #d9c7b0; border-left: 4px solid #b64923; border-radius: 8px; background: #fff9ef; color: #4d5a50; font-size: 14px; }
 .truck-hero-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 28px; }

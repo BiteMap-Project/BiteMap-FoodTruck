@@ -30,6 +30,7 @@ function OrderDetails({ id }: { id: number }) {
   const { order, loading, error, denied, checkedAt, paused, refresh } = useCustomerOrder(id);
   const current = order ? steps.indexOf(order.status) : -1;
   const active = order && ["PLACED", "ACCEPTED", "READY"].includes(order.status);
+  const readyTime = order?.estimatedReadyAt ? new Date(order.estimatedReadyAt) : null;
   return <>
     {!denied && <div className="customer-order-refresh"><button className="cart-primary" disabled={loading || paused} onClick={refresh}>Refresh status</button>
       <span>{loading ? "Checking order…" : checkedAt ? `Last checked ${checkedAt.toLocaleTimeString()}` : ""}</span></div>}
@@ -51,8 +52,11 @@ function OrderDetails({ id }: { id: number }) {
         {order.status === "PLACED" && <p>Waiting for the truck to accept your order.</p>}
         {order.status === "ACCEPTED" && <p>The truck is preparing your food.</p>}
         {order.status === "READY" && <p>Show order #{order.id} when you collect your food.</p>}
+        {readyTime && ["PLACED", "ACCEPTED"].includes(order.status) && <p className="customer-ready-estimate">
+          <span>Estimated ready time</span><strong><time dateTime={order.estimatedReadyAt!}>{readyTime.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time></strong>
+        </p>}
         {order.status === "CANCELLED" && <><h3>Cancellation reason</h3><p>{order.cancellationReason || "No cancellation reason was recorded."}</p></>}
-        <p className="cart-note">{active ? paused ? "Automatic updates paused while this tab is hidden." : "Checks for updates every 10 seconds while this page is visible." : "Automatic updates have stopped. You can still refresh manually."}</p>
+        <p className="cart-note">{active ? paused ? "Automatic updates paused while this tab is hidden." : "This page updates automatically every 10 seconds while it is open." : "Automatic updates have stopped. You can still refresh manually."}</p>
       </section>
       <ul className="cart-items">{order.items.map(item => <li key={item.menuItemId}>
         <div><h3>{item.name}</h3><p>{dollars.format(item.unitPrice)} × {item.quantity}</p></div><strong>{dollars.format(item.lineTotal)}</strong>

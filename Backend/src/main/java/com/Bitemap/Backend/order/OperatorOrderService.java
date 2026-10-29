@@ -6,8 +6,11 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
+import java.time.Clock;
+import java.time.Duration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,14 +23,25 @@ import static com.Bitemap.Backend.order.OperatorOrderException.Kind.*;
 public class OperatorOrderService {
     private final JdbcTemplate jdbc;
     private final PickupService pickups;
-    private static final String FIELDS = "id,vendor_id,status,total,created_at,updated_at,version,cancellation_reason";
+    private final Clock clock;
+    private static final String FIELDS = "id,vendor_id,status,total,created_at,updated_at,estimated_ready_at,version,cancellation_reason";
     private static final RowMapper<OperatorOrderResponse.Summary> SUMMARY = (row, index) ->
             new OperatorOrderResponse.Summary(row.getLong("id"), row.getLong("vendor_id"),
                     OrderStatus.valueOf(row.getString("status")), row.getBigDecimal("total"),
                     row.getTimestamp("created_at").toInstant(), row.getTimestamp("updated_at").toInstant(),
+                    row.getTimestamp("estimated_ready_at") == null ? null : row.getTimestamp("estimated_ready_at").toInstant(),
                     row.getLong("version"), row.getString("cancellation_reason"));
 
-    public OperatorOrderService(JdbcTemplate jdbc, PickupService pickups) { this.jdbc = jdbc; this.pickups = pickups; }
+    @Autowired
+    public OperatorOrderService(JdbcTemplate jdbc, PickupService pickups) {
+        this(jdbc, pickups, Clock.systemUTC());
+    }
+
+    OperatorOrderService(JdbcTemplate jdbc, PickupService pickups, Clock clock) {
+        this.jdbc = jdbc;
+        this.pickups = pickups;
+        this.clock = clock;
+    }
 
     // Repeatable read makes count/page consistent. These transactions deliberately allow
     // shared locks: ownership and role revocation must not race the read or update.
@@ -86,6 +100,30 @@ public class OperatorOrderService {
         return detail(result);
     }
 
+    public OperatorOrderResponse updateEstimate(String email, long vendorId, long orderId,
+            @NotNull @Valid OrderEstimateRequest request) {
+        ownedVendor(email, vendorId);
+        var current = header(vendorId, orderId, true);
+        if (current.version() != request.version()) {
+            throw new OperatorOrderException(CONFLICT, "This order has changed. Refresh it before updating its estimate.");
+        }
+        if (current.status() != OrderStatus.PLACED && current.status() != OrderStatus.ACCEPTED) {
+            throw new OperatorOrderException(CONFLICT, "Ready-time estimates can only be changed before an order is ready.");
+        }
+        var now = clock.instant();
+        if (request.estimatedReadyAt().isBefore(now.plus(Duration.ofMinutes(1)))
+                || request.estimatedReadyAt().isAfter(now.plus(Duration.ofHours(24)))) {
+            throw new OperatorOrderException(INVALID, "Choose an estimated ready time between 1 minute and 24 hours from now.");
+        }
+        var updated = jdbc.query("UPDATE customer_orders SET estimated_ready_at=?,version=version+1,"
+                + "updated_at=clock_timestamp() WHERE id=? AND vendor_id=? AND version=? RETURNING " + FIELDS,
+                SUMMARY, java.sql.Timestamp.from(request.estimatedReadyAt()), orderId, vendorId, request.version());
+        if (updated.isEmpty()) {
+            throw new OperatorOrderException(CONFLICT, "This order has changed. Refresh it before updating its estimate.");
+        }
+        return detail(updated.getFirst());
+    }
+
     private long ownedVendor(String email, long vendorId) {
         var owners = jdbc.queryForList(OperatorOwnership.SQL, Long.class, email);
         if (owners.isEmpty()) throw new OperatorOrderException(FORBIDDEN, "An enabled operator account is required.");
@@ -110,6 +148,7 @@ public class OperatorOrderService {
                 """, (rs, index) -> new OrderResponse.Item(rs.getLong(1), rs.getString(2),
                 rs.getBigDecimal(3), rs.getInt(4), rs.getBigDecimal(5)), row.id());
         return new OperatorOrderResponse(row.id(), row.vendorId(), row.status(), row.total(),
-                row.createdAt(), row.updatedAt(), row.version(), row.cancellationReason(), items, pickups.saved(row.id()));
+                row.createdAt(), row.updatedAt(), row.estimatedReadyAt(), row.version(),
+                row.cancellationReason(), items, pickups.saved(row.id()));
     }
 }

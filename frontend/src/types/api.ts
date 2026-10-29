@@ -78,6 +78,7 @@ export type CustomerOrderSummary = {
   status: OrderStatus;
   total: number;
   createdAt: string;
+  estimatedReadyAt?: string | null;
 };
 
 export type CustomerOrder = CustomerOrderSummary & {
@@ -93,6 +94,7 @@ export type OwnerOrderSummary = {
   total: number;
   createdAt: string;
   updatedAt: string;
+  estimatedReadyAt?: string | null;
   version: number;
   cancellationReason: string | null;
 };

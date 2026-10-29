@@ -63,5 +63,8 @@ body:has(.cart-site) { background: #f8f8f4; }
 .customer-order-progress .is-reached { color: #344c31; font-weight: 600; }
 .customer-order-progress .is-reached > span { background: #344c31; color: #fff; }
 .customer-order-progress [aria-current="step"] > span { outline: 2px solid #b64923; outline-offset: 3px; }
+.customer-ready-estimate { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin: 20px 0; padding: 16px 18px; border-radius: 10px; background: #f7eadb; color: #293c31; }
+.customer-ready-estimate span { font-size: 14px; }
+.customer-ready-estimate strong { font-size: 20px; }
 @media(max-width: 480px) { .customer-order-progress { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; } .customer-order-status { padding: 18px; } }
 @media(max-width: 650px) { .cart-items li { grid-template-columns: 1fr auto; } .cart-items button { grid-column: 1 / -1; justify-self: start; } .cart-pickup { padding: 18px; } .cart-pickup-refresh { margin-left: 48px; } }

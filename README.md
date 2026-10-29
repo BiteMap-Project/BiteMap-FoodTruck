@@ -151,18 +151,20 @@ Use two browser sessions so the customer and operator remain signed in separatel
 4. Record the order number and its initial `PLACED` status.
 5. Sign in as the truck owner in the second browser session.
 6. Open the truck's **Orders** tab and find the same order.
-7. Change it to `ACCEPTED`, then `READY`.
-8. Refresh the customer order page and confirm that the status changed.
-9. Mark the order `COMPLETED` and verify the final status in customer history.
+7. Accept the order and set its estimated ready time.
+8. Confirm that the customer page shows the estimate and receives status updates
+   automatically.
+9. Change the order to `READY`, then `COMPLETED`, and verify the final status in
+   customer history.
 
 ## Testing
 
 The current verified baseline on `main` is:
 
-- 205 frontend tests passing.
-- 316 backend tests passing.
-- Frontend lint and production build passing, with one warning in the legacy
-  owner-dashboard prototype.
+- 296 frontend tests passing.
+- 397 backend tests passing.
+- Frontend lint and production build passing. Lint reports three existing
+  warnings in schedule and legacy owner-dashboard files.
 
 Run frontend checks:
 
@@ -271,7 +273,7 @@ receive the database environment variables.
 
 COMP 490 established the connected customer-to-operator workflow, database
 schema, account roles, truck and menu management, schedules, pickup validation,
-ordering, and status tracking.
+ordering, status tracking, and operator-managed ready-time estimates.
 
 The next phase can focus on:
 
@@ -282,7 +284,7 @@ The next phase can focus on:
 - Operator controls for pausing new orders.
 - Order-status notifications.
 - Hosted staging and production configuration.
-- Preparation estimates and expanded operator analytics.
+- Expanded operator analytics.
 
 Online payment is outside the current scope. Orders are paid at pickup. Serving
 schedules describe published availability and do not claim verified live GPS.

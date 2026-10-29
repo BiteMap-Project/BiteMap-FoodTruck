@@ -6,7 +6,7 @@ import OperatorWorkspace from "./OperatorWorkspace";
 const fetchMock = vi.fn();
 const account = { id: 1, displayName: "Owner", email: "owner@example.com", roles: ["ROLE_OPERATOR"] };
 const order = { id: 42, vendorId: 7, status: "PLACED", version: 0, total: 8.5,
-  createdAt: "2026-10-15T18:00:00Z", updatedAt: "2026-10-15T18:00:00Z", cancellationReason: null,
+  createdAt: "2026-10-15T18:00:00Z", updatedAt: "2026-10-15T18:00:00Z", estimatedReadyAt: null, cancellationReason: null,
   items: [{ menuItemId: 2, name: "Saved taco", unitPrice: 4.25, quantity: 2, lineTotal: 8.5 }] };
 const page = (items: unknown[], current = 0, totalPages = 1) => ({ items, page: current, size: 20, totalElements: items.length, totalPages });
 const response = (status: number, body?: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
@@ -64,6 +64,18 @@ it("sends current version and fresh CSRF then exposes only the next action", asy
   fireEvent.click(screen.getByRole("button", { name: "Mark ready" }));
   fireEvent.click(await screen.findByRole("button", { name: "Mark collected" }));
   expect(await screen.findByText("This order is completed. No further changes are allowed.")).toBeInTheDocument();
+});
+it("sets a preparation estimate without changing order status", async () => {
+  await detail();
+  fireEvent.change(screen.getByLabelText("Ready-time estimate"), { target: { value: "30" } });
+  fireEvent.click(screen.getByRole("button", { name: "Set estimate" }));
+  await screen.findByText("Estimated ready");
+  const call = fetchMock.mock.calls.find(([url, init]) => url.endsWith("/orders/42/estimate") && init?.method === "PATCH");
+  expect(call).toBeDefined();
+  const body = JSON.parse(call![1].body as string);
+  expect(body.version).toBe(0);
+  expect(new Date(body.estimatedReadyAt).getTime()).toBeGreaterThan(Date.now() + 29 * 60_000);
+  expect(current.status).toBe("PLACED");
 });
 it("requires a reason and explicit cancellation confirmation", async () => {
   await detail();

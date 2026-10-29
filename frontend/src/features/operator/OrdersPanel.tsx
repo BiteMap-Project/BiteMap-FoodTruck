@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthApiError } from "../../services/auth";
-import { getOwnerOrder, listOwnerOrders, updateOwnerOrder, type OrderStatus, type OwnerOrder, type OwnerOrderSummary } from "../../services/operatorOrders";
+import { getOwnerOrder, listOwnerOrders, updateOrderEstimate, updateOwnerOrder, type OrderStatus, type OwnerOrder, type OwnerOrderSummary } from "../../services/operatorOrders";
 import type { Page } from "../../services/operatorWorkspace";
 import "./orders.css";
 import { PickupLocation } from "../orders/PickupLocation";
@@ -100,6 +100,7 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
   const [message, setMessage] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState("");
+  const [estimateMinutes, setEstimateMinutes] = useState("20");
   const lock = useRef(false);
   const mounted = useRef(false);
   const title = useRef<HTMLHeadingElement>(null);
@@ -135,6 +136,23 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
       if (mounted.current) { setBusy(false); onBusy(false); }
     }
   }
+  async function saveEstimate() {
+    if (!order || lock.current || blocked || loading) return;
+    lock.current = true; setBusy(true); onBusy(true); setError(""); setMessage("");
+    try {
+      const estimatedReadyAt = new Date(Date.now() + Number(estimateMinutes) * 60_000).toISOString();
+      const updated = await updateOrderEstimate(vendorId, orderId, { estimatedReadyAt, version: order.version });
+      if (!mounted.current) return;
+      setOrder(updated); setMessage(`Estimated ready time updated to ${date(updated.estimatedReadyAt!)}.`); onSaved();
+    } catch (cause) {
+      if (!mounted.current) return;
+      if (cause instanceof AuthApiError && cause.status === 401) navigate("/operator/login", { replace: true });
+      else { setError(errorText(cause)); setBlocked(true); }
+    } finally {
+      lock.current = false;
+      if (mounted.current) { setBusy(false); onBusy(false); }
+    }
+  }
   const next: Partial<Record<OrderStatus, { status: OrderStatus; label: string }>> = {
     PLACED: { status: "ACCEPTED", label: "Accept order" }, ACCEPTED: { status: "READY", label: "Mark ready" }, READY: { status: "COMPLETED", label: "Mark collected" },
   };
@@ -157,6 +175,15 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
       <p className="ow-order-total"><span>Order total</span><strong>{money.format(order.total)}</strong></p>
       <p className="ow-order-help">Saved checkout prices. No online payment is recorded here.</p>
       <PickupLocation pickup={order.pickup} />
+      {order.estimatedReadyAt && <p className="ow-order-estimate"><strong>Estimated ready</strong><time dateTime={order.estimatedReadyAt}>{date(order.estimatedReadyAt)}</time></p>}
+      {["PLACED", "ACCEPTED"].includes(order.status) && <div className="ow-estimate-control">
+        <label>Ready-time estimate<select value={estimateMinutes} disabled={busy || blocked} onChange={event => setEstimateMinutes(event.target.value)}>
+          {[10, 15, 20, 30, 45, 60].map(minutes => <option key={minutes} value={minutes}>{minutes} minutes from now</option>)}
+        </select></label>
+        <button type="button" className="od-button od-button-secondary" disabled={busy || blocked || loading} onClick={() => void saveEstimate()}>
+          {order.estimatedReadyAt ? "Update estimate" : "Set estimate"}
+        </button>
+      </div>}
       {order.cancellationReason && <div><strong>Cancellation reason</strong><p>{order.cancellationReason}</p></div>}
       <div className="ow-order-actions">
         {action && !cancelling && <button className="od-button od-button-primary" disabled={busy || blocked || loading} onClick={() => void change(action.status)}>{action.label}</button>}

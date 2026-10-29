@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { getVendor, type VendorProfile } from "../services/vendors";
 import { EmptyState, ErrorState, LoadingState } from "../components/StatusViews";
 import "./truck-profile.css";
-import { addCartItem, cartItemCount, readCart } from "../features/cart/cart";
+import { addCartItem, cartChangedEvent, cartItemCount, readCart, setCartQuantity } from "../features/cart/cart";
 import FavoriteButton from "../features/favorites/FavoriteButton";
 import { ownerBackLink, readOwnerReturn } from "../features/operator/ownerReturn";
 import { presetArtwork } from "../features/menu/menuImages";
@@ -78,8 +78,27 @@ function TruckMenuPage() {
   const back = ownerReturn ? ownerBackLink(ownerReturn) : null;
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<Result>({ status: "loading", id });
-  const [cartCount, setCartCount] = useState(() => cartItemCount(readCart()));
+  const [cart, setCart] = useState(readCart);
+  const cartCount = cartItemCount(cart);
   const [cartMessage, setCartMessage] = useState("");
+
+  useEffect(() => {
+    const syncCart = () => setCart(readCart());
+    window.addEventListener(cartChangedEvent, syncCart);
+    return () => window.removeEventListener(cartChangedEvent, syncCart);
+  }, []);
+
+  function changeQuantity(vendorId: number, itemId: number, name: string, change: number | "remove") {
+    // Read the latest cart so rapid clicks never use a stale rendered quantity.
+    const latest = readCart();
+    if (latest?.vendorId !== vendorId) return;
+    const saved = latest.items.find(item => item.id === itemId);
+    if (!saved) return;
+    const quantity = change === "remove" ? 0 : saved.quantity + change;
+    if (change !== "remove" && (quantity < 1 || quantity > 10)) return;
+    setCartQuantity(itemId, quantity);
+    setCartMessage(quantity ? `${name} quantity updated to ${quantity}.` : `${name} removed from your cart.`);
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -152,7 +171,10 @@ function TruckMenuPage() {
               <EmptyState title="No menu available yet." hint="This truck hasn't posted its menu. Check back later." />
             ) : (
               <ul className="menu-items">
-                {current.truck.menu.map((item) => (
+                {current.truck.menu.map((item) => {
+                  const quantity = cart?.vendorId === current.truck.id
+                    ? cart.items.find(saved => saved.id === item.id)?.quantity ?? 0 : 0;
+                  return (
                   <li key={item.id}>
                     <div className={`menu-item-art menu-item-art-${menuArtwork(item.name, item.imagePreset).tone}`} role="img" aria-label={`${item.name} image`}>
                       <MenuPhoto src={item.hasCustomImage ? `/api/vendors/${current.truck.id}/menu-items/${item.id}/image` : undefined} fallback={menuArtwork(item.name, item.imagePreset).icon} />
@@ -163,14 +185,26 @@ function TruckMenuPage() {
                         <span>{dollars.format(item.price)}</span>
                       </div>
                       {item.description && <p>{item.description}</p>}
-                      {item.available ? <button className="add-to-cart" type="button" aria-label={`Add ${item.name} to cart`} onClick={() => {
+                      {!item.available && <p className="unavailable">Currently unavailable</p>}
+                      {quantity > 0 ? <div className="menu-cart-controls" role="group" aria-label={`Cart controls for ${item.name}`}>
+                        <button type="button" aria-label={`Remove ${item.name} from cart`} title="Remove item" onClick={() => changeQuantity(current.truck.id, item.id, item.name, "remove")}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></svg>
+                        </button>
+                        <button type="button" aria-label={`Decrease ${item.name} quantity`} disabled={quantity <= 1} onClick={() => changeQuantity(current.truck.id, item.id, item.name, -1)}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14" /></svg>
+                        </button>
+                        <span className="menu-cart-label">Added to cart ({quantity})</span>
+                        <button type="button" aria-label={`Increase ${item.name} quantity`} title={quantity >= 10 ? "Maximum 10 per item" : "Increase quantity"} disabled={!item.available || quantity >= 10} onClick={() => changeQuantity(current.truck.id, item.id, item.name, 1)}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+                        </button>
+                      </div> : item.available ? <button className="add-to-cart" type="button" aria-label={`Add ${item.name} to cart`} onClick={() => {
                         const next = addCartItem(current.truck.id, current.truck.name, { id: item.id, name: item.name, price: item.price });
                         if (!next) setCartMessage("Your cart contains items from another truck. Clear that cart before starting a new order.");
-                        else { setCartCount(cartItemCount(next)); setCartMessage(`${item.name} added to your cart.`); }
-                      }}>Add to cart</button> : <p className="unavailable">Currently unavailable</p>}
+                        else setCartMessage(`${item.name} added to your cart.`);
+                      }}>Add to cart</button> : null}
                     </div>
                   </li>
-                ))}
+                ); })}
               </ul>
             )}
           </section>

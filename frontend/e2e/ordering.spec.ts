@@ -428,11 +428,65 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     await expect(customerPage.getByText("Kitchen closed unexpectedly.", { exact: true })).toBeVisible();
     await customer.clearCookies();
     await customerPage.reload();
-    await expect(customerPage.getByRole("link", { name: "Customer sign in", exact: true })).toBeVisible();
+    await expect(customerPage).toHaveURL(/\/customer\/login$/);
+    await expect(customerPage.getByRole("heading", { name: "Customer sign in", exact: true })).toBeVisible();
     await expect(customerPage.getByText("Kitchen closed unexpectedly.", { exact: true })).toHaveCount(0);
   } finally {
     await Promise.all([customer, owner, outsider, anonymous].map(context => context.close()));
   }
+});
+
+test("customer order privacy survives account switching and logout in a second tab", async ({ browser }, testInfo) => {
+  const context = await browser.newContext({ baseURL });
+  try {
+    const emailA = `privacy-a-${randomUUID()}@example.test`;
+    const emailB = `privacy-b-${randomUUID()}@example.test`;
+    for (const email of [emailA, emailB]) {
+      expect((await write(context.request, "/api/auth/register", { displayName: "Privacy fixture", email, password })).status()).toBe(201);
+    }
+    // Completed fixture deliberately never polls; no application database is used.
+    sql(`WITH truck AS (
+      INSERT INTO vendors(name,category,location) VALUES ('Privacy fixture truck','Food','Test location') RETURNING id
+    ) INSERT INTO customer_orders(customer_user_id,vendor_id,idempotency_key,total,status)
+      SELECT u.id,t.id,'${randomUUID()}',0,'COMPLETED' FROM app_users u CROSS JOIN truck t WHERE u.email='${emailA}';`);
+    const ordersTab = await context.newPage();
+    const sessionTab = await context.newPage();
+    await login(sessionTab, emailA);
+    const history = await (await context.request.get("/api/customer/orders")).json();
+    const orderId = history.items[0].id;
+    for (const path of ["/orders", `/orders/${orderId}/confirmation`]) {
+      await ordersTab.goto(path);
+      await expect(ordersTab.getByText(/Privacy fixture truck/)).toBeVisible();
+      await sessionTab.goto("/trucks");
+      await sessionTab.getByRole("button", { name: "Sign out", exact: true }).click();
+      await expect(sessionTab.getByRole("link", { name: "Customer sign in", exact: true })).toBeVisible();
+      await login(sessionTab, emailB);
+      await ordersTab.bringToFront();
+      // Explicit focus also makes this deterministic in headless Chromium.
+      const checked = ordersTab.waitForResponse(r => r.url().endsWith("/api/auth/me"));
+      await ordersTab.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await checked;
+      await expect(ordersTab.getByText(/Privacy fixture truck/)).toHaveCount(0);
+      if (path === "/orders") await expect(ordersTab.getByText("No orders yet.")).toBeVisible();
+      else await expect(ordersTab.getByRole("alert")).toContainText("not available to your account");
+      expect((await context.request.get(`/api/customer/orders/${orderId}`)).status()).toBe(404);
+      await ordersTab.screenshot({ path: testInfo.outputPath(path === "/orders" ? "switched-order-history.png" : "switched-completed-order.png"), fullPage: true });
+
+      await sessionTab.goto("/trucks");
+      await sessionTab.getByRole("button", { name: "Sign out", exact: true }).click();
+      await expect(sessionTab.getByRole("link", { name: "Customer sign in", exact: true })).toBeVisible();
+      await login(sessionTab, emailA);
+    }
+    await ordersTab.goto(`/orders/${orderId}/confirmation`);
+    await expect(ordersTab.getByText("Your order has been collected.")).toBeVisible();
+    await sessionTab.goto("/trucks");
+    await sessionTab.getByRole("button", { name: "Sign out", exact: true }).click();
+    await expect(sessionTab.getByRole("link", { name: "Customer sign in", exact: true })).toBeVisible();
+    await ordersTab.bringToFront();
+    await ordersTab.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expect(ordersTab).toHaveURL(/\/customer\/login$/);
+    await expect(ordersTab.getByText(/Privacy fixture truck/)).toHaveCount(0);
+  } finally { await context.close(); }
 });
 
 test("negative fixture IDs work; sold-out items and inactive pickup stops fail closed", async ({ page }) => {

@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { useCustomerOrder } from "../features/orders/useCustomerOrder";
 import "./cart.css";
 import { PickupLocation } from "../features/orders/PickupLocation";
+import CustomerCancellation from '../features/orders/CustomerCancellation';
 
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const steps = ["PLACED", "ACCEPTED", "READY", "COMPLETED"];
@@ -27,7 +28,7 @@ export default function OrderConfirmationPage() {
 }
 
 function OrderDetails({ id }: { id: number }) {
-  const { order, loading, error, denied, checkedAt, paused, refresh } = useCustomerOrder(id);
+  const { order, loading, error, denied, checkedAt, paused, refresh, applyOrder } = useCustomerOrder(id);
   const current = order ? steps.indexOf(order.status) : -1;
   const active = order && ["PLACED", "ACCEPTED", "READY"].includes(order.status);
   const readyTime = order?.estimatedReadyAt ? new Date(order.estimatedReadyAt) : null;
@@ -58,6 +59,8 @@ function OrderDetails({ id }: { id: number }) {
         {order.status === "CANCELLED" && <><h3>Cancellation reason</h3><p>{order.cancellationReason || "No cancellation reason was recorded."}</p></>}
         <p className="cart-note">{active ? paused ? "Automatic updates paused while this tab is hidden." : "This page updates automatically every 10 seconds while it is open." : "Automatic updates have stopped. You can still refresh manually."}</p>
       </section>
+      {order.status === 'PLACED' && <CustomerCancellation order={order} loading={loading || paused}
+        onSaved={applyOrder} onRefresh={refresh}/>}
       <ul className="cart-items">{order.items.map(item => <li key={item.menuItemId}>
         <div><h3>{item.name}</h3><p>{dollars.format(item.unitPrice)} × {item.quantity}</p></div><strong>{dollars.format(item.lineTotal)}</strong>
       </li>)}</ul>

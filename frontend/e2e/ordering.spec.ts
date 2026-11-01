@@ -267,7 +267,8 @@ async function login(page: Page, email: string, owner = false) {
   await expect(page).toHaveURL(owner ? /\/operator$/ : /\/cart$/);
 }
 
-test("real customer checkout, lost response retry, owner processing, tracking and isolation", async ({ browser }) => {
+test("real customer checkout, lost response retry, owner processing, tracking and isolation", async ({ browser }, testInfo) => {
+  test.setTimeout(120_000); // Includes customer (10s) and owner (30s) real polling intervals.
   const customer = await browser.newContext({ baseURL });
   const owner = await browser.newContext({ baseURL });
   const outsider = await browser.newContext({ baseURL });
@@ -432,6 +433,30 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     await expect(customerPage.getByRole("region", { name: "Order status", exact: true }).getByRole("status"))
       .toHaveText("Your order was cancelled.", { timeout: 25_000 });
     await expect(customerPage.getByText("Kitchen closed unexpectedly.", { exact: true })).toBeVisible();
+    // Customer cancellation uses the real session, CSRF, row version and database.
+    const third = await write(customer.request, "/api/customer/orders", { ...submitted, idempotencyKey: randomUUID() });
+    expect(third.status()).toBe(201);
+    const thirdOrder = await third.json();
+    const cancelPath = `/api/customer/orders/${thirdOrder.id}/cancel`;
+    expect((await write(outsider.request, cancelPath, { version: 0 })).status()).toBe(404);
+    await customerPage.goto(`/orders/${thirdOrder.id}/confirmation`);
+    await customerPage.getByRole("button", { name: "Cancel order", exact: true }).click();
+    await customerPage.getByRole("button", { name: "Keep order", exact: true }).click();
+    expect((await (await customer.request.get(`/api/customer/orders/${thirdOrder.id}`)).json()).status).toBe("PLACED");
+    await customerPage.getByRole("button", { name: "Cancel order", exact: true }).click();
+    await customerPage.getByRole("button", { name: "Confirm cancellation", exact: true }).click();
+    await expect(customerPage.getByRole("region", { name: "Order status", exact: true }).getByRole("status"))
+      .toHaveText("Your order was cancelled.");
+    await expect(customerPage.getByRole("button", { name: "Cancel order", exact: true })).toHaveCount(0);
+    const replayCancellation = await write(customer.request, cancelPath, { version: 0 });
+    expect(replayCancellation.status()).toBe(200);
+    expect((await replayCancellation.json()).version).toBe(1);
+    expect((await write(owner.request, `${path}/${thirdOrder.id}/status`, { status: "ACCEPTED", version: 0 }, "PATCH")).status()).toBe(409);
+    // Existing owner queue polling must pick up cancellation without a reload.
+    await expect(ownerPage.getByRole("button", { name: `View order #${thirdOrder.id}`, exact: true })).toBeVisible({ timeout: 40_000 });
+    await ownerPage.getByRole("button", { name: `View order #${thirdOrder.id}`, exact: true }).click();
+    await expect(ownerPage.getByText("Cancelled by customer.", { exact: true })).toBeVisible();
+    await customerPage.screenshot({ path: testInfo.outputPath("customer-cancelled-order.png"), fullPage: true });
     await customer.clearCookies();
     await customerPage.reload();
     await expect(customerPage).toHaveURL(/\/customer\/login$/);

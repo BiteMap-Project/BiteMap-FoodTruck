@@ -82,6 +82,8 @@ export type CustomerOrderSummary = {
 };
 
 export type CustomerOrder = CustomerOrderSummary & {
+  /** Older servers may omit this; cancellation stays disabled until refreshed from an upgraded server. */
+  version?: number;
   cancellationReason?: string | null;
   pickup?: PickupDetails | null;
   items: OrderItem[];

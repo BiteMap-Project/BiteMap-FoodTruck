@@ -40,6 +40,14 @@ public class CustomerOrderController {
                 .body(service.get(authentication.getName(), orderId));
     }
 
+    @PostMapping("/{orderId}/cancel")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Cancel your own placed order before the truck accepts it")
+    public ResponseEntity<OrderResponse> cancel(Authentication authentication, @PathVariable long orderId,
+            @Valid @RequestBody CancelOrderRequest request) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(service.cancel(authentication.getName(), orderId, request));
+    }
+
     @GetMapping
     @io.swagger.v3.oas.annotations.Operation(summary = "List your own orders, newest first")
     public ResponseEntity<CustomerOrderPage> list(Authentication authentication,

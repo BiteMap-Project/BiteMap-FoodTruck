@@ -1,3 +1,5 @@
+import { checkoutLocked, finishCheckoutAttempt, type CheckoutAttempt } from './checkoutAttempt';
+
 export type CartItem = {
   id: number;
   name: string;
@@ -33,6 +35,7 @@ function saveCart(cart: Cart | null) {
 }
 
 export function addCartItem(vendorId: number, vendorName: string, item: Omit<CartItem, "quantity">): Cart | null {
+  if (checkoutLocked()) return null;
   const current = readCart();
   if (current && current.vendorId !== vendorId) return null;
 
@@ -47,6 +50,7 @@ export function addCartItem(vendorId: number, vendorName: string, item: Omit<Car
 }
 
 export function setCartQuantity(itemId: number, quantity: number): Cart | null {
+  if (checkoutLocked()) return readCart();
   const current = readCart();
   if (!current) return null;
   const items = quantity <= 0
@@ -58,7 +62,14 @@ export function setCartQuantity(itemId: number, quantity: number): Cart | null {
 }
 
 export function clearCart() {
+  if (checkoutLocked()) return;
   saveCart(null);
+}
+
+export function completeCartCheckout(attempt: CheckoutAttempt) {
+  // Clear the cart before releasing the durable retry key (refresh/crash safe).
+  saveCart(null);
+  finishCheckoutAttempt(attempt);
 }
 
 export function cartItemCount(cart: Cart | null) {

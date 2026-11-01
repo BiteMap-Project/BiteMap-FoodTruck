@@ -46,17 +46,18 @@ async function readProblem(response: Response, fallback: string): Promise<AuthAp
   }
 }
 
-async function csrfToken(): Promise<CsrfToken> {
+async function csrfToken(signal?: AbortSignal): Promise<CsrfToken> {
   const response = await fetch("/api/auth/csrf", {
     credentials: "same-origin",
     headers: { Accept: "application/json" },
+    ...(signal ? {signal} : {}),
   });
   if (!response.ok) throw await readProblem(response, "Unable to start the secure request. Please try again.");
   return response.json();
 }
 
-export async function postWithCsrf<T>(path: string, body: object, fallback: string): Promise<T> {
-  const csrf = await csrfToken();
+export async function postWithCsrf<T>(path: string, body: object, fallback: string, extraHeaders: Record<string, string> = {}, signal?: AbortSignal): Promise<T> {
+  const csrf = await csrfToken(signal);
   const response = await fetch(path, {
     method: "POST",
     credentials: "same-origin",
@@ -64,8 +65,10 @@ export async function postWithCsrf<T>(path: string, body: object, fallback: stri
       Accept: "application/json",
       "Content-Type": "application/json",
       [csrf.headerName]: csrf.token,
+      ...extraHeaders,
     },
     body: JSON.stringify(body),
+    ...(signal ? {signal} : {}),
   });
   if (!response.ok) throw await readProblem(response, fallback);
   return response.json();

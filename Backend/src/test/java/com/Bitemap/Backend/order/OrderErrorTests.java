@@ -27,6 +27,17 @@ class OrderErrorTests {
     @MockitoBean AccountDetailsService accounts;
 
     @Test
+    void changedSessionIsRejectedBeforeOrderCreation() throws Exception {
+        when(accounts.account(anyString())).thenReturn(new AccountResponse(8, "Customer B", "b@example.test", java.util.List.of("ROLE_CUSTOMER")));
+        mvc.perform(post("/api/customer/orders")
+                .with(com.Bitemap.Backend.TestAccounts.user("b@example.test").roles("CUSTOMER"))
+                .with(csrf()).header("X-Checkout-Account-Id", "7").contentType("application/json")
+                .content("{\"vendorId\":-1,\"pickupStopId\":-1,\"idempotencyKey\":\"cd821fc5-316c-4a85-af68-e6890485d32c\",\"items\":[{\"menuItemId\":-5,\"quantity\":1}]}"))
+                .andExpect(status().isForbidden());
+        org.mockito.Mockito.verifyNoInteractions(service);
+    }
+
+    @Test
     void databaseAndTransactionFailuresNeverExposeInternalDetails() throws Exception {
         when(accounts.account(anyString())).thenAnswer(call ->
                 new AccountResponse(1, "Customer", call.getArgument(0), java.util.List.of("ROLE_CUSTOMER")));

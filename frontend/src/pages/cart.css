@@ -73,3 +73,13 @@ body:has(.cart-site) { background: #f8f8f4; }
 @media(max-width: 480px) { .customer-order-progress { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; } .customer-order-status { padding: 18px; } }
 @media(max-width: 650px) { .cart-items li { grid-template-columns: 1fr auto; } .cart-items button { grid-column: 1 / -1; justify-self: start; } .cart-pickup { padding: 18px; } .cart-pickup-refresh { margin-left: 48px; } }
 @media(max-width: 650px) { .cart-items .cart-remove-item { grid-column: 2; justify-self: end; } }
+.customer-cancellation {
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  border: 1px solid #dedfd5;
+  border-radius: 1rem;
+  background: #fff;
+}
+.customer-cancellation-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-top: 1rem; }
+.customer-cancellation-actions .cart-primary { margin-top: 0; align-items: center; justify-content: center; min-height: 44px; border: 1px solid transparent; font: inherit; font-weight: 700; cursor: pointer; }
+.customer-cancellation button:disabled { opacity: .55; cursor: not-allowed; }

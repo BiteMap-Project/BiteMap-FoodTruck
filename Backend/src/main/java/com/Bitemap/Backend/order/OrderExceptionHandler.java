@@ -16,6 +16,10 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(assignableTypes = {CustomerOrderController.class, PickupController.class})
 public class OrderExceptionHandler {
+    @ExceptionHandler(OrderConflictException.class)
+    ProblemDetail cancellationConflict(OrderConflictException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+    }
     @ExceptionHandler(OrderNotFoundException.class)
     ProblemDetail notFound() {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Order not found.");

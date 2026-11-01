@@ -6,6 +6,10 @@ import { checkoutLocked, readCheckoutAttempt, saveCheckoutAttempt, finishCheckou
 import type { CustomerOrder, CustomerOrderSummary, Page, PickupDetails } from "../types/api";
 
 export type { CustomerOrder, PickupDetails } from "../types/api";
+export function cancelCustomerOrder(orderId: number, version: number): Promise<CustomerOrder> {
+  return postWithCsrf(`/api/customer/orders/${orderId}/cancel`, {version},
+    'Unable to cancel this order. Refresh its status before trying again.', {}, AbortSignal.timeout(20_000));
+}
 export async function getPickupStop(vendorId: number, signal?: AbortSignal): Promise<PickupDetails | null> {
   const response = await fetch(`/api/vendors/${vendorId}/pickup-stop`, {
     cache: 'no-store', credentials: 'same-origin', headers: { Accept: 'application/json' }, signal,

@@ -8,12 +8,13 @@ GET /api/customer/orders/{orderId} returns only the signed-in customer's order.
 ```json
 {
   "vendorId": -1,
+  "pickupStopId": -9,
   "idempotencyKey": "cd821fc5-316c-4a85-af68-e6890485d32c",
   "items": [{"menuItemId": -5, "quantity": 2}]
 }
 ```
 
-Use actual IDs from vendor/menu APIs: the example IDs are illustrative.
+Use actual IDs from vendor/menu APIs and the current pickup-stop API: the example IDs are illustrative.
 IDs must be nonzero JSON integers within signed 64-bit range. Negative development
 IDs and positive operator-created IDs follow identical availability checks.
 Send 1–50 distinct items, each with an integer quantity from 1 to 10.
@@ -28,7 +29,7 @@ This endpoint creates a pickup order; it does not charge a payment method.
 ## Idempotency
 
 Generate one UUID for a checkout attempt and retain it through network retries.
-Same customer + same key + same vendor/item quantities returns the original order,
+Same customer + same key + same vendor/pickup stop/item quantities returns the original order,
 including its original prices, even when the menu has subsequently changed.
 Line ordering does not change cart identity. Both first creation and replay return
 201 and the same Location. Changed cart with the same key returns 409.
@@ -58,6 +59,16 @@ Responses use application/problem+json:
 
 CustomerOrderApiTests covers seeded and operator-owned menu items, money tampering,
 validation, availability, snapshots, ownership, authentication and CSRF.
+Each negative validation case starts with a complete valid request and changes one
+field. Bean-validation cases assert the exact error field/message and no unrelated
+errors. Parsing cases assert the controlled public error plus the internal parser
+cause and offending field, without exposing parser details to clients. Every case
+checks that neither orders nor order lines were written, then submits its repaired
+baseline successfully. Numeric coverage includes all three IDs and quantity:
+zero, fractions (including 1.0), strings, upper/lower overflow, and quantity bounds.
+Missing/null fields, null lines, empty lists and duplicates have separate cases.
+Positive controls include negative vendor/menu/pickup IDs and a positive menu ID
+created through the authenticated owner API, not only a database fixture.
 OrderConcurrencyTests uses committed fixtures and separate real transactions to
 test simultaneous identical retries and competing carts with one key.
 OrderErrorTests checks that SQL/connection details never reach error responses.

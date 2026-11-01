@@ -335,7 +335,13 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     await expect(customerPage.getByRole("alert")).toBeVisible();
     expect(savedId).toBeGreaterThan(0);
     await expect(customerPage.getByLabel("Quantity for Campus Taco")).toHaveValue("2");
-    await customerPage.getByRole("button", { name: "Place pickup order" }).click();
+    await expect(customerPage.getByLabel("Quantity for Campus Taco")).toBeDisabled();
+    await expect(customerPage.getByRole('button', {name:'Clear cart', exact:true})).toBeDisabled();
+    // A full refresh must keep the original attempt, not generate a second order.
+    await customerPage.reload();
+    await expect(customerPage.getByLabel("Quantity for Campus Taco")).toHaveValue("2");
+    await expect(customerPage.getByLabel("Quantity for Campus Taco")).toBeDisabled();
+    await customerPage.getByRole("button", { name: "Recover order", exact:true }).click();
     await expect(customerPage).toHaveURL(`/orders/${savedId}/confirmation`);
     await expect(customerPage.getByRole("region", { name: "Order status", exact: true }).getByRole("status")).toHaveText("Your order has been placed.");
     const history = await (await customer.request.get("/api/customer/orders")).json();
@@ -516,7 +522,15 @@ test("negative fixture IDs work; sold-out items and inactive pickup stops fail c
     idempotencyKey: randomUUID(), items: [{ menuItemId: -900001, quantity: 1 }] });
   expect(forged.status()).toBe(409);
   expect((await (await page.request.get("/api/customer/orders")).json()).totalElements).toBe(0);
-  sql("UPDATE vendor_stops SET status='scheduled' WHERE id=-900001;");
+  // A scheduled stop can still be unavailable because its service window expired.
+  sql("UPDATE vendor_stops SET status='scheduled', starts_at=now()-interval '2 hours', ends_at=now()-interval '1 hour' WHERE id=-900001;");
+  await page.getByRole("button", { name: "Refresh pickup details" }).click();
+  await expect(page.getByRole("button", { name: "Place pickup order" })).toBeDisabled();
+  const expired = await write(page.request, "/api/customer/orders", { vendorId: -900001, pickupStopId: -900001,
+    idempotencyKey: randomUUID(), items: [{ menuItemId: -900001, quantity: 1 }] });
+  expect(expired.status()).toBe(409);
+  expect((await (await page.request.get("/api/customer/orders")).json()).totalElements).toBe(0);
+  sql("UPDATE vendor_stops SET starts_at=now()-interval '5 minutes', ends_at=now()+interval '2 hours' WHERE id=-900001;");
   await page.getByRole("button", { name: "Refresh pickup details" }).click();
   await expect(page.getByRole("button", { name: "Place pickup order" })).toBeEnabled();
   await page.getByRole("button", { name: "Place pickup order" }).click();

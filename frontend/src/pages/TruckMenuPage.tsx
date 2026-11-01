@@ -4,6 +4,7 @@ import { getVendor, type VendorProfile } from "../services/vendors";
 import { EmptyState, ErrorState, LoadingState } from "../components/StatusViews";
 import "./truck-profile.css";
 import { addCartItem, cartChangedEvent, cartItemCount, readCart, setCartQuantity } from "../features/cart/cart";
+import { useCheckoutLock } from '../features/cart/useCheckoutLock';
 import FavoriteButton from "../features/favorites/FavoriteButton";
 import { ownerBackLink, readOwnerReturn } from "../features/operator/ownerReturn";
 import { presetArtwork } from "../features/menu/menuImages";
@@ -72,6 +73,7 @@ function ChefBearIllustration() {
 }
 
 function TruckMenuPage() {
+  const checkoutLocked = useCheckoutLock();
   const { id = "" } = useParams();
   // Set only when an owner opens this page from their dashboard or insights.
   const ownerReturn = readOwnerReturn(useLocation().state);
@@ -89,6 +91,7 @@ function TruckMenuPage() {
   }, []);
 
   function changeQuantity(vendorId: number, itemId: number, name: string, change: number | "remove") {
+    if (checkoutLocked) return;
     // Read the latest cart so rapid clicks never use a stale rendered quantity.
     const latest = readCart();
     if (latest?.vendorId !== vendorId) return;
@@ -167,6 +170,7 @@ function TruckMenuPage() {
               <span>{current.truck.menu.length} {current.truck.menu.length === 1 ? "item" : "items"}</span>
             </div>
             {cartMessage && <p className="cart-message" role="status">{cartMessage}</p>}
+            {checkoutLocked && <p className="cart-message" role="status">An earlier checkout needs recovery. <Link to="/cart">Recover order</Link> before changing your cart.</p>}
             {current.truck.menu.length === 0 ? (
               <EmptyState title="No menu available yet." hint="This truck hasn't posted its menu. Check back later." />
             ) : (
@@ -187,17 +191,17 @@ function TruckMenuPage() {
                       {item.description && <p>{item.description}</p>}
                       {!item.available && <p className="unavailable">Currently unavailable</p>}
                       {quantity > 0 ? <div className="menu-cart-controls" role="group" aria-label={`Cart controls for ${item.name}`}>
-                        <button type="button" aria-label={`Remove ${item.name} from cart`} title="Remove item" onClick={() => changeQuantity(current.truck.id, item.id, item.name, "remove")}>
+                        <button disabled={checkoutLocked} type="button" aria-label={`Remove ${item.name} from cart`} title="Remove item" onClick={() => changeQuantity(current.truck.id, item.id, item.name, "remove")}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></svg>
                         </button>
-                        <button type="button" aria-label={`Decrease ${item.name} quantity`} disabled={quantity <= 1} onClick={() => changeQuantity(current.truck.id, item.id, item.name, -1)}>
+                        <button type="button" aria-label={`Decrease ${item.name} quantity`} disabled={checkoutLocked || quantity <= 1} onClick={() => changeQuantity(current.truck.id, item.id, item.name, -1)}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14" /></svg>
                         </button>
                         <span className="menu-cart-label">Added to cart ({quantity})</span>
-                        <button type="button" aria-label={`Increase ${item.name} quantity`} title={quantity >= 10 ? "Maximum 10 per item" : "Increase quantity"} disabled={!item.available || quantity >= 10} onClick={() => changeQuantity(current.truck.id, item.id, item.name, 1)}>
+                        <button type="button" aria-label={`Increase ${item.name} quantity`} title={quantity >= 10 ? "Maximum 10 per item" : "Increase quantity"} disabled={checkoutLocked || !item.available || quantity >= 10} onClick={() => changeQuantity(current.truck.id, item.id, item.name, 1)}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
                         </button>
-                      </div> : item.available ? <button className="add-to-cart" type="button" aria-label={`Add ${item.name} to cart`} onClick={() => {
+                      </div> : item.available ? <button disabled={checkoutLocked} className="add-to-cart" type="button" aria-label={`Add ${item.name} to cart`} onClick={() => {
                         const next = addCartItem(current.truck.id, current.truck.name, { id: item.id, name: item.name, price: item.price });
                         if (!next) setCartMessage("Your cart contains items from another truck. Clear that cart before starting a new order.");
                         else setCartMessage(`${item.name} added to your cart.`);

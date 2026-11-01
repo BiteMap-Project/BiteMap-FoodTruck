@@ -1,4 +1,4 @@
-import { fireEvent, render as rtlRender, screen } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -49,7 +49,8 @@ it("submits the signed-in cart and shows a reloadable confirmation", async () =>
     <Route path="/orders/:id/confirmation" element={<OrderConfirmationPage />} />
   </Routes></MemoryRouter>);
 
-  fireEvent.click(await screen.findByRole("button", { name: "Place pickup order" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Place pickup order" })).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", { name: "Place pickup order" }));
 
   expect(await screen.findByRole("heading", { name: "Thanks, your pickup order is in." })).toBeInTheDocument();
   expect(screen.getByText("Order #42 · Taco Truck")).toBeInTheDocument();

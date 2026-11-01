@@ -5,6 +5,7 @@ import App from "../App";
 import TruckMenuPage from "./TruckMenuPage";
 import { AuthProvider } from "../auth/AuthContext";
 import { addCartItem, readCart, setCartQuantity } from "../features/cart/cart";
+import { saveCheckoutAttempt } from '../features/cart/checkoutAttempt';
 
 const truck = {
   id: -2, name: "Database Taco", category: "Tacos", location: "Northridge",
@@ -23,6 +24,16 @@ beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
   sessionStorage.clear();
+});
+
+it('locks menu cart controls while a checkout needs recovery', async () => {
+  addCartItem(truck.id,truck.name,truck.menu[0]);
+  saveCheckoutAttempt({accountId:7,key:crypto.randomUUID(),cart:readCart()!,pickupStopId:3});
+  fetchMock.mockResolvedValue(response({...truck,menu:[{...truck.menu[0],available:true}]}));
+  open();
+  expect(await screen.findByRole('link',{name:'Recover order'})).toHaveAttribute('href','/cart');
+  expect(screen.getByRole('button',{name:'Remove Veggie Taco from cart'})).toBeDisabled();
+  expect(screen.getByRole('button',{name:'Increase Veggie Taco quantity'})).toBeDisabled();
 });
 
 it("adds an available database menu item to the customer cart", async () => {

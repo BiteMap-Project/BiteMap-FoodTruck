@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { AuthApiError } from "../../services/auth";
 import { getCustomerOrder, type CustomerOrder } from "../../services/orders";
+import { subscribeOrderEvents, type UpdateConnection } from '../../services/orderEvents';
 
 const active = new Set(["PLACED", "ACCEPTED", "READY"]);
 type State = { order: CustomerOrder | null; loading: boolean; error: string; denied: number | null; checkedAt: Date | null; paused: boolean };
 
 /** One bounded read at a time. Never creates orders or retries a mutation. */
 export function useCustomerOrder(id: number) {
+  const [connection,setConnection]=useState<UpdateConnection>('connecting');
   const [state, setState] = useState<State>({ order: null, loading: true, error: "", denied: null, checkedAt: null, paused: document.visibilityState !== "visible" });
   const refreshRef = useRef<() => void>(() => {});
   const replaceRef = useRef<(order: CustomerOrder) => void>(() => {});
@@ -18,6 +20,8 @@ export function useCustomerOrder(id: number) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let timeout: ReturnType<typeof setTimeout> | undefined;
     let failures = 0;
+    let stopEvents = () => {};
+    let dirty = false;
     const clear = () => { clearTimeout(timer); clearTimeout(timeout); };
     async function read() {
       if (disposed || denied || pending || document.visibilityState !== "visible") return;
@@ -32,6 +36,7 @@ export function useCustomerOrder(id: number) {
         if (disposed || pending !== controller || controller.signal.aborted) return;
         failures = 0;
         terminal = !active.has(order.status);
+        if(terminal) stopEvents();
         setState({ order, loading: false, error: "", denied: null, checkedAt: new Date(), paused: false });
       } catch (cause) {
         if (disposed || pending !== controller || (controller.signal.aborted && !timedOut)) return;
@@ -39,6 +44,7 @@ export function useCustomerOrder(id: number) {
         denied = [401, 403, 404].includes(status);
         failures++;
         if (denied) {
+          stopEvents();
           setState({ order: null, loading: false, checkedAt: null, paused: false, denied: status,
             error: status === 401 ? "Your session expired. Sign in to view your order." : "This order is not available to your account." });
         } else {
@@ -51,7 +57,8 @@ export function useCustomerOrder(id: number) {
         if (pending === controller) {
           clearTimeout(timeout);
           pending = null;
-          if (!disposed && !denied && !terminal && document.visibilityState === "visible") {
+          if(dirty && !disposed && !denied && !terminal) { dirty=false; void read(); }
+          else if (!disposed && !denied && !terminal && document.visibilityState === "visible") {
             timer = setTimeout(() => void read(), Math.min(10000 * 2 ** Math.min(failures, 3), 60000));
           }
         }
@@ -68,17 +75,22 @@ export function useCustomerOrder(id: number) {
       if (disposed || order.id !== id) return;
       clear(); pending?.abort(); pending = null;
       terminal = !active.has(order.status);
+      if(terminal) stopEvents();
       setState({order, loading:false, error:'', denied:null, checkedAt:new Date(), paused:document.visibilityState !== 'visible'});
       if (!terminal && document.visibilityState === 'visible') timer = setTimeout(() => void read(),10000);
     };
     document.addEventListener("visibilitychange", visibility);
+    stopEvents=subscribeOrderEvents(`/api/customer/orders/${id}/events`,()=>{
+      if(terminal || denied || disposed) return;
+      if(pending) dirty=true; else void read();
+    },setConnection);
     void read();
     return () => {
-      disposed = true; clear(); pending?.abort();
+      disposed = true; clear(); pending?.abort(); stopEvents();
       document.removeEventListener("visibilitychange", visibility);
       refreshRef.current = () => {};
       replaceRef.current = () => {};
     };
   }, [id]);
-  return { ...state, refresh: () => refreshRef.current(), applyOrder: (order: CustomerOrder) => replaceRef.current(order) };
+  return { ...state, connection, refresh: () => refreshRef.current(), applyOrder: (order: CustomerOrder) => replaceRef.current(order) };
 }

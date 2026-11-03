@@ -12,7 +12,7 @@ const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD
 const date = (value: string) => new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 const errorText = (error: unknown) => error instanceof AuthApiError ? error.message : "Connection interrupted. Refresh to check the latest order state.";
 
-export default function OrdersPanel({ vendorId }: { vendorId: number }) {
+export default function OrdersPanel({ vendorId, notificationRevision=0 }: { vendorId: number; notificationRevision?:number }) {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const filterValue = params.get("status") ?? "";
@@ -33,6 +33,10 @@ export default function OrdersPanel({ vendorId }: { vendorId: number }) {
   const setSelected = (id: number | null) => setQuery({ order: id === null ? null : String(id) });
   const [busy, setBusy] = useState(false);
   const refresh = () => { setLoading(true); setAttempt(value => value + 1); };
+  const observedRevision = useRef(notificationRevision);
+  useEffect(()=>{
+    if(!busy && observedRevision.current!==notificationRevision) { observedRevision.current=notificationRevision; refresh(); }
+  },[notificationRevision,busy]);
   useEffect(() => {
     const controller = new AbortController();
     listOwnerOrders(vendorId, page, filter, controller.signal).then(result => {

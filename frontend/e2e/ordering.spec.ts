@@ -306,6 +306,12 @@ test("real customer checkout, lost response retry, owner processing, tracking an
       VALUES (${Number(vendor.id)},'Orange Grove entrance','18111 Nordhoff St',34.24,-118.53,
       now()-interval '5 minutes',now()+interval '2 hours','America/Los_Angeles');`);
 
+    await ownerPage.goto(`/operator/vendors/${vendor.id}/overview`);
+    await expect(ownerPage.getByText('Live order updates connected', {exact:true})).toBeVisible();
+    await expect(ownerPage.getByText('0 orders awaiting acceptance', {exact:true})).toBeVisible();
+    await ownerPage.getByRole('button', {name:'Enable order sound',exact:true}).click();
+    await expect(ownerPage.getByRole('button', {name:'Disable order sound',exact:true})).toBeVisible();
+
     await customerPage.goto("/trucks");
     await customerPage.getByRole("article").filter({ has: customerPage.getByRole("heading", { name, exact: true }) })
       .getByRole("link", { name: "View Profile & Menu" }).click();
@@ -349,6 +355,8 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     expect(history.totalElements).toBe(1);
     expect(history.items[0].id).toBe(savedId);
     const detail = await (await customer.request.get(`/api/customer/orders/${savedId}`)).json();
+    await expect(ownerPage.getByText('1 orders awaiting acceptance', {exact:true})).toBeVisible({timeout:10_000});
+    await expect(customerPage.getByText('Live order updates connected.', {exact:true})).toBeVisible();
     expect(detail.total).toBe(9);
     expect(detail.items[0].unitPrice).toBe(4.5);
     expect(detail.pickup.address).toBe("18111 Nordhoff St");
@@ -456,6 +464,15 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     await expect(ownerPage.getByRole("button", { name: `View order #${thirdOrder.id}`, exact: true })).toBeVisible({ timeout: 40_000 });
     await ownerPage.getByRole("button", { name: `View order #${thirdOrder.id}`, exact: true }).click();
     await expect(ownerPage.getByText("Cancelled by customer.", { exact: true })).toBeVisible();
+    await expect(ownerPage.getByText('0 orders awaiting acceptance', {exact:true})).toBeVisible({timeout:10_000});
+    await owner.setOffline(true);
+    await expect(ownerPage.getByText('Live updates disconnected or stale. The order queue still refreshes periodically.', {exact:true})).toBeVisible({timeout:20_000});
+    await owner.setOffline(false);
+    await expect(ownerPage.getByText('Live order updates connected', {exact:true})).toBeVisible({timeout:40_000});
+    await ownerPage.screenshot({path:testInfo.outputPath('owner-live-order-notifications.png'),fullPage:true});
+    await ownerPage.getByRole('button',{name:'Sign out',exact:true}).click();
+    await expect(ownerPage).toHaveURL(/\/operator\/login$/);
+    await expect(ownerPage.getByRole('region',{name:'Order notifications'})).toHaveCount(0);
     await customerPage.screenshot({ path: testInfo.outputPath("customer-cancelled-order.png"), fullPage: true });
     await customer.clearCookies();
     await customerPage.reload();

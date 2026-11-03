@@ -7,6 +7,7 @@ import MenuPhoto from "../menu/MenuPhoto";
 import { ItemForm, VendorForm } from "./WorkspaceForms";
 import SchedulePanel from "./SchedulePanel";
 import OrdersPanel from "./OrdersPanel";
+import { useOrderNotifications } from './useOrderNotifications';
 import { previewState, readWorkspaceRestore, workspaceRoute, workspaceUrl, WORKSPACE_TABS, type WorkspaceTab } from "./ownerReturn";
 import "./owner-design.css";
 import "./workspace.css";
@@ -38,6 +39,7 @@ export default function OperatorWorkspace({ account, onSignOut, signingOut, logo
   const [creating, setCreating] = useState(false);
   const loaded = useRef<{ key: string; data: Page<Vendor> } | null>(null);
   const paging = useRef(false);
+  const notifications = useOrderNotifications(account.id, selected?.id ?? null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -85,19 +87,24 @@ export default function OperatorWorkspace({ account, onSignOut, signingOut, logo
   if (invalidRoute) return <main><h1>Workspace page not found</h1><Link to="/operator">Back to overview</Link></main>;
   return <div className="od-app ow-connected">
     <aside className="od-sidebar"><Link className="od-brand" to="/">BiteMap<span className="od-brand-dot">.</span></Link>
-      <p className="od-sidebar-label">OWNER WORKSPACE</p><nav aria-label="Owner navigation">{WORKSPACE_TABS.map(t => <button className={`od-nav-item ${tab === t ? "is-active" : ""}`} aria-current={tab === t ? "page" : undefined} key={t} onClick={() => { setTab(t); setCreating(false); }}>{t}</button>)}</nav>
+      <p className="od-sidebar-label">OWNER WORKSPACE</p><nav aria-label="Owner navigation">{WORKSPACE_TABS.map(t => <button className={`od-nav-item ${tab === t ? "is-active" : ""}`} aria-label={t} aria-current={tab === t ? "page" : undefined} key={t} onClick={() => { setTab(t); setCreating(false); }}>{t}{t==='Orders' && notifications.count>0 && <span className="ow-new-order-badge" aria-label={`${notifications.count} orders awaiting acceptance`}>{notifications.count}</span>}</button>)}</nav>
       <div className="od-sidebar-tip"><strong>Your kitchen, connected.</strong><p>Truck and menu changes are saved to BiteMap, not this browser.</p><Link to="/operator/analytics">My business insights →</Link></div>
       <div className="od-owner"><div><strong>{account.displayName}</strong><p>{account.email}</p><button type="button" className="od-button od-button-secondary" disabled={signingOut} onClick={onSignOut}>{signingOut ? "Signing out…" : "Sign out"}</button></div></div>
     </aside>
     <div className="od-workspace"><header className="od-topbar"><span>Workspace / {tab}</span><Link to="/">Browse trucks →</Link></header>
       <main className="od-main">{compactLayout ? <h1>{tab}</h1> : <div className="od-page-heading"><div><p className="od-eyebrow">GOOD FOOD. YOUR BUSINESS.</p><h1>Welcome, {account.displayName}</h1><p>Manage only the trucks owned by your account.</p></div></div>}
         {logoutError && <p role="alert" className="ow-error">{logoutError}</p>}
+        {selected && <section className="ow-order-notifications" aria-label="Order notifications">
+          <div><strong>{notifications.count} orders awaiting acceptance</strong><p role="status">{notifications.connection==='live' ? 'Live order updates connected' : notifications.connection==='paused' ? 'Live updates paused while this tab is hidden.' : notifications.connection==='connecting' ? 'Connecting live order updates…' : 'Live updates disconnected or stale. The order queue still refreshes periodically.'}</p></div>
+          <button className="od-button od-button-secondary" aria-pressed={notifications.sound} onClick={()=>void notifications.toggleSound()}>{notifications.sound?'Disable order sound':'Enable order sound'}</button>
+          {notifications.soundError && <p role="alert">{notifications.soundError}</p>}
+        </section>}
         {vendors.kind === "loading" && <p role="status">Loading your trucks…</p>}
         {vendors.kind === "error" && <div role="alert"><p>{errorText(vendors.error)}</p><button onClick={() => reload()}>Retry trucks</button></div>}
         {vendors.kind === "ready" && <>
           <div className="ow-toolbar"><label>Your truck<select aria-label="Your truck" value={selected?.id ?? ""} onChange={e => { navigate(workspaceUrl(Number(e.target.value), tab)); setCreating(false); }}><option value="" disabled>Select a truck</option>{vendors.data.items.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select></label>{(!compactLayout || vendors.data.totalElements === 0) && <button className="od-button od-button-primary" onClick={() => setCreating(true)}>{vendors.data.totalElements === 0 ? "Create your first truck" : "New truck"}</button>}{!compactLayout && <button className="od-button od-button-secondary" onClick={() => reload()}>Refresh trucks</button>}</div>
           {(!compactLayout || vendors.data.totalPages > 1) && <Pager page={vendors.data.page} totalPages={vendors.data.totalPages} onPage={reload} label="Trucks" />}
-          {creating ? <NewVendor onSaved={() => reload(0)} onCancel={() => setCreating(false)} /> : selected ? <VendorWorkspace key={selected.id} vendor={selected} tab={tab} onSaved={v => { if (loaded.current) loaded.current.data = { ...loaded.current.data, items: loaded.current.data.items.map(old => old.id === v.id ? v : old) }; setSelected(v); setVendors({ kind: "ready", data: { ...vendors.data, items: vendors.data.items.map(old => old.id === v.id ? v : old) } }); }} /> : <section className="ow-panel"><h2>{requestedId !== null ? "Truck unavailable" : "No trucks yet"}</h2><p>{requestedId !== null ? "This truck is not available to your account." : "Create your first truck to start building its menu."}</p></section>}
+          {creating ? <NewVendor onSaved={() => reload(0)} onCancel={() => setCreating(false)} /> : selected ? <VendorWorkspace key={selected.id} vendor={selected} tab={tab} orderRevision={notifications.revision} onSaved={v => { if (loaded.current) loaded.current.data = { ...loaded.current.data, items: loaded.current.data.items.map(old => old.id === v.id ? v : old) }; setSelected(v); setVendors({ kind: "ready", data: { ...vendors.data, items: vendors.data.items.map(old => old.id === v.id ? v : old) } }); }} /> : <section className="ow-panel"><h2>{requestedId !== null ? "Truck unavailable" : "No trucks yet"}</h2><p>{requestedId !== null ? "This truck is not available to your account." : "Create your first truck to start building its menu."}</p></section>}
         </>}
       </main>
     </div>
@@ -116,7 +123,7 @@ function NewVendor({ onSaved, onCancel }: { onSaved: () => void; onCancel: () =>
     }} />{error && <p role="alert" className="ow-error">{error}</p>}<button disabled={busy} onClick={onCancel}>Cancel</button></section>;
 }
 
-function VendorWorkspace({ vendor, tab, onSaved }: { vendor: Vendor; tab: Tab; onSaved: (v: Vendor) => void }) {
+function VendorWorkspace({ vendor, tab, onSaved, orderRevision }: { vendor: Vendor; tab: Tab; onSaved: (v: Vendor) => void; orderRevision:number }) {
   const navigate = useNavigate();
   const [page, setPage] = useState(0);
   const [attempt, setAttempt] = useState(0);
@@ -155,7 +162,7 @@ function VendorWorkspace({ vendor, tab, onSaved }: { vendor: Vendor; tab: Tab; o
     {message && <p role="status" className="ow-message">{message}</p>}{error && <p role="alert" className="ow-error">{error}</p>}
     {tab === "Overview" && <section className="ow-panel"><h2>Your workspace is connected</h2><p>Use Menu to add items, edit prices and change availability. Use Truck Details to update this truck’s public profile. Use Schedule to publish, edit and cancel planned stops. Use Orders to review customer orders and manage preparation.</p><p>Revenue and opening-hours controls are not available yet.</p></section>}
     {tab === "Schedule" && <SchedulePanel key={vendor.id} vendorId={vendor.id} />}
-    {tab === "Orders" && <OrdersPanel key={vendor.id} vendorId={vendor.id} />}
+    {tab === "Orders" && <OrdersPanel key={vendor.id} vendorId={vendor.id} notificationRevision={orderRevision} />}
     {tab === "Truck Details" && <section className="ow-panel"><h2>Truck details</h2><VendorForm key={`${vendor.id}-${vendor.name}-${vendor.category}-${vendor.location}`} initial={vendor} busy={busy} disabled={blocked} onSave={input => mutate(() => saveVendor(input, vendor.id), result => onSaved(result as Vendor))} />{blocked && <p>Refresh trucks to reload your access before retrying.</p>}</section>}
     {tab === "Menu" && <section className="ow-panel ow-menu-panel"><div className="ow-menu-heading"><div><span className="ow-menu-eyebrow">YOUR MENU</span><h2>Menu items</h2><p>Choose what customers can order from your current menu.</p></div><div className="ow-menu-heading-actions"><button className="od-button od-button-primary" disabled={unavailable || menu.kind !== "ready"} onClick={() => setEditor("new")}>Add menu item</button><button disabled={busy} className="od-button od-button-secondary" onClick={() => reload()}>Reload menu</button></div></div>
       {menu.kind === "loading" && <p role="status">Loading menu…</p>}

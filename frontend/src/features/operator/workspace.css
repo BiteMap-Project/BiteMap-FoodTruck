@@ -10,6 +10,10 @@ body:has(.ow-connected) { background: #f8f8f4; }
 .ow-connected .od-brand { color: var(--od-ink); text-decoration: none; }
 .ow-connected .od-owner { overflow-wrap: anywhere; }
 .ow-connected .od-owner { display: flex; }
+@media (min-width: 701px) {
+  .ow-connected .od-sidebar { min-height: 0; height: 100svh; overflow-y: auto; }
+  .ow-connected .od-sidebar > * { flex-shrink: 0; }
+}
 .ow-connected .od-sidebar nav { flex-wrap: wrap; }
 .ow-connected .ow-toolbar > label { min-width: 0; max-width: 100%; }
 .ow-connected .ow-toolbar select { width: 260px; max-width: 100%; }
@@ -87,6 +91,9 @@ body:has(.ow-connected) { background: #f8f8f4; }
 @media(max-width: 480px) { .ow-connected .ow-schedule-actions { display: grid; } .ow-connected .ow-schedule-actions button { width: 100%; } }
 @media(max-width: 900px) { .ow-connected .ow-menu-row { grid-template-columns: 80px 1fr; } .ow-connected .ow-item-actions { grid-column: 1 / -1; justify-items: start; } .ow-connected .ow-preset-grid { grid-template-columns: repeat(2, minmax(100px, 1fr)); } }
 @media(max-width: 700px) { .ow-connected .od-sidebar { position: static; height: auto; min-height: 0; } .ow-connected .od-sidebar-tip { display: none; } .ow-connected .od-topbar { padding: 16px; } .ow-connected .od-main { padding: 20px 16px; } .ow-connected .od-hero { padding: 22px; min-height: 160px; } .ow-connected .ow-panel, .ow-connected .ow-menu-panel { padding: 16px; } .ow-connected .ow-menu-heading { flex-direction: column; } .ow-connected .ow-status-buttons { width: 100%; flex-direction: column; } .ow-connected .ow-status-buttons button { text-align: left; } .ow-connected input, .ow-connected select, .ow-connected textarea { font-size: 16px; } }
+.ow-new-order-badge { margin-left: auto; padding: 2px 9px; border-radius: 999px; background: #b64923; color: white; font-size: 13px; }
+.ow-order-notifications { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 18px 22px; margin-bottom: 24px; border: 1px solid #e1e4da; border-radius: 14px; background: white; }
+.ow-order-notifications p { margin: 6px 0 0; font-size: 14px; }
 
 /* SCRUM-99: owner order/schedule controls retain focus and fit phones. */
 .ow-connected a:focus-visible,

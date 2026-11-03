@@ -66,6 +66,10 @@ public class SecurityConfiguration {
 			CsrfTokenRepository csrf, AccountDetailsService accounts) throws Exception {
 		http.authorizeHttpRequests(authorize -> authorize
 				.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                // This server-only attribute is set after stream ownership checks. Initial
+                // requests still require their role; each emitted snapshot is reauthorized.
+                .requestMatchers(request -> request.getDispatcherType()==DispatcherType.ASYNC
+                    && Boolean.TRUE.equals(request.getAttribute("bitemap.authorized-order-stream"))).permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/vendors/{vendorId}/menu-items/{itemId}/image").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/vendors/{id}/pickup-stop").permitAll()

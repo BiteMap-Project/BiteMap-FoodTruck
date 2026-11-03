@@ -28,7 +28,7 @@ export default function OrderConfirmationPage() {
 }
 
 function OrderDetails({ id }: { id: number }) {
-  const { order, loading, error, denied, checkedAt, paused, refresh, applyOrder } = useCustomerOrder(id);
+  const { order, loading, error, denied, checkedAt, paused, refresh, applyOrder, connection } = useCustomerOrder(id);
   const current = order ? steps.indexOf(order.status) : -1;
   const active = order && ["PLACED", "ACCEPTED", "READY"].includes(order.status);
   const readyTime = order?.estimatedReadyAt ? new Date(order.estimatedReadyAt) : null;
@@ -43,6 +43,7 @@ function OrderDetails({ id }: { id: number }) {
       <p className="cart-eyebrow">YOUR PICKUP ORDER</p>
       <h1>{order.status === "PLACED" ? "Thanks, your pickup order is in." : "Your order updates"}</h1>
       <p className="confirmation-number">Order #{order.id} · {order.vendorName}</p>
+      {active && <p className="cart-note">{connection==='live' ? 'Live order updates connected.' : connection==='connecting' ? 'Connecting live updates…' : 'Live updates disconnected or paused. Periodic status checks remain available while this page is visible.'}</p>}
       <PickupLocation pickup={order.pickup} />
       <section className={`customer-order-status ${order.status === "CANCELLED" ? "is-cancelled" : ""}`} aria-label="Order status">
         <h2 role="status" aria-live="polite" aria-atomic="true">{messages[order.status] ?? "Order status is unavailable."}</h2>

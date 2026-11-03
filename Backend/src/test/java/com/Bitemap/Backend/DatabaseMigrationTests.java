@@ -56,6 +56,22 @@ class DatabaseMigrationTests {
 				.containsExactly("classpath:db/migration");
 	}
 
+    @Test
+    void orderSignalUpgradeBackfillsAndTracksOnlyItsOwnSchema() {
+        Flyway.configure().configuration(migrations(false).getConfiguration()).target("18").load().migrate();
+        long user=jdbc.queryForObject("INSERT INTO "+schema+".app_users(display_name,email,password_hash) VALUES ('Fixture','signal@example.test','unused') RETURNING id",Long.class);
+        long vendor=jdbc.queryForObject("INSERT INTO "+schema+".vendors(name,category,location) VALUES ('Signal truck','Food','Test') RETURNING id",Long.class);
+        for(String status:List.of("PLACED","COMPLETED")) jdbc.update("INSERT INTO "+schema+".customer_orders(customer_user_id,vendor_id,idempotency_key,total,status) VALUES (?,?,?,0,?)",user,vendor,UUID.randomUUID(),status);
+        migrateAndValidate(migrations(false));
+        assertThat(jdbc.queryForMap("SELECT revision,created_count,placed_count FROM "+schema+".vendor_order_signals WHERE vendor_id=?",vendor))
+            .containsEntry("revision",2L).containsEntry("created_count",2L).containsEntry("placed_count",1L);
+        // Explicitly qualified table with a different connection search_path tests trigger isolation.
+        jdbc.update("UPDATE "+schema+".customer_orders SET status='CANCELLED',version=version+1 WHERE status='PLACED'");
+        assertThat(jdbc.queryForMap("SELECT revision,created_count,placed_count FROM "+schema+".vendor_order_signals WHERE vendor_id=?",vendor))
+            .containsEntry("revision",3L).containsEntry("created_count",2L).containsEntry("placed_count",0L);
+        assertThat(migrations(false).migrate().migrationsExecuted).isZero();
+    }
+
 	@Test
 	void freshDatabaseHasValidSchemaWithoutSampleData() {
 		Flyway flyway = migrations(false);

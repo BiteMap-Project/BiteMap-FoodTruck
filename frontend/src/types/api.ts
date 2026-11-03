@@ -78,9 +78,12 @@ export type CustomerOrderSummary = {
   status: OrderStatus;
   total: number;
   createdAt: string;
+  estimatedReadyAt?: string | null;
 };
 
 export type CustomerOrder = CustomerOrderSummary & {
+  /** Older servers may omit this; cancellation stays disabled until refreshed from an upgraded server. */
+  version?: number;
   cancellationReason?: string | null;
   pickup?: PickupDetails | null;
   items: OrderItem[];
@@ -93,6 +96,7 @@ export type OwnerOrderSummary = {
   total: number;
   createdAt: string;
   updatedAt: string;
+  estimatedReadyAt?: string | null;
   version: number;
   cancellationReason: string | null;
 };

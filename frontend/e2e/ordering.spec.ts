@@ -7,6 +7,79 @@ import { readFileSync } from "node:fs";
 const baseURL = "http://127.0.0.1:15173";
 const password = "E2e-Disposable-Only-93!";
 
+test("password recovery through real email revokes old sessions and rejects token reuse", async ({ browser, request }, testInfo) => {
+  const oldCustomer = await browser.newContext({ baseURL });
+  const oldOwner = await browser.newContext({ baseURL });
+  const recovery = await browser.newContext({ baseURL });
+  try {
+    const email = `recovery-${randomUUID()}@example.test`;
+    expect((await write(oldCustomer.request, "/api/auth/register", { displayName: "Recovery Test", email, password })).status()).toBe(201);
+    sql(`INSERT INTO app_user_roles(user_id,role) SELECT id,'OPERATOR' FROM app_users WHERE email='${email}';
+      INSERT INTO operators(user_id) SELECT id FROM app_users WHERE email='${email}';`);
+    for (const context of [oldCustomer, oldOwner]) expect((await write(context.request, "/api/auth/login", { email, password })).status()).toBe(200);
+    const page = await recovery.newPage();
+    await page.goto("/customer/login");
+    await page.getByRole("link", { name: "Forgot password?" }).click();
+    // Both routes have an Email field. Wait for the destination to render before
+    // filling, otherwise React can discard a fill made on the old login page.
+    await expect(page).toHaveURL(`${baseURL}/forgot-password`);
+    const recoveryForm = page.getByRole("region", { name: "Forgot password?", exact: true });
+    await expect(recoveryForm).toBeVisible();
+    await recoveryForm.getByLabel("Email", { exact: true }).fill(email);
+    await expect(recoveryForm.getByLabel("Email", { exact: true })).toHaveValue(email);
+    const [resetRequest] = await Promise.all([
+      page.waitForResponse(response => response.url() === `${baseURL}/api/auth/forgot-password`
+        && response.request().method() === "POST"),
+      recoveryForm.getByRole("button", { name: "Send reset link" }).click(),
+    ]);
+    expect(resetRequest.status(), "Password recovery request must be accepted").toBe(202);
+    await expect(page.getByRole("status")).toContainText("If an eligible account exists");
+    await page.screenshot({ path: testInfo.outputPath("recovery-requested.png"), fullPage: true });
+    let mailId = "";
+    await expect.poll(async () => {
+      const inbox = await (await request.get("http://127.0.0.1:18025/api/v1/messages")).json();
+      const message = inbox.messages.find((m: { ID: string; Subject: string; To: { Address: string }[] }) =>
+        m.Subject === "Reset your BiteMap password" && m.To.some(to => to.Address === email));
+      mailId = message?.ID ?? "";
+      return Boolean(mailId);
+    }, { timeout: 20000 }).toBe(true);
+    const mail = await (await request.get(`http://127.0.0.1:18025/api/v1/message/${mailId}`)).json();
+    const link = mail.Text.match(/http:\/\/127\.0\.0\.1:15173\/reset-password#token=[A-Za-z0-9_-]{43}/)?.[0];
+    expect(Boolean(link)).toBe(true);
+    await page.goto(link);
+    await expect(page).toHaveURL(`${baseURL}/reset-password`);
+    const newPassword = "Fresh disposable password-42!";
+    await page.getByLabel("New password", { exact: true }).fill(newPassword);
+    await page.getByLabel("Confirm new password", { exact: true }).fill(newPassword);
+    await page.screenshot({ path: testInfo.outputPath("recovery-form.png"), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("recovery-mobile.png"), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.getByRole("button", { name: "Update password" }).click();
+    await expect(page.getByRole("status")).toContainText("Password updated");
+    await page.screenshot({ path: testInfo.outputPath("recovery-completed.png"), fullPage: true });
+    for (const context of [oldCustomer, oldOwner]) expect((await context.request.get("/api/auth/me")).status()).toBe(401);
+    expect((await recovery.request.get("/api/auth/me")).status()).toBe(401);
+    expect((await write(recovery.request, "/api/auth/login", { email, password })).status()).toBe(401);
+    await page.getByRole("link", { name: "Customer sign in", exact: true }).click();
+    await expect(page).toHaveURL(`${baseURL}/customer/login`);
+    await expect(page.getByRole("heading", { name: "Customer sign in", exact: true })).toBeVisible();
+    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(newPassword);
+    await page.getByRole("button", { name: "Sign in and return to cart", exact: true }).click();
+    await expect(page).toHaveURL(/\/cart$/);
+    const me = await (await recovery.request.get("/api/auth/me")).json();
+    expect(me.roles).toEqual(["ROLE_CUSTOMER", "ROLE_OPERATOR"]);
+    expect((await recovery.request.get("/api/operator/vendors")).status()).toBe(200);
+    await page.goto(link);
+    await page.getByLabel("New password", { exact: true }).fill(newPassword);
+    await page.getByLabel("Confirm new password", { exact: true }).fill(newPassword);
+    await page.getByRole("button", { name: "Update password" }).click();
+    await expect(page.getByRole("alert")).toContainText("invalid or expired");
+  } finally { await oldCustomer.close(); await oldOwner.close(); await recovery.close(); }
+});
+
 // The suite uses a single local proxy IP. Reset only the disposable limiter
 // fixtures between independent tests, never disable enforcement in the app.
 test.beforeEach(() => { sql("DELETE FROM auth_rate_limits"); });
@@ -194,7 +267,8 @@ async function login(page: Page, email: string, owner = false) {
   await expect(page).toHaveURL(owner ? /\/operator$/ : /\/cart$/);
 }
 
-test("real customer checkout, lost response retry, owner processing, tracking and isolation", async ({ browser }) => {
+test("real customer checkout, lost response retry, owner processing, tracking and isolation", async ({ browser }, testInfo) => {
+  test.setTimeout(120_000); // Includes customer (10s) and owner (30s) real polling intervals.
   const customer = await browser.newContext({ baseURL });
   const owner = await browser.newContext({ baseURL });
   const outsider = await browser.newContext({ baseURL });
@@ -262,7 +336,13 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     await expect(customerPage.getByRole("alert")).toBeVisible();
     expect(savedId).toBeGreaterThan(0);
     await expect(customerPage.getByLabel("Quantity for Campus Taco")).toHaveValue("2");
-    await customerPage.getByRole("button", { name: "Place pickup order" }).click();
+    await expect(customerPage.getByLabel("Quantity for Campus Taco")).toBeDisabled();
+    await expect(customerPage.getByRole('button', {name:'Clear cart', exact:true})).toBeDisabled();
+    // A full refresh must keep the original attempt, not generate a second order.
+    await customerPage.reload();
+    await expect(customerPage.getByLabel("Quantity for Campus Taco")).toHaveValue("2");
+    await expect(customerPage.getByLabel("Quantity for Campus Taco")).toBeDisabled();
+    await customerPage.getByRole("button", { name: "Recover order", exact:true }).click();
     await expect(customerPage).toHaveURL(`/orders/${savedId}/confirmation`);
     await expect(customerPage.getByRole("region", { name: "Order status", exact: true }).getByRole("status")).toHaveText("Your order has been placed.");
     const history = await (await customer.request.get("/api/customer/orders")).json();
@@ -353,13 +433,91 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     await expect(customerPage.getByRole("region", { name: "Order status", exact: true }).getByRole("status"))
       .toHaveText("Your order was cancelled.", { timeout: 25_000 });
     await expect(customerPage.getByText("Kitchen closed unexpectedly.", { exact: true })).toBeVisible();
+    // Customer cancellation uses the real session, CSRF, row version and database.
+    const third = await write(customer.request, "/api/customer/orders", { ...submitted, idempotencyKey: randomUUID() });
+    expect(third.status()).toBe(201);
+    const thirdOrder = await third.json();
+    const cancelPath = `/api/customer/orders/${thirdOrder.id}/cancel`;
+    expect((await write(outsider.request, cancelPath, { version: 0 })).status()).toBe(404);
+    await customerPage.goto(`/orders/${thirdOrder.id}/confirmation`);
+    await customerPage.getByRole("button", { name: "Cancel order", exact: true }).click();
+    await customerPage.getByRole("button", { name: "Keep order", exact: true }).click();
+    expect((await (await customer.request.get(`/api/customer/orders/${thirdOrder.id}`)).json()).status).toBe("PLACED");
+    await customerPage.getByRole("button", { name: "Cancel order", exact: true }).click();
+    await customerPage.getByRole("button", { name: "Confirm cancellation", exact: true }).click();
+    await expect(customerPage.getByRole("region", { name: "Order status", exact: true }).getByRole("status"))
+      .toHaveText("Your order was cancelled.");
+    await expect(customerPage.getByRole("button", { name: "Cancel order", exact: true })).toHaveCount(0);
+    const replayCancellation = await write(customer.request, cancelPath, { version: 0 });
+    expect(replayCancellation.status()).toBe(200);
+    expect((await replayCancellation.json()).version).toBe(1);
+    expect((await write(owner.request, `${path}/${thirdOrder.id}/status`, { status: "ACCEPTED", version: 0 }, "PATCH")).status()).toBe(409);
+    // Existing owner queue polling must pick up cancellation without a reload.
+    await expect(ownerPage.getByRole("button", { name: `View order #${thirdOrder.id}`, exact: true })).toBeVisible({ timeout: 40_000 });
+    await ownerPage.getByRole("button", { name: `View order #${thirdOrder.id}`, exact: true }).click();
+    await expect(ownerPage.getByText("Cancelled by customer.", { exact: true })).toBeVisible();
+    await customerPage.screenshot({ path: testInfo.outputPath("customer-cancelled-order.png"), fullPage: true });
     await customer.clearCookies();
     await customerPage.reload();
-    await expect(customerPage.getByRole("link", { name: "Customer sign in", exact: true })).toBeVisible();
+    await expect(customerPage).toHaveURL(/\/customer\/login$/);
+    await expect(customerPage.getByRole("heading", { name: "Customer sign in", exact: true })).toBeVisible();
     await expect(customerPage.getByText("Kitchen closed unexpectedly.", { exact: true })).toHaveCount(0);
   } finally {
     await Promise.all([customer, owner, outsider, anonymous].map(context => context.close()));
   }
+});
+
+test("customer order privacy survives account switching and logout in a second tab", async ({ browser }, testInfo) => {
+  const context = await browser.newContext({ baseURL });
+  try {
+    const emailA = `privacy-a-${randomUUID()}@example.test`;
+    const emailB = `privacy-b-${randomUUID()}@example.test`;
+    for (const email of [emailA, emailB]) {
+      expect((await write(context.request, "/api/auth/register", { displayName: "Privacy fixture", email, password })).status()).toBe(201);
+    }
+    // Completed fixture deliberately never polls; no application database is used.
+    sql(`WITH truck AS (
+      INSERT INTO vendors(name,category,location) VALUES ('Privacy fixture truck','Food','Test location') RETURNING id
+    ) INSERT INTO customer_orders(customer_user_id,vendor_id,idempotency_key,total,status)
+      SELECT u.id,t.id,'${randomUUID()}',0,'COMPLETED' FROM app_users u CROSS JOIN truck t WHERE u.email='${emailA}';`);
+    const ordersTab = await context.newPage();
+    const sessionTab = await context.newPage();
+    await login(sessionTab, emailA);
+    const history = await (await context.request.get("/api/customer/orders")).json();
+    const orderId = history.items[0].id;
+    for (const path of ["/orders", `/orders/${orderId}/confirmation`]) {
+      await ordersTab.goto(path);
+      await expect(ordersTab.getByText(/Privacy fixture truck/)).toBeVisible();
+      await sessionTab.goto("/trucks");
+      await sessionTab.getByRole("button", { name: "Sign out", exact: true }).click();
+      await expect(sessionTab.getByRole("link", { name: "Customer sign in", exact: true })).toBeVisible();
+      await login(sessionTab, emailB);
+      await ordersTab.bringToFront();
+      // Explicit focus also makes this deterministic in headless Chromium.
+      const checked = ordersTab.waitForResponse(r => r.url().endsWith("/api/auth/me"));
+      await ordersTab.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await checked;
+      await expect(ordersTab.getByText(/Privacy fixture truck/)).toHaveCount(0);
+      if (path === "/orders") await expect(ordersTab.getByText("No orders yet.")).toBeVisible();
+      else await expect(ordersTab.getByRole("alert")).toContainText("not available to your account");
+      expect((await context.request.get(`/api/customer/orders/${orderId}`)).status()).toBe(404);
+      await ordersTab.screenshot({ path: testInfo.outputPath(path === "/orders" ? "switched-order-history.png" : "switched-completed-order.png"), fullPage: true });
+
+      await sessionTab.goto("/trucks");
+      await sessionTab.getByRole("button", { name: "Sign out", exact: true }).click();
+      await expect(sessionTab.getByRole("link", { name: "Customer sign in", exact: true })).toBeVisible();
+      await login(sessionTab, emailA);
+    }
+    await ordersTab.goto(`/orders/${orderId}/confirmation`);
+    await expect(ordersTab.getByText("Your order has been collected.")).toBeVisible();
+    await sessionTab.goto("/trucks");
+    await sessionTab.getByRole("button", { name: "Sign out", exact: true }).click();
+    await expect(sessionTab.getByRole("link", { name: "Customer sign in", exact: true })).toBeVisible();
+    await ordersTab.bringToFront();
+    await ordersTab.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expect(ordersTab).toHaveURL(/\/customer\/login$/);
+    await expect(ordersTab.getByText(/Privacy fixture truck/)).toHaveCount(0);
+  } finally { await context.close(); }
 });
 
 test("negative fixture IDs work; sold-out items and inactive pickup stops fail closed", async ({ page }) => {
@@ -389,7 +547,15 @@ test("negative fixture IDs work; sold-out items and inactive pickup stops fail c
     idempotencyKey: randomUUID(), items: [{ menuItemId: -900001, quantity: 1 }] });
   expect(forged.status()).toBe(409);
   expect((await (await page.request.get("/api/customer/orders")).json()).totalElements).toBe(0);
-  sql("UPDATE vendor_stops SET status='scheduled' WHERE id=-900001;");
+  // A scheduled stop can still be unavailable because its service window expired.
+  sql("UPDATE vendor_stops SET status='scheduled', starts_at=now()-interval '2 hours', ends_at=now()-interval '1 hour' WHERE id=-900001;");
+  await page.getByRole("button", { name: "Refresh pickup details" }).click();
+  await expect(page.getByRole("button", { name: "Place pickup order" })).toBeDisabled();
+  const expired = await write(page.request, "/api/customer/orders", { vendorId: -900001, pickupStopId: -900001,
+    idempotencyKey: randomUUID(), items: [{ menuItemId: -900001, quantity: 1 }] });
+  expect(expired.status()).toBe(409);
+  expect((await (await page.request.get("/api/customer/orders")).json()).totalElements).toBe(0);
+  sql("UPDATE vendor_stops SET starts_at=now()-interval '5 minutes', ends_at=now()+interval '2 hours' WHERE id=-900001;");
   await page.getByRole("button", { name: "Refresh pickup details" }).click();
   await expect(page.getByRole("button", { name: "Place pickup order" })).toBeEnabled();
   await page.getByRole("button", { name: "Place pickup order" }).click();

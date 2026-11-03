@@ -56,6 +56,7 @@ public class SessionController {
 		limiter.login(addresses.resolve(request), body.email());
 		var authentication = authenticationManager.authenticate(
 				UsernamePasswordAuthenticationToken.unauthenticated(body.email(), body.password()));
+		accounts.requireCurrentCredentials((AccountPrincipal) authentication.getPrincipal());
 		var account = accounts.account(authentication.getName());
 		sessions.onAuthentication(authentication, request, response);
 		var context = SecurityContextHolder.createEmptyContext();
@@ -81,7 +82,7 @@ public class SessionController {
         onboarding.becomeOperator(principal.userId()); // Transaction commits before session changes.
         var account = accounts.account(authentication.getName());
         var roles = account.roles().stream().map(org.springframework.security.core.authority.SimpleGrantedAuthority::new).toList();
-        var refreshed = new AccountPrincipal(account.id(), account.email(), "", true, roles);
+        var refreshed = new AccountPrincipal(account.id(), account.email(), "", true, roles, principal.credentialVersion());
         refreshed.eraseCredentials();
         var updated = UsernamePasswordAuthenticationToken.authenticated(refreshed, null, roles);
         sessions.onAuthentication(updated, request, response);

@@ -1,5 +1,9 @@
 # Disposable test stack only. No application volumes, .env, or development fixtures.
 services:
+  mailpit:
+    image: axllent/mailpit:v1.32.0
+    ports:
+      - "127.0.0.1:18025:8025"
   postgres:
     image: postgres:15
     environment:
@@ -20,7 +24,16 @@ services:
       DB_USERNAME: bitemap_e2e
       DB_PASSWORD: disposable_e2e_only
       AUTH_RATE_LIMIT_SECRET: disposable-e2e-auth-limit-secret-32-characters
+      PASSWORD_RECOVERY_ENABLED: "true"
+      PASSWORD_RESET_URL: http://127.0.0.1:15173/reset-password
+      PASSWORD_RESET_ALLOW_LOCAL_HTTP: "true"
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_AUTH: "false"
+      SMTP_STARTTLS: "false"
     depends_on:
+      mailpit:
+        condition: service_started
       postgres:
         condition: service_healthy
     healthcheck:

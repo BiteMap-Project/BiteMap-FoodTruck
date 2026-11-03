@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.*;
 class OperatorOrderTransactionTests {
     @Autowired JdbcTemplate jdbc;
     @Autowired OperatorOrderService service;
+    @Autowired OrderService customerOrders;
     String email;
     long operator, user, vendor, order;
 
@@ -42,6 +43,56 @@ class OperatorOrderTransactionTests {
     @Test
     void concurrentAcceptAndCancelHaveOneWinnerAndOneAuditEvent() throws Exception {
         race(new OrderStatusRequest(OrderStatus.ACCEPTED,0L,null),new OrderStatusRequest(OrderStatus.CANCELLED,0L,"Closed"));
+    }
+
+    @org.junit.jupiter.api.RepeatedTest(3)
+    void customerCancellationRacingOwnerAcceptanceHasOneWinner() throws Exception {
+        var ready = new CountDownLatch(2);
+        var start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var cancel = executor.submit(() -> {
+                ready.countDown();
+                if (!start.await(10,TimeUnit.SECONDS)) throw new IllegalStateException("Start timeout");
+                try { return (Object) customerOrders.cancel(email,order,new CancelOrderRequest(0L)); }
+                catch (OrderConflictException conflict) { return conflict; }
+            });
+            var accept = executor.submit(() -> {
+                ready.countDown();
+                if (!start.await(10,TimeUnit.SECONDS)) throw new IllegalStateException("Start timeout");
+                try { return (Object) service.update(email,vendor,order,new OrderStatusRequest(OrderStatus.ACCEPTED,0L,null)); }
+                catch (OperatorOrderException conflict) { return conflict; }
+            });
+            try { assertThat(ready.await(10,TimeUnit.SECONDS)).isTrue(); } finally {start.countDown();}
+            var outcomes = List.of(cancel.get(20,TimeUnit.SECONDS),accept.get(20,TimeUnit.SECONDS));
+            assertThat(outcomes.stream().filter(value -> value instanceof OrderResponse || value instanceof OperatorOrderResponse).count()).isEqualTo(1);
+            assertThat(outcomes.stream().filter(value -> value instanceof OrderConflictException || value instanceof OperatorOrderException).count()).isEqualTo(1);
+            assertThat(jdbc.queryForObject("SELECT status FROM customer_orders WHERE id=?",String.class,order)).isIn("ACCEPTED","CANCELLED");
+            assertThat(jdbc.queryForObject("SELECT version FROM customer_orders WHERE id=?",Long.class,order)).isEqualTo(1);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM customer_order_status_history WHERE order_id=?",Integer.class,order)).isEqualTo(1);
+        }
+    }
+
+    @Test
+    void simultaneousCustomerRetriesReturnOneCancellation() throws Exception {
+        var start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            java.util.concurrent.Callable<OrderResponse> work = () -> {
+                if (!start.await(10,TimeUnit.SECONDS)) throw new IllegalStateException("Start timeout");
+                return customerOrders.cancel(email,order,new CancelOrderRequest(0L));
+            };
+            var first = executor.submit(work); var second = executor.submit(work); start.countDown();
+            assertThat(first.get(20,TimeUnit.SECONDS).status()).isEqualTo("CANCELLED");
+            assertThat(second.get(20,TimeUnit.SECONDS).version()).isEqualTo(1);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM customer_order_status_history WHERE order_id=?",Integer.class,order)).isEqualTo(1);
+        }
+    }
+
+    @Test
+    void customerCancellationAuditFailureRollsBackOrder() {
+        jdbc.update("INSERT INTO customer_order_status_history(order_id,from_status,to_status,version,changed_by_user_id) VALUES (?,'PLACED','ACCEPTED',1,?)",order,user);
+        assertThatThrownBy(() -> customerOrders.cancel(email,order,new CancelOrderRequest(0L))).isInstanceOf(DataIntegrityViolationException.class);
+        assertThat(jdbc.queryForObject("SELECT status FROM customer_orders WHERE id=?",String.class,order)).isEqualTo("PLACED");
+        assertThat(jdbc.queryForObject("SELECT version FROM customer_orders WHERE id=?",Long.class,order)).isZero();
     }
 
     @Test

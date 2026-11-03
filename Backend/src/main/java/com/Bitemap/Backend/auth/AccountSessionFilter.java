@@ -23,6 +23,14 @@ final class AccountSessionFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        // Recovery authenticates only with its token, never a session identity.
+        // A stale/disabled session must not prevent account recovery. CSRF still runs.
+        return "POST".equals(request.getMethod()) && java.util.Set.of(
+                "/api/auth/forgot-password", "/api/auth/reset-password").contains(request.getServletPath());
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         var current = SecurityContextHolder.getContext().getAuthentication();
@@ -33,12 +41,14 @@ final class AccountSessionFilter extends OncePerRequestFilter {
                     throw new org.springframework.security.authentication.BadCredentialsException("Sign in again");
                 }
                 var account = accounts.account(current.getName());
+                var previous = (AccountPrincipal) current.getPrincipal();
+                accounts.requireCurrentCredentials(previous);
                 if (current.getPrincipal() instanceof AccountPrincipal principal && principal.userId() != account.id()) {
                     throw new org.springframework.security.authentication.BadCredentialsException("Account changed");
                 }
                 var roles = current.getAuthorities().stream().map(a -> a.getAuthority())
                         .filter(account.roles()::contains).map(SimpleGrantedAuthority::new).toList();
-                var principal = new AccountPrincipal(account.id(), account.email(), "", true, roles);
+                var principal = new AccountPrincipal(account.id(), account.email(), "", true, roles, previous.credentialVersion());
                 principal.eraseCredentials();
                 var authentication = UsernamePasswordAuthenticationToken.authenticated(principal, null, roles);
                 var context = SecurityContextHolder.createEmptyContext();

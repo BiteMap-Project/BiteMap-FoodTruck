@@ -81,6 +81,7 @@ function OperatorLoginPage() {
             {seconds > 0 ? `Try again in ${seconds}s` : submitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
+        <p className="auth-switch"><Link to="/forgot-password">Forgot password?</Link></p>
         <p className="auth-switch">New to BiteMap? <Link to="/operator/register">Create an account</Link></p>
         <Link className="auth-back" to="/trucks">← Just browsing? Find a food truck</Link>
       </section>

@@ -1,4 +1,4 @@
-import { fireEvent, render as rtlRender, screen } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -53,13 +53,16 @@ it("recognizes a signed-in customer without changing the cart", async () => {
   render(<MemoryRouter><CartPage /></MemoryRouter>);
 
   expect(await screen.findByText("Signed in as Casey")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Place pickup order" })).toBeEnabled();
+  await waitFor(() => expect(screen.getByRole("button", { name: "Place pickup order" })).toBeEnabled());
   expect(screen.getByRole("heading", { name: "Taco Truck" })).toBeInTheDocument();
 });
 
 it("removes the final item", () => {
   addCartItem(4, "Taco Truck", { id: 8, name: "Taco", price: 4.5 });
   render(<MemoryRouter><CartPage /></MemoryRouter>);
-  fireEvent.click(screen.getByRole("button", { name: "Remove Taco" }));
+  const remove = screen.getByRole("button", { name: "Remove Taco" });
+  expect(remove).toHaveTextContent(/^$/);
+  expect(remove.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+  fireEvent.click(remove);
   expect(screen.getByRole("heading", { name: "Your cart is empty." })).toBeInTheDocument();
 });

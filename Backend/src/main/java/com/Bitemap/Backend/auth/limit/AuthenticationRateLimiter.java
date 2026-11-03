@@ -28,6 +28,15 @@ public class AuthenticationRateLimiter {
     public void registration(String address) {
         check("registration", List.of(bucket("registration-ip", address, settings.registrationIpCapacity(), settings.registrationIpRefillSeconds())));
     }
+    public void recoveryRequest(String address, String email) {
+        check("recovery-request", List.of(
+                bucket("recovery-global", "all", 100, 2),
+                bucket("recovery-ip", address, 10, 60),
+                bucket("recovery-account", email, 3, 900)));
+    }
+    public void recoveryReset(String address) {
+        check("recovery-reset", List.of(bucket("recovery-reset-ip", address, 20, 60)));
+    }
     private AuthLimitRepository.Bucket bucket(String scope, String subject, int capacity, int refill) {
         try {
             var mac = Mac.getInstance("HmacSHA256");

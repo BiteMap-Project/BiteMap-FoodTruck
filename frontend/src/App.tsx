@@ -9,6 +9,7 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import CartPage from "./pages/CartPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import CustomerLoginPage from "./pages/CustomerLoginPage";
+import PasswordRecoveryPage from "./pages/PasswordRecoveryPage";
 import CustomerRegisterPage from "./pages/CustomerRegisterPage";
 import OperatorOnboardingPage from "./pages/OperatorOnboardingPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
@@ -28,9 +29,12 @@ function App() {
       <Route path="/cart" element={<CartPage />} />
       <Route path="/favorites" element={<RequireAccount><FavoritesPage /></RequireAccount>} />
       <Route path="/customer/login" element={<CustomerLoginPage />} />
+      <Route path="/forgot-password" element={<PasswordRecoveryPage key="forgot" />} />
+      <Route path="/reset-password" element={<PasswordRecoveryPage key="reset" reset />} />
       <Route path="/customer/register" element={<CustomerRegisterPage />} />
-      <Route path="/orders/:id/confirmation" element={<OrderConfirmationPage />} />
-      <Route path="/orders" element={<CustomerOrdersPage />} />
+      {/* Account-keyed guards discard private results and abort reads on session changes. */}
+      <Route path="/orders/:id/confirmation" element={<RequireAccount><OrderConfirmationPage /></RequireAccount>} />
+      <Route path="/orders" element={<RequireAccount><CustomerOrdersPage /></RequireAccount>} />
       <Route path="/account" element={<RequireAccount><AccountSettingsPage /></RequireAccount>} />
       <Route path="/owner" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />
       <Route path="/operator" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />

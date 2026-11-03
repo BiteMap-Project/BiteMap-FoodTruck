@@ -1,9 +1,15 @@
 import { AuthApiError, postWithCsrf } from "./auth";
 import { reportAuthorizationResponse } from "../auth/authEvents";
 import type { Cart } from "../features/cart/cart";
+import { completeCartCheckout } from '../features/cart/cart';
+import { checkoutLocked, readCheckoutAttempt, saveCheckoutAttempt, finishCheckoutAttempt } from '../features/cart/checkoutAttempt';
 import type { CustomerOrder, CustomerOrderSummary, Page, PickupDetails } from "../types/api";
 
 export type { CustomerOrder, PickupDetails } from "../types/api";
+export function cancelCustomerOrder(orderId: number, version: number): Promise<CustomerOrder> {
+  return postWithCsrf(`/api/customer/orders/${orderId}/cancel`, {version},
+    'Unable to cancel this order. Refresh its status before trying again.', {}, AbortSignal.timeout(20_000));
+}
 export async function getPickupStop(vendorId: number, signal?: AbortSignal): Promise<PickupDetails | null> {
   const response = await fetch(`/api/vendors/${vendorId}/pickup-stop`, {
     cache: 'no-store', credentials: 'same-origin', headers: { Accept: 'application/json' }, signal,
@@ -15,8 +21,6 @@ export async function getPickupStop(vendorId: number, signal?: AbortSignal): Pro
   }
   return response.json();
 }
-
-const keyStorage = "bitemap.pending-order-key";
 
 export type CustomerOrderPage = Page<CustomerOrderSummary>;
 
@@ -31,26 +35,41 @@ export async function listCustomerOrders(page: number, signal: AbortSignal): Pro
   return response.json();
 }
 
-function idempotencyKey(cart: Cart, pickupStopId: number) {
-  const signature = JSON.stringify({ vendorId: cart.vendorId, pickupStopId, items: cart.items.map(({ id, quantity }) => ({ id, quantity })) });
-  try {
-    const saved = JSON.parse(sessionStorage.getItem(keyStorage) ?? "null") as { signature?: string; key?: string } | null;
-    if (saved?.signature === signature && saved.key) return saved.key;
-  } catch { /* Replace an invalid local value. */ }
-  const key = crypto.randomUUID();
-  sessionStorage.setItem(keyStorage, JSON.stringify({ signature, key }));
-  return key;
+let submission: { accountId: number; promise: Promise<CustomerOrder> } | null = null;
+
+export function createCustomerOrder(cart: Cart, pickupStopId: number, accountId: number): Promise<CustomerOrder> {
+  if (submission) return submission.accountId === accountId ? submission.promise
+    : Promise.reject(new Error('Sign in with the account that started checkout to recover its order.'));
+  const promise = submitOrder(cart, pickupStopId, accountId).finally(() => { submission = null; });
+  submission = {accountId, promise};
+  return promise;
 }
 
-export async function createCustomerOrder(cart: Cart, pickupStopId: number): Promise<CustomerOrder> {
-  const order = await postWithCsrf<CustomerOrder>("/api/customer/orders", {
-    vendorId: cart.vendorId,
-    pickupStopId,
-    idempotencyKey: idempotencyKey(cart, pickupStopId),
-    items: cart.items.map((item) => ({ menuItemId: item.id, quantity: item.quantity })),
-  }, "Unable to place the order. Please try again.");
-  sessionStorage.removeItem(keyStorage);
-  return order;
+async function submitOrder(cart: Cart, pickupStopId: number, accountId: number): Promise<CustomerOrder> {
+  const previous = readCheckoutAttempt();
+  if (checkoutLocked() && !previous) throw new Error('Checkout recovery data is unavailable. Check My orders before placing another order; do not clear browser storage.');
+  if (!Number.isSafeInteger(accountId) || accountId <= 0 || (previous && previous.accountId !== accountId)) {
+    throw new Error('Sign in with the account that started checkout to recover its order.');
+  }
+  const attempt = previous ?? {accountId, key: crypto.randomUUID(), cart: structuredClone(cart), pickupStopId};
+  saveCheckoutAttempt(attempt);
+  try {
+    const order = await postWithCsrf<CustomerOrder>('/api/customer/orders', {
+      vendorId: attempt.cart.vendorId, pickupStopId: attempt.pickupStopId,
+      idempotencyKey: attempt.key,
+      items: attempt.cart.items.map(item => ({menuItemId:item.id, quantity:item.quantity})),
+    }, 'Checkout was rejected. Review your cart before trying again.', {'X-Checkout-Account-Id': String(accountId)}, AbortSignal.timeout(20_000));
+    if (!Number.isSafeInteger(order?.id) || order.id <= 0) throw new Error('Invalid order response');
+    completeCartCheckout(attempt);
+    return order;
+  } catch (error) {
+    // A rejection of a later retry does not establish what happened to the original request.
+    if (!previous && error instanceof AuthApiError && [400,401,403,404,409,422,429].includes(error.status)) {
+      finishCheckoutAttempt(attempt);
+      throw error;
+    }
+    throw new Error('We could not confirm your order. It may already be placed. Recover the original order before changing your cart or placing another order.');
+  }
 }
 
 export async function getCustomerOrder(id: number, signal?: AbortSignal): Promise<CustomerOrder> {

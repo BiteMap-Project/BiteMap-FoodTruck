@@ -5,7 +5,8 @@ import com.Bitemap.Backend.auth.SessionController;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
-@RestControllerAdvice(assignableTypes = {RegistrationController.class, SessionController.class})
+@RestControllerAdvice(assignableTypes = {RegistrationController.class, SessionController.class,
+        com.Bitemap.Backend.auth.recovery.PasswordRecoveryController.class})
 public class AuthLimitExceptionHandler {
     @ExceptionHandler(RateLimitExceededException.class)
     ResponseEntity<ProblemDetail> limited(RateLimitExceededException exception) {

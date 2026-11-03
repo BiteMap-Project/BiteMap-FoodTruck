@@ -9,6 +9,7 @@ type State = { order: CustomerOrder | null; loading: boolean; error: string; den
 export function useCustomerOrder(id: number) {
   const [state, setState] = useState<State>({ order: null, loading: true, error: "", denied: null, checkedAt: null, paused: document.visibilityState !== "visible" });
   const refreshRef = useRef<() => void>(() => {});
+  const replaceRef = useRef<(order: CustomerOrder) => void>(() => {});
   useEffect(() => {
     let disposed = false;
     let terminal = false;
@@ -63,13 +64,21 @@ export function useCustomerOrder(id: number) {
       if (!hidden && !terminal && !denied) void read();
     };
     refreshRef.current = () => void read();
+    replaceRef.current = order => {
+      if (disposed || order.id !== id) return;
+      clear(); pending?.abort(); pending = null;
+      terminal = !active.has(order.status);
+      setState({order, loading:false, error:'', denied:null, checkedAt:new Date(), paused:document.visibilityState !== 'visible'});
+      if (!terminal && document.visibilityState === 'visible') timer = setTimeout(() => void read(),10000);
+    };
     document.addEventListener("visibilitychange", visibility);
     void read();
     return () => {
       disposed = true; clear(); pending?.abort();
       document.removeEventListener("visibilitychange", visibility);
       refreshRef.current = () => {};
+      replaceRef.current = () => {};
     };
   }, [id]);
-  return { ...state, refresh: () => refreshRef.current() };
+  return { ...state, refresh: () => refreshRef.current(), applyOrder: (order: CustomerOrder) => replaceRef.current(order) };
 }

@@ -104,6 +104,42 @@ public class OrderService {
         return load(id);
     }
 
+    @Transactional
+    public OrderResponse cancel(String email, long orderId, @NotNull @Valid CancelOrderRequest request) {
+        var customers = jdbc.queryForList("""
+                SELECT u.id FROM app_users u JOIN app_user_roles r ON r.user_id=u.id AND r.role='CUSTOMER'
+                WHERE lower(u.email)=lower(?) AND u.enabled FOR SHARE OF u,r
+                """, Long.class, email);
+        if (customers.isEmpty()) throw new org.springframework.security.access.AccessDeniedException("An enabled customer account is required.");
+        long customerId = customers.getFirst();
+        // Scope before locking: an unrelated account never learns the order's state.
+        var rows = jdbc.query("SELECT status,version FROM customer_orders WHERE id=? AND customer_user_id=? FOR UPDATE",
+                (rs, index) -> new CancellationState(rs.getString(1),rs.getLong(2)),orderId,customerId);
+        if (rows.isEmpty()) throw new OrderNotFoundException();
+        var current = rows.getFirst();
+        if (current.status().equals("CANCELLED") && current.version() > 0 && request.version() == current.version() - 1) {
+            boolean ownCancellation = Boolean.TRUE.equals(jdbc.queryForObject("""
+                    SELECT EXISTS(SELECT 1 FROM customer_order_status_history
+                    WHERE order_id=? AND version=? AND changed_by_user_id=? AND from_status='PLACED' AND to_status='CANCELLED')
+                    """,Boolean.class,orderId,current.version(),customerId));
+            if (ownCancellation) return load(orderId);
+        }
+        if (!current.status().equals("PLACED")) throw new OrderConflictException("Only orders still waiting for acceptance can be cancelled by the customer.");
+        if (current.version() != request.version()) throw new OrderConflictException("This order has changed. Refresh it before cancelling.");
+        String reason = "Cancelled by customer.";
+        jdbc.update("""
+                UPDATE customer_orders SET status='CANCELLED',version=version+1,updated_at=clock_timestamp(),
+                    cancellation_reason=?,estimated_ready_at=NULL WHERE id=? AND customer_user_id=?
+                """,reason,orderId,customerId);
+        jdbc.update("""
+                INSERT INTO customer_order_status_history(order_id,from_status,to_status,version,changed_by_user_id,changed_at,cancellation_reason)
+                SELECT id,'PLACED','CANCELLED',version,?,updated_at,cancellation_reason FROM customer_orders WHERE id=?
+                """,customerId,orderId);
+        return load(orderId);
+    }
+
+    private record CancellationState(String status, long version) {}
+
     private void requireUniqueItems(CreateOrderRequest request) {
         var ids = new HashSet<Long>();
         if (request.items().stream().anyMatch(item -> !ids.add(item.menuItemId()))) {
@@ -139,21 +175,23 @@ public class OrderService {
 
     private OrderResponse load(long orderId) {
         var header = jdbc.queryForObject("""
-                SELECT o.id,o.vendor_id,v.name,o.status,o.total,o.created_at,o.cancellation_reason
+                SELECT o.id,o.vendor_id,v.name,o.status,o.total,o.created_at,o.estimated_ready_at,o.cancellation_reason,o.version
                 FROM customer_orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=?
                 """, (rs, row) -> new Header(rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4),
-                        rs.getBigDecimal(5), rs.getTimestamp(6).toInstant(), rs.getString(7)), orderId);
+                        rs.getBigDecimal(5), rs.getTimestamp(6).toInstant(),
+                        rs.getTimestamp(7) == null ? null : rs.getTimestamp(7).toInstant(), rs.getString(8), rs.getLong(9)), orderId);
         var items = jdbc.query("""
                 SELECT menu_item_id,name_snapshot,unit_price,quantity,line_total
                 FROM customer_order_items WHERE order_id=? ORDER BY id
                 """, (rs, row) -> new OrderResponse.Item(rs.getLong(1), rs.getString(2), rs.getBigDecimal(3),
                         rs.getInt(4), rs.getBigDecimal(5)), orderId);
         return new OrderResponse(header.id(), header.vendorId(), header.vendorName(), header.status(),
-                header.total(), header.createdAt(), items, header.cancellationReason(), pickups.saved(orderId));
+                header.total(), header.createdAt(), header.estimatedReadyAt(), items,
+                header.cancellationReason(), pickups.saved(orderId), header.version());
     }
 
     private record MenuLine(long id, String name, BigDecimal price, String status) {}
 
     private record Header(long id, long vendorId, String vendorName, String status,
-            BigDecimal total, Instant createdAt, String cancellationReason) {}
+            BigDecimal total, Instant createdAt, Instant estimatedReadyAt, String cancellationReason, long version) {}
 }

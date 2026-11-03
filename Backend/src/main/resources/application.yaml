@@ -9,6 +9,13 @@ server:
         same-site: lax
         secure: ${SESSION_COOKIE_SECURE:false}
 
+# SMTP delivery is queued; its outage must not take the ordering API offline.
+# Monitor recovery mail/worker failure counters independently.
+management:
+  health:
+    mail:
+      enabled: false
+
 springdoc:
   api-docs:
     enabled: false
@@ -16,6 +23,19 @@ springdoc:
     enabled: false
 
 spring:
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:true}
+      mail.smtp.starttls.required: ${SMTP_STARTTLS:true}
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+      mail.debug: false
   application:
     name: Backend
 
@@ -49,5 +69,10 @@ spring:
     open-in-view: false
 
 bitemap:
+  recovery:
+    enabled: ${PASSWORD_RECOVERY_ENABLED:false}
+    reset-url: ${PASSWORD_RESET_URL:}
+    from: ${PASSWORD_RESET_FROM:no-reply@bitemap.invalid}
+    allow-local-http: ${PASSWORD_RESET_ALLOW_LOCAL_HTTP:false}
   auth-limit:
     secret: ${AUTH_RATE_LIMIT_SECRET:}

@@ -19,12 +19,13 @@ public class AccountDetailsService implements UserDetailsService {
 
 	@Override
 	public UserDetails loadUserByUsername(String email) {
-        var rows = jdbc.queryForList("SELECT id,email,password_hash,enabled FROM app_users WHERE lower(email)=?", email);
+        var rows = jdbc.queryForList("SELECT id,email,password_hash,enabled,credential_version FROM app_users WHERE lower(email)=?", email);
         if (rows.isEmpty()) throw new UsernameNotFoundException("Invalid credentials");
         var row = rows.getFirst();
         long id = ((Number) row.get("id")).longValue();
         return new AccountPrincipal(id, (String) row.get("email"), (String) row.get("password_hash"),
-                (Boolean) row.get("enabled"), roles(id).stream().map(SimpleGrantedAuthority::new).toList());
+                (Boolean) row.get("enabled"), roles(id).stream().map(SimpleGrantedAuthority::new).toList(),
+                ((Number) row.get("credential_version")).longValue());
 	}
 
 	public AccountResponse account(String email) {
@@ -41,5 +42,11 @@ public class AccountDetailsService implements UserDetailsService {
                     SELECT 1 FROM operators o WHERE o.user_id=r.user_id AND o.enabled))
                 ORDER BY r.role
                 """, String.class, userId);
+    }
+    public void requireCurrentCredentials(AccountPrincipal principal) {
+        var versions = jdbc.queryForList("SELECT credential_version FROM app_users WHERE id=? AND enabled", Long.class, principal.userId());
+        if (versions.isEmpty() || versions.getFirst() != principal.credentialVersion()) {
+            throw new BadCredentialsException("Sign in again");
+        }
     }
 }

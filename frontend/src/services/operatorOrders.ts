@@ -4,6 +4,7 @@ import type { OrderStatus, OwnerOrder, OwnerOrderSummary, Page } from "../types/
 
 export type { OrderStatus, OwnerOrder, OwnerOrderSummary } from "../types/api";
 export type StatusCommand = { status: OrderStatus; version: number; cancellationReason?: string };
+export type EstimateCommand = { estimatedReadyAt: string; version: number };
 const base = (vendorId: number) => `/api/operator/vendors/${vendorId}/orders`;
 
 async function checked<T>(response: Response): Promise<T> {
@@ -33,6 +34,14 @@ export async function updateOwnerOrder(vendorId: number, orderId: number, comman
   const csrf = await read<{ headerName: string; token: string }>("/api/auth/csrf");
   // Never auto-retry PATCH: an interrupted response may already have committed.
   return checked<OwnerOrder>(await fetch(`${base(vendorId)}/${orderId}/status`, {
+    method: "PATCH", credentials: "same-origin",
+    headers: { Accept: "application/json", "Content-Type": "application/json", [csrf.headerName]: csrf.token },
+    body: JSON.stringify(command),
+  }));
+}
+export async function updateOrderEstimate(vendorId: number, orderId: number, command: EstimateCommand): Promise<OwnerOrder> {
+  const csrf = await read<{ headerName: string; token: string }>("/api/auth/csrf");
+  return checked<OwnerOrder>(await fetch(`${base(vendorId)}/${orderId}/estimate`, {
     method: "PATCH", credentials: "same-origin",
     headers: { Accept: "application/json", "Content-Type": "application/json", [csrf.headerName]: csrf.token },
     body: JSON.stringify(command),

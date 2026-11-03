@@ -1,6 +1,12 @@
 name: bitemap
 
 services:
+  mailpit:
+    image: axllent/mailpit:v1.32.0
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
+    environment:
+      MP_MAX_MESSAGES: 100
   postgres:
     image: postgres:15
     ports:
@@ -27,9 +33,18 @@ services:
       DB_PASSWORD: ${COMPOSE_DB_PASSWORD:?Set COMPOSE_DB_PASSWORD in your root .env file}
       # This Compose file is for local development only; enables demo fixtures.
       SPRING_PROFILES_ACTIVE: dev
+      PASSWORD_RECOVERY_ENABLED: "true"
+      PASSWORD_RESET_URL: ${PASSWORD_RESET_URL:-http://localhost:5173/reset-password}
+      PASSWORD_RESET_ALLOW_LOCAL_HTTP: "true"
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_AUTH: "false"
+      SMTP_STARTTLS: "false"
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     depends_on:
+      mailpit:
+        condition: service_started
       postgres:
         condition: service_healthy
     healthcheck:

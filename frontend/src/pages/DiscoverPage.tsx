@@ -6,7 +6,7 @@ import VendorResults from "../features/discover/VendorResults";
 import AccountNavigation from "../features/discover/AccountNavigation";
 import "../features/discover/discover.css";
 
-type View = "trucks" | "stops";
+type View = "map" | "trucks" | "stops";
 
 function TruckIllustration() {
   return (
@@ -95,8 +95,8 @@ function TruckIllustration() {
 export default function DiscoverPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const view: View = location.pathname === "/stops" ? "stops" : "trucks";
-  const setView = (next: View) => navigate(next === "stops" ? "/stops" : "/trucks");
+  const view: View = location.pathname === "/trucks" ? "trucks" : location.pathname === "/stops" ? "stops" : "map";
+  const setView = (next: View) => navigate(next === "map" ? "/" : next === "stops" ? "/stops" : "/trucks");
   const [search, setSearch] = useState("");
 
   return (
@@ -118,6 +118,9 @@ export default function DiscoverPage() {
         <p className="discover-eyebrow sidebar-label">EXPLORE BITEMAP</p>
 
         <div className="discover-menu" role="group" aria-label="Explore">
+          <button type="button" aria-pressed={view === "map"} onClick={() => setView("map")}>
+            <PinIcon /> Truck map
+          </button>
           <button
             type="button"
             aria-pressed={view === "trucks"}
@@ -153,7 +156,7 @@ export default function DiscoverPage() {
             <p>Find your favorite food trucks. Discover something delicious.</p>
           </div>
 
-          <section
+          {view !== "map" && <section
             className="discover-banner"
             aria-labelledby="discover-banner-title"
           >
@@ -176,7 +179,7 @@ export default function DiscoverPage() {
               </a>
             </div>
             <TruckIllustration />
-          </section>
+          </section>}
 
           <section
             id="browse"
@@ -209,6 +212,9 @@ export default function DiscoverPage() {
               </div>
 
               <div className="segmented" role="group" aria-label="Browse">
+                <button type="button" aria-pressed={view === "map"} onClick={() => setView("map")}>
+                  Map
+                </button>
                 <button
                   type="button"
                   aria-pressed={view === "trucks"}
@@ -233,7 +239,7 @@ export default function DiscoverPage() {
                 onClearSearch={() => setSearch("")}
               />
             ) : (
-              <StopResults search={search} />
+              <StopResults search={search} showMap={view === "map"} />
             )}
           </section>
 

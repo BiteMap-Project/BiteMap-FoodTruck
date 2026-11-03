@@ -62,3 +62,26 @@ it("submits the signed-in cart and shows a reloadable confirmation", async () =>
   expect(posted).not.toHaveProperty('pickup');
   expect(fetchMock).toHaveBeenCalledWith("/api/customer/orders/42", expect.objectContaining({ credentials: "same-origin" }));
 });
+
+it("keeps the cart available for correction after a checkout failure", async () => {
+  addCartItem(4, "Taco Truck", { id: 8, name: "Taco", price: 4.5 });
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url === "/api/vendors/4/pickup-stop") return response(200, {
+      stopId: 9, venueName: "Campus", address: "18111 Nordhoff St", latitude: 34.24, longitude: -118.53,
+      startsAt: "2026-01-01T00:00:00Z", endsAt: "2099-01-01T00:00:00Z", timeZone: "America/Los_Angeles",
+    });
+    if (url === "/api/auth/me") return response(200, { id: 7, displayName: "Casey", email: "casey@example.com", roles: ["ROLE_CUSTOMER"] });
+    if (url === "/api/auth/csrf") return response(200, { headerName: "X-CSRF-TOKEN", token: "token" });
+    if (url === "/api/customer/orders") return response(409, { detail: "This item is sold out. Update your cart." });
+    return response(500);
+  });
+  render(<MemoryRouter><CartPage /></MemoryRouter>);
+  const submit = await screen.findByRole("button", { name: "Place pickup order" });
+  await waitFor(() => expect(submit).toBeEnabled());
+  submit.focus();
+  fireEvent.click(submit);
+  await waitFor(() => expect(fetchMock.mock.calls.filter(([url]) => url === "/api/customer/orders")).toHaveLength(1));
+  expect(submit).toBeEnabled();
+  expect(screen.getByLabelText("Quantity for Taco")).toHaveValue("1");
+  expect(readCart()?.items).toHaveLength(1);
+});

@@ -162,7 +162,7 @@ it("ignores a late response from a previous truck", async () => {
 it("navigates from a database discovery card to its profile and back", async () => {
   fetchMock.mockImplementation((url: string) => Promise.resolve(response(url.startsWith("/api/vendors?")
     ? { items: [truck], totalElements: 1, totalPages: 1, page: 0, size: 20 } : truck)));
-  render(<MemoryRouter>{app}</MemoryRouter>);
+  render(<MemoryRouter initialEntries={["/trucks"]}>{app}</MemoryRouter>);
   fireEvent.click(await screen.findByRole("link", { name: "View Profile & Menu" }));
   expect(await screen.findByText("Veggie Taco")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: /Back to trucks/ }));

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import ActionError from "../../components/ActionError";
 
 export type ScheduleAddress = {
   address: string;
@@ -184,11 +185,7 @@ export default function ScheduleAddressFields({ value, onChange }: Props) {
           </div>
         </>
       )}
-      {error && (
-        <p role="alert" className="ow-error">
-          {error}
-        </p>
-      )}
+      <ActionError className="ow-error" message={error} />
     </section>
   );
 }

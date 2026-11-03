@@ -94,3 +94,16 @@ body:has(.ow-connected) { background: #f8f8f4; }
 .ow-new-order-badge { margin-left: auto; padding: 2px 9px; border-radius: 999px; background: #b64923; color: white; font-size: 13px; }
 .ow-order-notifications { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 18px 22px; margin-bottom: 24px; border: 1px solid #e1e4da; border-radius: 14px; background: white; }
 .ow-order-notifications p { margin: 6px 0 0; font-size: 14px; }
+
+/* SCRUM-99: owner order/schedule controls retain focus and fit phones. */
+.ow-connected a:focus-visible,
+.ow-connected [tabindex="-1"]:focus {
+  outline: 3px solid #a54120;
+  outline-offset: 4px;
+}
+.ow-connected .ow-panel { min-width: 0; overflow-wrap: anywhere; }
+.ow-connected .ow-panel button { min-height: 44px; max-width: 100%; white-space: normal; }
+.ow-connected .ow-toolbar > * { min-width: 0; }
+@media (max-width: 480px) {
+  .ow-connected .ow-editor { padding: 12px; }
+}

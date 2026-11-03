@@ -146,7 +146,7 @@ it("aborts reads when leaving the schedule", async () => {
 });
 it("rejects invalid local times before any mutation", async () => {
   await open(); fireEvent.click(screen.getByText("Add stop")); await fill(); fireEvent.change(screen.getByLabelText("End time"), { target: { value: "10:00" } });
-  fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" })); expect(await screen.findByRole("alert")).toHaveTextContent("End must be later"); expect(fetchMock).toHaveBeenCalledTimes(2);
+  fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" })); expect(await screen.findByRole("alert")).toHaveTextContent("End must be later"); expect(screen.getByRole("alert")).toHaveFocus(); expect(fetchMock).toHaveBeenCalledTimes(2);
 });
 
 it.each([403, 404, 503])("blocks further writes after HTTP %i without losing the draft", async status => {

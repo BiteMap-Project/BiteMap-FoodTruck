@@ -1,0 +1,71 @@
+.discovery .truck-map-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr);
+  align-items: start;
+  gap: 20px;
+  margin-top: 20px;
+}
+.discovery .truck-map-panel {
+  position: sticky;
+  top: 16px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #fff;
+  isolation: isolate;
+}
+.discovery .truck-map-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 8px;
+}
+.discovery .truck-map-heading h3 { margin: 0 0 5px; color: var(--text-h); font: 400 24px/1.2 Georgia, serif; }
+.discovery .truck-map-heading p, .discovery .truck-map-note { font-size: 13px; }
+.discovery .truck-map-note { padding: 10px 18px; }
+.discovery .truck-map-notice { padding: 16px 18px; background: #fbecd8; color: #5d3826; font-size: 14px; }
+.discovery .truck-map-notice button { margin-top: 10px; }
+.discovery .truck-map-canvas { height: 480px; width: 100%; background: #e9eee3; font-family: inherit; }
+.discovery .truck-map-layout .truck-map-results { grid-template-columns: minmax(0, 1fr); }
+.discovery .truck-map-pin { border: 0; background: transparent; }
+.discovery .truck-map-pin span {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin: 4px;
+  border: 3px solid white;
+  border-radius: 50% 50% 50% 8px;
+  background: #b74d27;
+  color: white;
+  box-shadow: 0 3px 8px #263d3350;
+  font-size: 14px;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+.discovery .truck-map-popup { color: #263d33; overflow-wrap: anywhere; }
+.discovery .truck-map-popup + .truck-map-popup { border-top: 1px solid #e3e6dc; margin-top: 14px; padding-top: 14px; }
+.discovery .truck-map-popup h4 { margin: 0 0 8px; font: 400 22px/1.2 Georgia, serif; }
+.discovery .truck-map-popup p { margin: 8px 0; color: #425448; font-size: 13px; }
+.discovery .truck-map-popup a { display: inline-flex; align-items: center; min-height: 44px; color: #a33e1d; font-weight: 700; }
+.discovery .truck-map-canvas .leaflet-control-zoom a { width: 44px; height: 44px; line-height: 44px; color: #263d33; }
+.discovery .truck-map-canvas .leaflet-popup-close-button { width: 36px; height: 36px; line-height: 36px; color: #263d33; }
+.discovery .truck-map-canvas .leaflet-popup-content { margin-right: 28px; }
+.discovery .truck-map-canvas .leaflet-control-attribution { color: #263d33; background: #fffffff0; font-size: 10px; }
+.discovery .truck-map-canvas .leaflet-control-attribution a { color: #335543; }
+.discovery .truck-map-canvas :focus-visible, .discovery .truck-map-panel :focus-visible { outline: 3px solid #263d33; outline-offset: 3px; }
+.discovery .truck-map-skip { position: absolute; left: 12px; z-index: 1100; padding: 10px; background: white; color: #a33e1d; opacity: 0; pointer-events: none; }
+.discovery .truck-map-skip:focus { opacity: 1; pointer-events: auto; }
+@media (max-width: 1100px) {
+  .discovery .truck-map-layout { grid-template-columns: minmax(0, 1fr); }
+  .discovery .truck-map-panel { position: relative; top: auto; }
+  .discovery .truck-map-layout .truck-map-results { grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); }
+}
+@media (max-width: 600px) {
+  .discovery .truck-map-canvas { height: 360px; }
+  .discovery .truck-map-heading { padding: 14px 12px 6px; }
+  .discovery .truck-map-note { padding: 10px 12px; }
+}

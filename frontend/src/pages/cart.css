@@ -83,3 +83,69 @@ body:has(.cart-site) { background: #f8f8f4; }
 .customer-cancellation-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-top: 1rem; }
 .customer-cancellation-actions .cart-primary { margin-top: 0; align-items: center; justify-content: center; min-height: 44px; border: 1px solid transparent; font: inherit; font-weight: 700; cursor: pointer; }
 .customer-cancellation button:disabled { opacity: .55; cursor: not-allowed; }
+
+/* SCRUM-99: keep cart/receipt controls usable on narrow screens. */
+.cart-site :is(a, button, select):focus-visible {
+  outline: 3px solid #a54120;
+  outline-offset: 4px;
+}
+
+.cart-site :is(.cart-items button, .cart-clear, .cart-pickup-refresh, select) {
+  min-height: 44px;
+}
+
+.cart-header {
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+
+.cart-header a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.cart-page {
+  overflow-wrap: anywhere;
+}
+
+.cart-summary > *,
+.cart-items li > * {
+  min-width: 0;
+}
+
+.cart-summary a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.cart-items button {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .cart-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .cart-items li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 18px;
+    gap: 14px;
+  }
+
+  .cart-total {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 18px;
+  }
+
+  .cart-pickup-refresh {
+    max-width: 100%;
+    margin-left: 0;
+  }
+}

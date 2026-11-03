@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
+
+import "./truck-map.css";
 import StopCard from "../../components/StopCard";
 import { NavigationIcon } from "../../components/icons";
 import { EmptyState, ErrorState, LoadingState } from "../../components/StatusViews";
 import { InvalidFilterError, listStops, type StopPage } from "../../services/stops";
 import { resolveWindow, type CustomDates, type When } from "./timeWindow";
+
+const TruckMap = lazy(() => import("./TruckMap"));
 
 type Result =
   | { status: "loading" }
@@ -31,7 +35,7 @@ const WHEN_LABELS: Record<When, string> = {
 const round = (value: number) => Math.round(value * 10_000) / 10_000;
 
 /** "Schedule & nearby" view: dated stops filtered by cuisine, time window, and distance. */
-function StopResults({ search }: { search: string }) {
+function StopResults({ search, showMap = false }: { search: string; showMap?: boolean }) {
   const [cuisine, setCuisine] = useState("");
   const [when, setWhen] = useState<When>("week");
   const [custom, setCustom] = useState<CustomDates>({ from: "", to: "" });
@@ -242,11 +246,17 @@ function StopResults({ search }: { search: string }) {
                     <p role="status" className="results-count">
                       {`${result.data.totalElements} ${result.data.totalElements === 1 ? "stop" : "stops"} found`}
                     </p>
-                    <div className="card-grid">
-                      {result.data.items.map((stop) => <StopCard key={stop.stopId} stop={stop} />)}
-                    </div>
+
                   </>
                 )}
+                <div className={showMap ? "truck-map-layout" : undefined}>
+                  {showMap && <Suspense fallback={<p role="status">Loading map…</p>}>
+                    <TruckMap stops={result.data.items} page={page} total={result.data.totalElements} />
+                  </Suspense>}
+                  <div className="card-grid truck-map-results" aria-label="Stops on this page">
+                    {result.data.items.map((stop) => <StopCard key={stop.stopId} stop={stop} />)}
+                  </div>
+                </div>
                 {(result.data.totalPages > 1 || page > 0) && (
                   <nav aria-label="Schedule pagination" className="pager">
                     <button disabled={page === 0} onClick={() => { setResult({ status: "loading" }); setPage(page - 1); }}>Previous</button>

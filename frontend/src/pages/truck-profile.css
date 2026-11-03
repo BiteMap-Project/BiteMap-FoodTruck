@@ -39,7 +39,7 @@ body:has(.truck-site) { background: #f8f8f4; }
 .truck-site .menu-item-heading span { color: #a54120; }
 .truck-site .menu-item-content > p { min-height: 50px; margin-top: 12px; line-height: 1.6; }
 .truck-site .unavailable { display: inline-block; padding: 3px 10px; border-radius: 6px; background: #fff0e8; }
-.truck-site .add-to-cart { margin-top: 4px; min-height: 42px; padding: 9px 16px; border: 1px solid #b64923; border-radius: 8px; background: #b64923; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+.truck-site .add-to-cart { margin-top: 4px; min-height: 44px; padding: 9px 16px; border: 1px solid #b64923; border-radius: 8px; background: #b64923; color: white; font: inherit; font-weight: 700; cursor: pointer; }
 .truck-site .add-to-cart:hover { background: #963a1b; }
 .truck-site .menu-cart-controls { display: grid; grid-template-columns: 44px 44px minmax(0, 1fr) 44px; align-items: center; gap: 2px; margin-top: 12px; padding: 6px; border-radius: 999px; background: #b64923; color: #fff; }
 .truck-site .menu-cart-controls button { display: grid; place-items: center; width: 44px; height: 44px; min-width: 0; padding: 10px; margin: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }

@@ -7,7 +7,11 @@ import DiscoverPage from "./DiscoverPage";
 import type { VendorPage } from "../services/vendors";
 import { AuthProvider } from "../auth/AuthContext";
 
-const render = (view: ReactElement) => renderView(<MemoryRouter><AuthProvider>{view}</AuthProvider></MemoryRouter>);
+const render = (view: ReactElement) => renderView(
+  <MemoryRouter initialEntries={["/trucks"]}>
+    <AuthProvider>{view}</AuthProvider>
+  </MemoryRouter>,
+);
 
 const vendor = { id: -2, name: "Database Taco", category: "Tacos", location: "Northridge" };
 const data: VendorPage = { items: [vendor], page: 0, size: 20, totalElements: 1, totalPages: 1 };

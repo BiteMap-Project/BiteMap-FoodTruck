@@ -47,7 +47,7 @@ it("lets the user clear a search that found nothing", async () => {
   const empty = { items: [], page: 0, size: 20, totalElements: 0, totalPages: 0 };
   const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => empty });
   vi.stubGlobal("fetch", fetchMock);
-  render(<MemoryRouter><AuthProvider><App /></AuthProvider></MemoryRouter>);
+  render(<MemoryRouter initialEntries={["/trucks"]}><AuthProvider><App /></AuthProvider></MemoryRouter>);
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "zzz" } });
   await act(async () => { await vi.advanceTimersByTimeAsync(300); });
   expect(screen.getByText("Nothing matched “zzz”.")).toBeInTheDocument();

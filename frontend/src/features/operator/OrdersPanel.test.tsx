@@ -94,7 +94,10 @@ it.each([409, 503])("blocks stale or uncertain writes after %s until explicit de
   const original = fetchMock.getMockImplementation()!;
   fetchMock.mockImplementation((url: string, init?: RequestInit) => init?.method === "PATCH" ? response(code, { detail: "Refresh required" }) : original(url, init));
   fireEvent.click(screen.getByRole("button", { name: "Accept order" }));
-  expect(await screen.findByText(/Refresh required/)).toHaveFocus();
+  const error = await screen.findByText(/Refresh required/);
+  // Rendering the alert and its passive focus effect are separate steps.
+  // Wait for the accessibility outcome, not only the message's presence.
+  await waitFor(() => expect(error).toHaveFocus());
   expect(screen.getByRole("button", { name: "Accept order" })).toBeDisabled();
   expect(writes()).toHaveLength(1);
   current = { ...current, status: "ACCEPTED", version: 1 };

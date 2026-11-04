@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useDiscoveryQuery } from "../features/discover/discoveryQuery";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ClockIcon, PinIcon, SearchIcon } from "../components/icons";
 import StopResults from "../features/discover/StopResults";
@@ -96,8 +96,13 @@ export default function DiscoverPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const view: View = location.pathname === "/trucks" ? "trucks" : location.pathname === "/stops" ? "stops" : "map";
-  const setView = (next: View) => navigate(next === "map" ? "/" : next === "stops" ? "/stops" : "/trucks");
-  const [search, setSearch] = useState("");
+  const setView = (next: View) => {
+    const params = new URLSearchParams(location.search);
+    if ((next === "trucks") !== (view === "trucks")) params.delete("page");
+    navigate({ pathname: next === "map" ? "/" : next === "stops" ? "/stops" : "/trucks", search: params.toString() });
+  };
+  const { q: search, update } = useDiscoveryQuery();
+  const setSearch = (q: string) => update({ q }, true);
 
   return (
     <div className="discovery">

@@ -1,11 +1,12 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useDiscoveryQuery } from "./discoveryQuery";
 
 import "./truck-map.css";
 import StopCard from "../../components/StopCard";
 import { NavigationIcon } from "../../components/icons";
 import { EmptyState, ErrorState, LoadingState } from "../../components/StatusViews";
 import { InvalidFilterError, listStops, type StopPage } from "../../services/stops";
-import { resolveWindow, type CustomDates, type When } from "./timeWindow";
+import { resolveWindow, type When } from "./timeWindow";
 
 const TruckMap = lazy(() => import("./TruckMap"));
 
@@ -36,21 +37,22 @@ const round = (value: number) => Math.round(value * 10_000) / 10_000;
 
 /** "Schedule & nearby" view: dated stops filtered by cuisine, time window, and distance. */
 function StopResults({ search, showMap = false }: { search: string; showMap?: boolean }) {
-  const [cuisine, setCuisine] = useState("");
-  const [when, setWhen] = useState<When>("week");
-  const [custom, setCustom] = useState<CustomDates>({ from: "", to: "" });
+  const { cuisine, when, from, to, radius: radiusMiles, page, update } = useDiscoveryQuery();
+  const custom = useMemo(() => ({ from, to }), [from, to]);
+  const setCuisine = (cuisine: string) => update({ cuisine }, true);
+  const setWhen = (when: When) => update({ when });
+  const setRadiusMiles = (radius: number) => update({ radius });
+  const setPage = (page: number) => update({ page });
   const [place, setPlace] = useState<Place>({ status: "off" });
-  const [radiusMiles, setRadiusMiles] = useState<number>(10);
-  const [page, setPage] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<Result>({ status: "loading" });
   const [categories, setCategories] = useState<string[]>([]);
 
-  // A new search (owned by the parent) starts again from the first page.
-  const [lastSearch, setLastSearch] = useState(search);
-  if (search !== lastSearch) {
-    setLastSearch(search);
-    setPage(0);
+  // Hide old results immediately for URL changes, including browser Back/Forward.
+  const requestKey = JSON.stringify([search, cuisine, when, from, to, radiusMiles, page]);
+  const [lastSearch, setLastSearch] = useState(requestKey);
+  if (requestKey !== lastSearch) {
+    setLastSearch(requestKey);
     setResult({ status: "loading" });
   }
 
@@ -96,8 +98,6 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
   /** Every filter change goes back to page 1 and shows loading immediately. */
   function refilter(apply: () => void) {
     apply();
-    setPage(0);
-    setResult({ status: "loading" });
   }
 
   function locate() {
@@ -107,9 +107,11 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
     }
     setPlace({ status: "locating" });
     navigator.geolocation.getCurrentPosition(
-      (position) => refilter(() => setPlace({
-        status: "on", lat: round(position.coords.latitude), lon: round(position.coords.longitude),
-      })),
+      (position) => {
+        setPage(0);
+        setResult({ status: "loading" });
+        setPlace({ status: "on", lat: round(position.coords.latitude), lon: round(position.coords.longitude) });
+      },
       (error) => setPlace({ status: error.code === error.PERMISSION_DENIED ? "denied" : "unavailable" }),
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 5 * 60_000 },
     );
@@ -119,11 +121,9 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
 
   function clearFilters() {
     refilter(() => {
-      setCuisine("");
-      setWhen("week");
-      setCustom({ from: "", to: "" });
+      if (place.status === "on") setResult({ status: "loading" });
+      update({ cuisine: "", when: "week", from: "", to: "", radius: 10 });
       setPlace({ status: "off" });
-      setRadiusMiles(10);
     });
   }
 
@@ -165,10 +165,10 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
             <div className="date-range">
               <label htmlFor="filter-from">From</label>
               <input id="filter-from" type="date" value={custom.from}
-                onChange={(event) => refilter(() => setCustom((dates) => ({ ...dates, from: event.target.value })))} />
+                onChange={(event) => update({ from: event.target.value })} />
               <label htmlFor="filter-to">To</label>
               <input id="filter-to" type="date" value={custom.to} min={custom.from || undefined}
-                onChange={(event) => refilter(() => setCustom((dates) => ({ ...dates, to: event.target.value })))} />
+                onChange={(event) => update({ to: event.target.value })} />
             </div>
           )}
         </fieldset>
@@ -182,7 +182,7 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
                 onChange={(event) => refilter(() => setRadiusMiles(Number(event.target.value)))}>
                 {RADIUS_MILES.map((miles) => <option key={miles} value={miles}>{miles} mi</option>)}
               </select>
-              <button type="button" className="text-button" onClick={() => refilter(() => setPlace({ status: "off" }))}>
+              <button type="button" className="text-button" onClick={() => { setPage(0); setResult({ status: "loading" }); setPlace({ status: "off" }); }}>
                 Stop using my location
               </button>
             </div>

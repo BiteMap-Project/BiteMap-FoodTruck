@@ -50,6 +50,8 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
   const [refreshing, setRefreshing] = useState(false);
   const [stale, setStale] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [selectedStopId, setSelectedStopId] = useState<number | null>(null);
+  const [mapTarget, setMapTarget] = useState<{ id: number } | null>(null);
 
   // Hide old results immediately for URL changes, including browser Back/Forward.
   const requestKey = JSON.stringify([search, cuisine, when, from, to, radiusMiles, page]);
@@ -59,6 +61,8 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
     setResult({ status: "loading" });
     setStale(false);
     setUpdatedAt(null);
+    setSelectedStopId(null);
+    setMapTarget(null);
   }
 
   const windowCheck = resolveWindow(when, custom);
@@ -97,6 +101,8 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
         })]);
         if (disposed) return;
         setResult({ status: "success", data });
+        setSelectedStopId(previous => data.items.some(stop => stop.stopId === previous) ? previous : null);
+        setMapTarget(previous => data.items.some(stop => stop.stopId === previous?.id) ? previous : null);
         setStale(false);
         setUpdatedAt(new Date().toISOString());
         setCategories((known) => {
@@ -294,10 +300,23 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
                 )}
                 <div className={showMap ? "truck-map-layout" : undefined}>
                   {showMap && <Suspense fallback={<p role="status">Loading map…</p>}>
-                    <TruckMap stops={result.data.items} page={page} total={result.data.totalElements} stale={stale} />
+                    <TruckMap stops={result.data.items} page={page} total={result.data.totalElements} stale={stale}
+                      selectedStopId={selectedStopId} mapTarget={mapTarget} onSelect={setSelectedStopId}
+                      onShowList={id => {
+                        setSelectedStopId(id);
+                        const card = document.getElementById(`stop-card-${id}`);
+                        card?.focus({ preventScroll: true });
+                        card?.scrollIntoView?.({ block: "nearest" });
+                      }} />
                   </Suspense>}
                   <div className="card-grid truck-map-results" aria-label="Stops on this page">
-                    {result.data.items.map((stop) => <StopCard key={stop.stopId} stop={stop} stale={stale} />)}
+                    {result.data.items.map((stop) => <StopCard key={stop.stopId} stop={stop} stale={stale}
+                      selected={showMap && selectedStopId === stop.stopId}
+                      onShowMap={showMap && (import.meta.env.VITE_GEOAPIFY_API_KEY ?? "").trim() ? () => {
+                        setSelectedStopId(stop.stopId);
+                        setMapTarget({ id: stop.stopId });
+                        document.getElementById("discovery-map")?.scrollIntoView?.({ block: "nearest" });
+                      } : undefined} />)}
                   </div>
                 </div>
                 {(result.data.totalPages > 1 || page > 0) && (

@@ -33,6 +33,13 @@
 .discovery .truck-map-canvas { height: 480px; width: 100%; background: #e9eee3; font-family: inherit; }
 .discovery .truck-map-layout .truck-map-results { grid-template-columns: minmax(0, 1fr); }
 .discovery .truck-map-pin { border: 0; background: transparent; }
+.discovery .stop-card-selected { outline: 3px solid #b74d27; outline-offset: 2px; }
+.discovery .truck-map-pin.truck-map-pin-selected span { background: #263d33; outline: 3px solid #b74d27; }
+.discovery .truck-map-popup-selected { border-left: 3px solid #b74d27; padding-left: 8px; }
+.discovery .stop-map-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
+.discovery .directions-provider { display: block; font-size: 11px; font-weight: 400; }
+.discovery .stop-map-actions .directions-link, .discovery .truck-map-popup .directions-link { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; min-height: 44px; color: #a33e1d; font-weight: 700; text-decoration: none; }
+.discovery .directions-link:hover { text-decoration: underline; }
 .discovery .truck-map-pin span {
   display: grid;
   place-items: center;
@@ -61,6 +68,17 @@
 .discovery .truck-map-canvas :focus-visible, .discovery .truck-map-panel :focus-visible { outline: 3px solid #263d33; outline-offset: 3px; }
 .discovery .truck-map-skip { position: absolute; left: 12px; z-index: 1100; padding: 10px; background: white; color: #a33e1d; opacity: 0; pointer-events: none; }
 .discovery .truck-map-skip:focus { opacity: 1; pointer-events: auto; }
+.discovery .map-gesture-toggle { display: none; }
+.discovery .truck-map-canvas.map-page-scroll { touch-action: pan-y pinch-zoom; }
+/* On narrow maps, an open popup needs the space occupied by zoom controls. */
+@media (max-width: 600px) {
+  .discovery .truck-map-canvas.map-popup-open .leaflet-control-zoom { visibility: hidden; }
+}
+.discovery .truck-map-canvas .leaflet-popup-close-button { width: 44px; height: 44px; line-height: 44px; }
+.discovery .truck-map-canvas .leaflet-popup-content { margin-right: 36px; max-width: calc(100vw - 110px); }
+@media (pointer: coarse) {
+  .discovery .map-gesture-toggle { display: inline-flex; margin: 8px 12px; min-height: 44px; }
+}
 @media (max-width: 1100px) {
   .discovery .truck-map-layout { grid-template-columns: minmax(0, 1fr); }
   .discovery .truck-map-panel { position: relative; top: auto; }

@@ -3,10 +3,12 @@ import type { Stop } from "../services/stops";
 import { formatDistance, formatStopTime } from "../features/discover/format";
 import { ClockIcon, NavigationIcon, PinIcon } from "./icons";
 import FavoriteButton from "../features/favorites/FavoriteButton";
+import StopDirections from "./StopDirections";
+import { directionsUrl } from "../features/discover/directions";
 
-function StopCard({ stop, stale = false }: { stop: Stop; stale?: boolean }) {
+function StopCard({ stop, stale = false, selected = false, onShowMap }: { stop: Stop; stale?: boolean; selected?: boolean; onShowMap?: () => void }) {
   return (
-    <article className="card">
+    <article id={`stop-card-${stop.stopId}`} tabIndex={-1} className={`card${selected ? " stop-card-selected" : ""}`} aria-label={`${stop.vendor.name} at ${stop.venueName}`}>
       <div className="card-head">
         <h2>{stop.vendor.name}</h2>
         {stale ? <span className="badge">Status unconfirmed</span> : stop.status === "serving" && <span className="badge">Serving now</span>}
@@ -22,6 +24,10 @@ function StopCard({ stop, stale = false }: { stop: Stop; stale?: boolean }) {
         <p className="card-line"><NavigationIcon />{formatDistance(stop.distanceMeters)}</p>
       )}
       <Link className="card-link" to={`/trucks/${stop.vendor.id}`}>View Profile &amp; Menu</Link>
+      <div className="stop-map-actions">
+        {onShowMap && directionsUrl(stop.latitude, stop.longitude) && <button type="button" aria-pressed={selected} onClick={onShowMap}>Show on map</button>}
+        <StopDirections latitude={stop.latitude} longitude={stop.longitude} />
+      </div>
     </article>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { divIcon, latLngBounds } from "leaflet";
+import { divIcon, latLngBounds, type Marker as LeafletMarker } from "leaflet";
+import StopDirections from "../../components/StopDirections";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import { Link } from "react-router-dom";
 import type { Stop } from "../../services/stops";
@@ -8,6 +9,23 @@ import "leaflet/dist/leaflet.css";
 import "./truck-map.css";
 
 type LocationGroup = { latitude: number; longitude: number; stops: Stop[] };
+
+function MapGestures({ enabled }: { enabled: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    const media = window.matchMedia?.("(pointer: coarse)");
+    const update = () => {
+      const allow = !media?.matches || enabled;
+      if (allow) { map.dragging.enable(); map.touchZoom.enable(); }
+      else { map.dragging.disable(); map.touchZoom.disable(); }
+      map.getContainer().classList.toggle("map-page-scroll", !allow);
+    };
+    update();
+    media?.addEventListener("change", update);
+    return () => media?.removeEventListener("change", update);
+  }, [enabled, map]);
+  return null;
+}
 
 // Several trucks (or repeated visits) can share one parking spot. Keep them
 // together so a marker never completely covers another marker at that spot.
@@ -37,6 +55,13 @@ function FitStops({ coordinates, reset }: { coordinates: string; reset: number }
   useEffect(() => {
     map.getContainer().setAttribute("aria-label", "Scheduled food truck locations");
     map.getContainer().setAttribute("role", "region");
+    const opened = () => map.getContainer().classList.add("map-popup-open");
+    const closed = () => map.getContainer().classList.remove("map-popup-open");
+    map.on("popupopen", opened);
+    map.on("popupclose", closed);
+    return () => { map.off("popupopen", opened); map.off("popupclose", closed); };
+  }, [map]);
+  useEffect(() => {
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(() => map.invalidateSize({ pan: false }));
     observer.observe(map.getContainer());
@@ -45,12 +70,24 @@ function FitStops({ coordinates, reset }: { coordinates: string; reset: number }
   return null;
 }
 
-export default function TruckMap({ stops, page, total, stale = false }: { stops: Stop[]; page: number; total: number; stale?: boolean }) {
+export default function TruckMap({ stops, page, total, stale = false, selectedStopId, mapTarget, onSelect, onShowList }: {
+  stops: Stop[]; page: number; total: number; stale?: boolean;
+  selectedStopId?: number | null; mapTarget?: { id: number } | null;
+  onSelect?: (id: number) => void; onShowList?: (id: number) => void;
+}) {
+  const markers = useRef(new Map<number, LeafletMarker>());
+  useEffect(() => {
+    if (!mapTarget) return;
+    const marker = markers.current.get(mapTarget.id);
+    marker?.openPopup();
+    marker?.getElement()?.focus({ preventScroll: true });
+  }, [mapTarget]);
   const apiKey = (import.meta.env.VITE_GEOAPIFY_API_KEY ?? "").trim();
   const groups = useMemo(() => groupStops(stops), [stops]);
   const coordinates = JSON.stringify(groups.map(group => [group.latitude, group.longitude]));
   const plotted = groups.reduce((count, group) => count + group.stops.length, 0);
   const [reset, setReset] = useState(0);
+  const [gestures, setGestures] = useState(false);
   const [tileAttempt, setTileAttempt] = useState(0);
   const [tileError, setTileError] = useState(false);
   const [tilesLoading, setTilesLoading] = useState(true);
@@ -62,7 +99,7 @@ export default function TruckMap({ stops, page, total, stale = false }: { stops:
     return () => window.clearTimeout(timeout);
   }, [apiKey, tilesLoading, tileError, tileAttempt]);
 
-  return <section className="truck-map-panel" aria-label="Truck stop map">
+  return <section id="discovery-map" className="truck-map-panel" aria-label="Truck stop map">
     <div className="truck-map-heading">
       <div>
         <h3>Find your next stop</h3>
@@ -84,8 +121,12 @@ export default function TruckMap({ stops, page, total, stale = false }: { stops:
         }}>Retry map</button>
       </div>}
       <a className="truck-map-skip" href="#after-truck-map">Skip interactive map</a>
+      <button className="map-gesture-toggle" type="button" aria-pressed={gestures} onClick={() => setGestures(value => !value)}>
+        {gestures ? "Use page scrolling" : "Enable map gestures"}
+      </button>
       <MapContainer className="truck-map-canvas" center={[34.2367, -118.5282]} zoom={11} minZoom={2} maxZoom={20}
         scrollWheelZoom={false}>
+        <MapGestures enabled={gestures} />
         <TileLayer key={tileAttempt}
           url={`https://maps.geoapify.com/v1/tile/osm-carto/{z}/{x}/{y}.png?apiKey=${encodeURIComponent(apiKey)}`}
           attribution={'Powered by <a href="https://www.geoapify.com/">Geoapify</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'}
@@ -106,16 +147,19 @@ export default function TruckMap({ stops, page, total, stale = false }: { stops:
             ? `${group.stops[0].vendor.name} at ${group.stops[0].venueName}`
             : `${group.stops.length} scheduled stops at this location`;
           return <Marker key={`${group.latitude},${group.longitude}`} position={[group.latitude, group.longitude]}
+            ref={marker => { group.stops.forEach(stop => { if (marker) markers.current.set(stop.stopId, marker); else markers.current.delete(stop.stopId); }); }}
             title={title} alt={title} keyboard={true}
-            eventHandlers={{ add: event => event.target.getElement()?.setAttribute("aria-label", title) }}
-            icon={divIcon({ className: "truck-map-pin", html: `<span>${index + 1}</span>`, iconSize: [44, 44], iconAnchor: [22, 40], popupAnchor: [0, -38] })}>
+            eventHandlers={{ add: event => event.target.getElement()?.setAttribute("aria-label", title), click: () => onSelect?.(group.stops[0].stopId) }}
+            icon={divIcon({ className: `truck-map-pin${group.stops.some(stop => stop.stopId === selectedStopId) ? " truck-map-pin-selected" : ""}`, html: `<span>${index + 1}</span>`, iconSize: [44, 44], iconAnchor: [22, 40], popupAnchor: [0, -38] })}>
             <Popup minWidth={180} maxWidth={220} maxHeight={260}>
-              {group.stops.map(stop => <article className="truck-map-popup" key={stop.stopId}>
+              {group.stops.map(stop => <article className={`truck-map-popup${stop.stopId === selectedStopId ? " truck-map-popup-selected" : ""}`} key={stop.stopId}>
                 <h4>{stop.vendor.name}</h4>
                 <p>{stop.vendor.category} · {stale ? "Status unconfirmed" : stop.status === "serving" ? "Serving" : "Scheduled"}</p>
                 <p><strong>{stop.venueName}</strong><br />{stop.address}</p>
                 <p>{formatStopTime(stop.startsAt, stop.endsAt, stop.timeZone)}</p>
                 <Link to={`/trucks/${stop.vendor.id}`}>View truck &amp; menu →</Link>
+                <StopDirections latitude={stop.latitude} longitude={stop.longitude} />
+                {onShowList && <button type="button" onClick={() => onShowList(stop.stopId)}>Show {stop.vendor.name} in list</button>}
               </article>)}
             </Popup>
           </Marker>;

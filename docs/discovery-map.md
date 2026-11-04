@@ -31,6 +31,44 @@ For a production build, supply the variable at frontend build time.
 
 ## Verification
 
+### Responsive and keyboard checks (2026-11-04)
+
+Browser checks at 375px and 320px verified popup/card rendering, Enter activation,
+keyboard access to popup actions, and the Skip interactive map focus target.
+At 320px, document scroll width and viewport width both measured 320px.
+On narrow screens, zoom controls are hidden while a popup is open so they cannot
+cover its content; closing the popup restores them. The close target is 44px.
+
+Coarse-pointer devices default to page scrolling over the map. Enable map gestures
+opts into map dragging/pinch zoom; Use page scrolling reverses it. Unit tests cover
+this toggle. Desktop dragging and explicit zoom buttons remain available.
+
+Remaining release checks: real iOS/Android touch gestures and screen-reader use,
+actual browser 200% zoom / enlarged text, and live offline/provider-failure browser
+scenarios. In-app browser zoom shortcuts did not change the measured viewport;
+narrow viewport checks are not claimed as actual zoom testing. Provider failure
+and recovery remain covered by synthetic tile regression tests, without live keys.
+
+### Map/list selection and directions
+
+Show on map highlights a stop's marker and opens its popup without changing zoom.
+Selecting a marker highlights its first stop card. For shared coordinates, the
+popup lists each stop and offers Show in list to select and focus that exact card.
+Selection is scoped to a stop ID, not a truck ID, and clears when filters change
+or the selected stop disappears from refreshed results. Background refresh does
+not reopen popups or refit the viewport.
+
+Cards and popups offer Get directions in Google Maps (a new tab). The link uses
+the scheduled stop's validated coordinates, never the truck profile location.
+No customer origin or API key is included; the external provider handles origin
+selection. Invalid coordinates suppress directions. Venue name and address are
+shown; the current API has no separate landmark field. Directions are not proof
+that the truck is still serving. Confirm current pickup availability before travel.
+
+Verify card → pin → popup → matching card with keyboard and pointer, including
+two stops at one location. Repeat after manual refresh, filter/page changes and
+tile failure. Check the destination URL without requiring live Google Maps in CI.
+
 ### Schedule freshness
 
 Schedule results refresh 30 seconds after each completed request while the page

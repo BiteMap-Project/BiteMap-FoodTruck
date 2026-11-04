@@ -47,6 +47,9 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<Result>({ status: "loading" });
   const [categories, setCategories] = useState<string[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [stale, setStale] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
   // Hide old results immediately for URL changes, including browser Back/Forward.
   const requestKey = JSON.stringify([search, cuisine, when, from, to, radiusMiles, page]);
@@ -54,6 +57,8 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
   if (requestKey !== lastSearch) {
     setLastSearch(requestKey);
     setResult({ status: "loading" });
+    setStale(false);
+    setUpdatedAt(null);
   }
 
   const windowCheck = resolveWindow(when, custom);
@@ -63,35 +68,67 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
 
   useEffect(() => {
     if (windowError) return;
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
+    let disposed = false;
+    let inFlight = false;
+    let controller: AbortController | null = null;
+    let timeout: number | undefined;
+    let timer: number | undefined;
+    function failure(error: unknown) {
+      setStale(true);
+      setResult(previous => previous.status === "success" ? previous : error instanceof InvalidFilterError
+        ? { status: "invalid", message: error.message } : { status: "error" });
+    }
+    async function refresh() {
+      if (disposed || inFlight || document.visibilityState === "hidden") return;
+      window.clearTimeout(timer);
       // Resolve relative windows ("Open now") at request time, not render time.
       const range = resolveWindow(when, custom);
       if ("error" in range) return;
-      listStops({
-        q: search, cuisine, page, ...range, lat, lon,
-        radiusKm: lat === undefined ? undefined : radiusMiles * KM_PER_MILE,
-      }, controller.signal).then(
-        (data) => {
-          if (controller.signal.aborted) return;
-          setResult({ status: "success", data });
-          setCategories((known) => {
-            const next = new Set(known);
-            data.items.forEach((stop) => next.add(stop.vendor.category));
-            return next.size === known.length ? known : [...next].sort();
-          });
-        },
-        (error: unknown) => {
-          if (controller.signal.aborted) return;
-          setResult(error instanceof InvalidFilterError
-            ? { status: "invalid", message: error.message }
-            : { status: "error" });
-        },
-      );
-    }, 300);
+      inFlight = true;
+      setRefreshing(true);
+      const request = new AbortController();
+      controller = request;
+      try {
+        const data = await Promise.race([listStops({
+          q: search, cuisine, page, ...range, lat, lon,
+          radiusKm: lat === undefined ? undefined : radiusMiles * KM_PER_MILE,
+        }, request.signal), new Promise<never>((_, reject) => {
+          timeout = window.setTimeout(() => { request.abort(); reject(new Error("Schedule refresh timed out")); }, 15_000);
+        })]);
+        if (disposed) return;
+        setResult({ status: "success", data });
+        setStale(false);
+        setUpdatedAt(new Date().toISOString());
+        setCategories((known) => {
+          const next = new Set(known);
+          data.items.forEach((stop) => next.add(stop.vendor.category));
+          return next.size === known.length ? known : [...next].sort();
+        });
+      } catch (error) {
+        if (!disposed) failure(error);
+      } finally {
+        window.clearTimeout(timeout);
+        inFlight = false;
+        if (!disposed) {
+          setRefreshing(false);
+          timer = window.setTimeout(() => void refresh(), 30_000);
+        }
+      }
+    }
+    const resume = () => { if (document.visibilityState !== "hidden") void refresh(); };
+    const offline = () => setStale(true);
+    timer = window.setTimeout(() => void refresh(), 300);
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("online", resume);
+    window.addEventListener("offline", offline);
     return () => {
+      disposed = true;
       window.clearTimeout(timer);
-      controller.abort();
+      window.clearTimeout(timeout);
+      controller?.abort();
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("online", resume);
+      window.removeEventListener("offline", offline);
     };
   }, [search, cuisine, when, custom, lat, lon, radiusMiles, page, attempt, windowError]);
 
@@ -241,6 +278,12 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
             )}
             {result.status === "success" && (
               <>
+                <div className="stop-freshness">
+                  <p>{updatedAt && <>Last updated <time dateTime={updatedAt}>{new Date(updatedAt).toLocaleTimeString()}</time>. </>}
+                    {refreshing ? "Checking for updates…" : "Updates every 30 seconds while visible."}</p>
+                  <button type="button" disabled={refreshing} onClick={() => setAttempt(value => value + 1)}>Refresh stops</button>
+                </div>
+                {stale && <p role="alert" className="truck-map-notice">Updates unavailable. These stops may be outdated; confirm pickup availability before travelling.</p>}
                 {result.data.items.length > 0 && (
                   <>
                     <p role="status" className="results-count">
@@ -251,10 +294,10 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
                 )}
                 <div className={showMap ? "truck-map-layout" : undefined}>
                   {showMap && <Suspense fallback={<p role="status">Loading map…</p>}>
-                    <TruckMap stops={result.data.items} page={page} total={result.data.totalElements} />
+                    <TruckMap stops={result.data.items} page={page} total={result.data.totalElements} stale={stale} />
                   </Suspense>}
                   <div className="card-grid truck-map-results" aria-label="Stops on this page">
-                    {result.data.items.map((stop) => <StopCard key={stop.stopId} stop={stop} />)}
+                    {result.data.items.map((stop) => <StopCard key={stop.stopId} stop={stop} stale={stale} />)}
                   </div>
                 </div>
                 {(result.data.totalPages > 1 || page > 0) && (

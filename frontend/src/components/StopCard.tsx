@@ -4,12 +4,12 @@ import { formatDistance, formatStopTime } from "../features/discover/format";
 import { ClockIcon, NavigationIcon, PinIcon } from "./icons";
 import FavoriteButton from "../features/favorites/FavoriteButton";
 
-function StopCard({ stop }: { stop: Stop }) {
+function StopCard({ stop, stale = false }: { stop: Stop; stale?: boolean }) {
   return (
     <article className="card">
       <div className="card-head">
         <h2>{stop.vendor.name}</h2>
-        {stop.status === "serving" && <span className="badge">Serving now</span>}
+        {stale ? <span className="badge">Status unconfirmed</span> : stop.status === "serving" && <span className="badge">Serving now</span>}
         <FavoriteButton vendorId={stop.vendor.id} vendorName={stop.vendor.name} />
       </div>
       <p className="chip">{stop.vendor.category}</p>

@@ -31,6 +31,60 @@ const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body }
 const tick = () => act(async () => { await vi.advanceTimersByTimeAsync(300); });
 const lastUrl = () => new URL(fetchMock.mock.lastCall![0], "http://localhost");
 
+it("refreshes in the background and removes stops no longer returned by the server", async () => {
+  await openSchedule();
+  fetchMock.mockResolvedValue(ok({ ...data, items: [], totalElements: 0 }));
+  await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+  expect(screen.queryByText("CSUN Oviatt Lawn")).not.toBeInTheDocument();
+  expect(screen.getByText(/Last updated/)).toBeInTheDocument();
+});
+
+it("retains results on refresh failure and recovers through explicit refresh", async () => {
+  await openSchedule();
+  fetchMock.mockRejectedValue(new Error("offline"));
+  await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+  expect(screen.getByText("CSUN Oviatt Lawn")).toBeInTheDocument();
+  expect(screen.getByRole("alert")).toHaveTextContent("may be outdated");
+  expect(screen.queryByText("Serving now")).not.toBeInTheDocument();
+  fetchMock.mockResolvedValue(ok(data));
+  fireEvent.click(screen.getByRole("button", { name: "Refresh stops" }));
+  await tick();
+  expect(screen.queryByText(/may be outdated/)).not.toBeInTheDocument();
+});
+
+it("times out a stalled refresh, avoids overlapping reconnects, and ignores its late response", async () => {
+  await openSchedule();
+  let resolve!: (value: unknown) => void;
+  fetchMock.mockImplementation(() => new Promise(value => { resolve = value; }));
+  await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+  const calls = fetchMock.mock.calls.length;
+  fireEvent(window, new Event("online"));
+  fireEvent(document, new Event("visibilitychange"));
+  expect(fetchMock).toHaveBeenCalledTimes(calls);
+  expect(screen.getByText("CSUN Oviatt Lawn")).toBeInTheDocument();
+  await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
+  expect(screen.getByRole("alert")).toHaveTextContent("may be outdated");
+  expect(fetchMock.mock.lastCall![1].signal.aborted).toBe(true);
+  fetchMock.mockResolvedValue(ok({ ...data, items: [], totalElements: 0 }));
+  await act(async () => { fireEvent(window, new Event("online")); });
+  await act(async () => { resolve(ok(data)); });
+  expect(screen.queryByText("CSUN Oviatt Lawn")).not.toBeInTheDocument();
+  expect(screen.queryByText(/may be outdated/)).not.toBeInTheDocument();
+});
+
+it("skips hidden polling and refreshes immediately on returning to the tab", async () => {
+  await openSchedule();
+  const before = fetchMock.mock.calls.length;
+  const visible = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+  fireEvent(document, new Event("visibilitychange"));
+  await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+  expect(fetchMock).toHaveBeenCalledTimes(before);
+  visible.mockReturnValue("visible");
+  await act(async () => { fireEvent(document, new Event("visibilitychange")); });
+  expect(fetchMock).toHaveBeenCalledTimes(before + 1);
+  visible.mockRestore();
+});
+
 async function openSchedule() {
   rtlRender(<MemoryRouter><AuthProvider><DiscoverPage /></AuthProvider></MemoryRouter>);
   await tick(); // initial "All trucks" request

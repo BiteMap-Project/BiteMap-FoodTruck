@@ -26,9 +26,13 @@ export function groupStops(stops: Stop[]): LocationGroup[] {
 
 function FitStops({ coordinates, reset }: { coordinates: string; reset: number }) {
   const map = useMap();
+  const fittedReset = useRef<number | null>(null);
   useEffect(() => {
     const positions: [number, number][] = JSON.parse(coordinates);
-    if (positions.length) map.fitBounds(latLngBounds(positions), { padding: [36, 36], maxZoom: 16, animate: false });
+    if (positions.length && fittedReset.current !== reset) {
+      map.fitBounds(latLngBounds(positions), { padding: [36, 36], maxZoom: 16, animate: false });
+      fittedReset.current = reset;
+    }
   }, [map, coordinates, reset]);
   useEffect(() => {
     map.getContainer().setAttribute("aria-label", "Scheduled food truck locations");
@@ -41,7 +45,7 @@ function FitStops({ coordinates, reset }: { coordinates: string; reset: number }
   return null;
 }
 
-export default function TruckMap({ stops, page, total }: { stops: Stop[]; page: number; total: number }) {
+export default function TruckMap({ stops, page, total, stale = false }: { stops: Stop[]; page: number; total: number; stale?: boolean }) {
   const apiKey = (import.meta.env.VITE_GEOAPIFY_API_KEY ?? "").trim();
   const groups = useMemo(() => groupStops(stops), [stops]);
   const coordinates = JSON.stringify(groups.map(group => [group.latitude, group.longitude]));
@@ -108,7 +112,7 @@ export default function TruckMap({ stops, page, total }: { stops: Stop[]; page: 
             <Popup minWidth={180} maxWidth={220} maxHeight={260}>
               {group.stops.map(stop => <article className="truck-map-popup" key={stop.stopId}>
                 <h4>{stop.vendor.name}</h4>
-                <p>{stop.vendor.category} · {stop.status === "serving" ? "Serving" : "Scheduled"}</p>
+                <p>{stop.vendor.category} · {stale ? "Status unconfirmed" : stop.status === "serving" ? "Serving" : "Scheduled"}</p>
                 <p><strong>{stop.venueName}</strong><br />{stop.address}</p>
                 <p>{formatStopTime(stop.startsAt, stop.endsAt, stop.timeZone)}</p>
                 <Link to={`/trucks/${stop.vendor.id}`}>View truck &amp; menu →</Link>

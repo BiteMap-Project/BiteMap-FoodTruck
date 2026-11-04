@@ -2,6 +2,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import TruckMap, { groupStops } from "./TruckMap";
+import { Map as LeafletMap } from "leaflet";
 import DiscoverPage from "../../pages/DiscoverPage";
 import { AuthProvider } from "../../auth/AuthContext";
 import type { Stop, StopPage } from "../../services/stops";
@@ -18,6 +19,17 @@ const stop: Stop = {
 const another: Stop = { ...stop, stopId: 8, vendor: { ...stop.vendor, id: 3, name: "Soup Stop" } };
 const data: StopPage = { items: [stop], page: 0, size: 20, totalElements: 21, totalPages: 2, evaluatedAt: "2090-06-10T17:00:00Z" };
 const ok = (body: unknown) => ({ ok: true, json: async () => body });
+it("preserves the viewport when background updates move pins and fits only on request", () => {
+  vi.stubEnv("VITE_GEOAPIFY_API_KEY", "test-key");
+  const fit = vi.spyOn(LeafletMap.prototype, "fitBounds");
+  const { rerender } = render(<MemoryRouter><TruckMap stops={[stop]} page={0} total={1} /></MemoryRouter>);
+  const calls = fit.mock.calls.length;
+  rerender(<MemoryRouter><TruckMap stops={[{ ...stop, latitude: 34.5 }]} page={0} total={1} /></MemoryRouter>);
+  expect(fit).toHaveBeenCalledTimes(calls);
+  fireEvent.click(screen.getByRole("button", { name: "Fit pins" }));
+  expect(fit).toHaveBeenCalledTimes(calls + 1);
+  fit.mockRestore();
+});
 afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); });
 
 it("offers recovery when tile requests stall and starts a fresh timeout on retry", () => {

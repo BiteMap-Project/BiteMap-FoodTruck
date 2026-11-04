@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useDiscoveryQuery } from "./discoveryQuery";
 import FoodTruckCard from "../../components/FoodTruckCard";
 import { EmptyState, ErrorState, LoadingState } from "../../components/StatusViews";
 import { listVendors, type VendorPage } from "../../services/vendors";
@@ -10,9 +11,16 @@ type Result =
 
 /** "All trucks" view. The parent remounts it (via `key`) when the search changes, which resets the page. */
 function VendorResults({ search, onClearSearch }: { search: string; onClearSearch: () => void }) {
-  const [page, setPage] = useState(0);
+  const { page, update } = useDiscoveryQuery();
+  const setPage = (page: number) => update({ page });
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<Result>({ status: "loading" });
+  const requestKey = JSON.stringify([search, page]);
+  const [lastRequest, setLastRequest] = useState(requestKey);
+  if (lastRequest !== requestKey) {
+    setLastRequest(requestKey);
+    setResult({ status: "loading" });
+  }
 
   useEffect(() => {
     const controller = new AbortController();

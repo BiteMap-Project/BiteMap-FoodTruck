@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import TruckMap, { groupStops } from "./TruckMap";
 import DiscoverPage from "../../pages/DiscoverPage";
@@ -18,7 +18,33 @@ const stop: Stop = {
 const another: Stop = { ...stop, stopId: 8, vendor: { ...stop.vendor, id: 3, name: "Soup Stop" } };
 const data: StopPage = { items: [stop], page: 0, size: 20, totalElements: 21, totalPages: 2, evaluatedAt: "2090-06-10T17:00:00Z" };
 const ok = (body: unknown) => ({ ok: true, json: async () => body });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); });
+
+it("offers recovery when tile requests stall and starts a fresh timeout on retry", () => {
+  vi.useFakeTimers();
+  vi.stubEnv("VITE_GEOAPIFY_API_KEY", "test-key");
+  render(<MemoryRouter><TruckMap stops={[stop]} page={0} total={1} /></MemoryRouter>);
+  expect(screen.getByRole("status")).toHaveTextContent("Loading street map");
+  act(() => vi.advanceTimersByTime(15_000));
+  expect(screen.getByRole("alert")).toHaveTextContent("street map could not load");
+  expect(screen.getByRole("button", { name: "Taco Mobile at CSUN" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Retry map" }));
+  expect(screen.getByRole("status")).toHaveTextContent("Loading street map");
+  act(() => vi.advanceTimersByTime(15_000));
+  expect(screen.getByRole("alert")).toBeInTheDocument();
+});
+
+it("clears loading after tiles succeed without a later false timeout", () => {
+  vi.useFakeTimers();
+  vi.stubEnv("VITE_GEOAPIFY_API_KEY", "test-key");
+  const { container } = render(<MemoryRouter><TruckMap stops={[stop]} page={0} total={1} /></MemoryRouter>);
+  expect(screen.getByRole("status")).toHaveTextContent("Loading street map");
+  expect(container.querySelectorAll("img.leaflet-tile").length).toBeGreaterThan(0);
+  container.querySelectorAll("img.leaflet-tile").forEach(tile => fireEvent.load(tile));
+  expect(screen.queryByText("Loading street map…")).not.toBeInTheDocument();
+  act(() => vi.advanceTimersByTime(15_000));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
 
 it("groups shared coordinates and excludes invalid coordinates without losing other stops", () => {
   expect(groupStops([stop, another, { ...stop, latitude: NaN }, { ...stop, longitude: 181 }]))
@@ -63,10 +89,17 @@ it("preserves access to pins after a tile error and offers retry", () => {
   const tile = container.querySelector("img.leaflet-tile");
   expect(tile).not.toBeNull();
   fireEvent.error(tile!);
+  // Leaflet emits a final load event even when a tile failed.
+  container.querySelectorAll("img.leaflet-tile").forEach(image => {
+    if (image !== tile) fireEvent.load(image);
+  });
   expect(screen.getByRole("alert")).toHaveTextContent("street map could not load");
   expect(screen.getByRole("button", { name: "Taco Mobile at CSUN" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Retry map" }));
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(container.querySelector("img.leaflet-tile")).not.toBe(tile);
+  container.querySelectorAll("img.leaflet-tile").forEach(image => fireEvent.load(image));
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
 });
 
 it("opens the map at home and keeps its filters and pagination tied to the stop list", async () => {

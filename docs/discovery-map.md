@@ -31,6 +31,28 @@ For a production build, supply the variable at frontend build time.
 
 ## Verification
 
+### Schedule freshness
+
+Schedule results refresh 30 seconds after each completed request while the page
+is visible. Returning to the tab or reconnecting triggers a refresh immediately;
+overlapping requests are suppressed. Requests time out after 15 seconds. Relative
+date windows are recalculated for each request, so ended or cancelled stops drop
+out when the server no longer includes them in the selected results.
+
+The last-update time is the browser's last successful response time, not a live
+GPS timestamp. Failed background requests retain the last results with a stale
+warning and replace serving-status labels with “Status unconfirmed.” Refresh stops
+offers a manual retry. Filters and the map viewport survive background updates;
+Fit pins explicitly fits the current results. Changing filters loads a new map view.
+
+Run `npm --prefix frontend test -- src/features/discover/StopResults.test.tsx src/features/discover/TruckMap.test.tsx`.
+Regression tests cover expired-result removal, retained stale results, recovery,
+hidden tabs, overlapping requests, timeouts, ignored delayed responses, and map
+viewport preservation. In the browser, check the last-update time, Refresh stops,
+tab return, filters, zoom/pan preservation, and reconnect behavior. Checkout still
+performs its own server-side availability validation; these updates do not reserve
+a stop or guarantee it remains available.
+
 Run `npm --prefix frontend test -- src/features/discover/TruckMap.test.tsx`.
 Tests use synthetic tile events and do not require a real key or external tiles.
 In a browser, verify a real key, blank key, invalid key, blocked tile requests,

@@ -5,6 +5,8 @@
   gap: 20px;
   margin-top: 20px;
 }
+.discovery .stop-freshness { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0; }
+.discovery .stop-freshness p { margin: 0; font-size: 14px; }
 .discovery .truck-map-panel {
   position: sticky;
   top: 16px;

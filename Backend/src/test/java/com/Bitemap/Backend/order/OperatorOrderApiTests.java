@@ -57,6 +57,19 @@ class OperatorOrderApiTests {
     }
 
     String path(long truck) { return "/api/operator/vendors/" + truck + "/orders"; }
+    @Test void estimateCannotExceedSavedPickupClosingTime() throws Exception {
+        Instant close = Instant.now().plusSeconds(3600).truncatedTo(ChronoUnit.SECONDS);
+        jdbc.update("""
+            INSERT INTO customer_order_pickups(order_id,stop_id,venue_name,address,latitude,longitude,starts_at,ends_at,time_zone)
+            VALUES (?,123,'Campus','Address',34,-118,?,?, 'America/Los_Angeles')
+            """, order, java.sql.Timestamp.from(close.minusSeconds(7200)), java.sql.Timestamp.from(close));
+        mvc.perform(patch(path(vendor)+"/"+order+"/estimate").with(TestAccounts.user(OWNER).roles("OPERATOR")).with(csrf())
+            .contentType("application/json").content(estimate(close.plusSeconds(1),0)))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.detail").value("Estimated ready time must not be after the saved pickup closing time."));
+        assertThat(jdbc.queryForObject("SELECT version FROM customer_orders WHERE id=?",Long.class,order)).isZero();
+        mvc.perform(patch(path(vendor)+"/"+order+"/estimate").with(TestAccounts.user(OWNER).roles("OPERATOR")).with(csrf())
+            .contentType("application/json").content(estimate(close,0))).andExpect(status().isOk());
+    }
     String update(String status, long version, String reason) throws Exception {
         return json.writeValueAsString(Map.of("status", status, "version", version, "cancellationReason", reason));
     }

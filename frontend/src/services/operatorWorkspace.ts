@@ -72,7 +72,7 @@ async function upload<T>(path: string, body: FormData): Promise<T> {
 }
 
 const vendors = "/api/operator/vendors";
-export type OrderingSettings = { acceptingOrders: boolean; version: number };
+export type OrderingSettings = { acceptingOrders: boolean; version: number; cutoffMinutes?: number };
 export const getOrderingSettings = (vendorId: number, signal?: AbortSignal) => read<OrderingSettings>(`${vendors}/${vendorId}/ordering`, signal);
 export const setOrderingSettings = (vendorId: number, input: OrderingSettings) => write<OrderingSettings>(`${vendors}/${vendorId}/ordering`, "PUT", input);
 const menu = (vendorId: number) => `${vendors}/${vendorId}/menu-items`;

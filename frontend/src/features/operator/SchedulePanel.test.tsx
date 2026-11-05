@@ -43,6 +43,7 @@ async function fill() {
   });
 
   fireEvent.click(addressButton);
+  fireEvent.click(screen.getByRole('checkbox', { name: /I checked the pin/ }));
 }
 it.each(["ended", "cancelled"] as const)("schedules a %s stop again without changing history", async status => {
   fetchMock.mockResolvedValueOnce(response(200, page([{ ...stop, status }])));
@@ -53,6 +54,7 @@ it.each(["ended", "cancelled"] as const)("schedules a %s stop again without chan
   expect(screen.getByLabelText("Start time")).toHaveValue("");
   expect(fetchMock).toHaveBeenCalledTimes(1);
   fireEvent.change(screen.getByLabelText("New date"), { target: { value: "2090-06-10" } });
+  fireEvent.click(screen.getByRole('checkbox', { name: /I checked the pin/ }));
   fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));
   await screen.findByText("Schedule saved to BiteMap.");
   const writes = fetchMock.mock.calls.filter(([, options]) => options?.method);
@@ -101,10 +103,12 @@ it("preserves overnight local hours when scheduling again and requires a new dat
 it("creates a stop with explicit offsets and fresh CSRF", async () => {
   await open(); fireEvent.click(screen.getByText("Add stop")); await fill(); fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));
   await screen.findByText("Schedule saved to BiteMap.");
-  expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/stops", expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "X-CSRF-TOKEN": "fresh" }), body: JSON.stringify({ venueName: "Dinner", address: "18111 NORDHOFF ST, NORTHRIDGE, CA, 91325", latitude: 34.24, longitude: -118.53, startsAt: "2090-01-03T11:00:00-08:00", endsAt: "2090-01-03T14:00:00-08:00", timeZone: "America/Los_Angeles" }) }));
+  expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/stops", expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "X-CSRF-TOKEN": "fresh" }), body: JSON.stringify({ venueName: "Dinner", address: "18111 NORDHOFF ST, NORTHRIDGE, CA, 91325", latitude: 34.24, longitude: -118.53, startsAt: "2090-01-03T11:00:00-08:00", endsAt: "2090-01-03T14:00:00-08:00", timeZone: "America/Los_Angeles", locationConfirmed: true }) }));
 });
 it("edits using the stored version and nested contract", async () => {
-  await open(); fireEvent.click(screen.getByText("Edit Campus lunch")); fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));
+  await open(); fireEvent.click(screen.getByText("Edit Campus lunch"));
+  fireEvent.click(screen.getByRole('checkbox', { name: /I checked the pin/ }));
+  fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));
   await screen.findByText("Schedule saved to BiteMap.");
   const call = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT")!;
   expect(call[0]).toBe("/api/operator/vendors/7/stops/12"); expect(JSON.parse(call[1].body)).toMatchObject({ version: 3, stop: { venueName: "Campus lunch", startsAt: "2090-01-02T11:00:00-08:00" } });
@@ -172,6 +176,17 @@ it("does not reload or redirect from a mutation completed after leaving", async 
   await act(async () => resolve(response(200, stop))); expect(fetchMock).toHaveBeenCalledTimes(3);
 });
 
+it('requires reconfirmation after coordinates change and when copying a stop', async () => {
+  await open(); fireEvent.click(screen.getByRole('button', { name: 'Schedule Campus lunch again' }));
+  const confirmation = screen.getByRole('checkbox', { name: /I checked the pin/ });
+  expect(confirmation).not.toBeChecked();
+  fireEvent.click(confirmation);
+  fireEvent.change(screen.getByLabelText('Pickup latitude'), { target: { value: '34.25' } });
+  expect(confirmation).not.toBeChecked();
+  fireEvent.submit(screen.getByRole('form', { name: 'Schedule stop' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Confirm the pickup pin');
+  expect(fetchMock.mock.calls.some(([, options]) => options?.method)).toBe(false);
+});
 it("requires an address selection before saving", async () => {
   await open(); fireEvent.click(screen.getByText("Add stop"));
   fireEvent.submit(screen.getByRole("form", { name: "Schedule stop" }));

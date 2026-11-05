@@ -53,7 +53,7 @@ class RecurringStopApiTests {
     Map<String, Object> details(String day) {
         return Map.of("venueName", "Repeat lunch", "address", "CSUN", "latitude", 34.24,
                 "longitude", -118.53, "startsAt", day + "T11:00:00-08:00",
-                "endsAt", day + "T14:00:00-08:00", "timeZone", "America/Los_Angeles");
+                "endsAt", day + "T14:00:00-08:00", "timeZone", "America/Los_Angeles", "locationConfirmed", true);
     }
     String body() throws Exception {
         return json.writeValueAsString(Map.of("stop", details("2030-01-03"),

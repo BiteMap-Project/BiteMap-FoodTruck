@@ -22,7 +22,7 @@ class OperatorStopConcurrencyTests {
         long owner=com.Bitemap.Backend.TestAccounts.operator(jdbc, "Schedule race", email, "unused");
         long vendor=vendor(owner), sibling=vendor(owner);
         var start=OffsetDateTime.now(ZoneOffset.UTC).plusDays(2).withNano(0);
-        var details=new StopRequests.Details("Race","Test",34.0,-118.0,start,start.plusHours(2),"UTC");
+        var details=new StopRequests.Details("Race","Test",34.0,-118.0,start,start.plusHours(2),"UTC",true);
         var locked=new CountDownLatch(1); var release=new CountDownLatch(1);
         try (var pool=Executors.newFixedThreadPool(3)) {
             try {

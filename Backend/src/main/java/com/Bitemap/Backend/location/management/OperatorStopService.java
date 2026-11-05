@@ -33,8 +33,8 @@ public class OperatorStopService {
         validate(request);
         rejectOverlap(vendorId, null, request);
         return jdbc.queryForObject("""
-                INSERT INTO vendor_stops(vendor_id,venue_name,address,latitude,longitude,starts_at,ends_at,time_zone)
-                VALUES (?,?,?,?,?,?,?,?) RETURNING *
+                INSERT INTO vendor_stops(vendor_id,venue_name,address,latitude,longitude,starts_at,ends_at,time_zone,location_confirmed_at)
+                VALUES (?,?,?,?,?,?,?,?,clock_timestamp()) RETURNING *
                 """, ROW, vendorId, request.venueName(), request.address(), request.latitude(), request.longitude(),
                 Timestamp.from(request.startsAt().toInstant()), Timestamp.from(request.endsAt().toInstant()), request.timeZone());
     }
@@ -66,7 +66,7 @@ public class OperatorStopService {
         rejectOverlap(vendorId, id, stop);
         var updated = jdbc.query("""
                 UPDATE vendor_stops SET venue_name=?,address=?,latitude=?,longitude=?,starts_at=?,ends_at=?,time_zone=?,
-                    version=version+1,updated_at=clock_timestamp()
+                    version=version+1,updated_at=clock_timestamp(),location_confirmed_at=clock_timestamp()
                 WHERE id=? AND vendor_id=? AND version=? RETURNING *
                 """, ROW, stop.venueName(), stop.address(), stop.latitude(), stop.longitude(),
                 Timestamp.from(stop.startsAt().toInstant()), Timestamp.from(stop.endsAt().toInstant()), stop.timeZone(),
@@ -125,6 +125,7 @@ public class OperatorStopService {
     }
 
     private void validate(StopRequests.Details stop) {
+        if (!Boolean.TRUE.equals(stop.locationConfirmed())) throw invalid("Confirm the pickup pin before publishing.");
         if (!Double.isFinite(stop.latitude()) || !Double.isFinite(stop.longitude())) throw invalid("Coordinates must be finite.");
         var start = stop.startsAt(); var end = stop.endsAt();
         if (!start.toInstant().isAfter(clock.instant()) || !end.toInstant().isAfter(start.toInstant())

@@ -28,3 +28,13 @@ it('blocks further writes after an uncertain response until settings are reloade
   fireEvent.click(screen.getByRole('button', {name:'Refresh ordering settings'}));
   expect(await screen.findByRole('button', {name:'Pause new orders'})).toBeEnabled();
 });
+it('saves a cutoff without changing whether orders are enabled', async () => {
+  render(<OrderingControl vendorId={7} />);
+  const input = await screen.findByLabelText('Close new orders before pickup ends (minutes)');
+  fireEvent.change(input, { target: { value: '0' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save cutoff' }));
+  await screen.findByRole('button', { name: 'Resume new orders' });
+  expect(fetchMock).toHaveBeenCalledWith('/api/operator/vendors/7/ordering', expect.objectContaining({
+    method: 'PUT', body: '{"acceptingOrders":true,"version":0,"cutoffMinutes":0}',
+  }));
+});

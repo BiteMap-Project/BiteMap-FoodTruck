@@ -79,7 +79,7 @@ public class RecurringStopService {
                             + ". Adjust the hours or schedule this date separately.");
                 }
                 results.add(new StopRequests.Details(template.venueName(), template.address(),
-                        template.latitude(), template.longitude(), start, end, template.timeZone()));
+                        template.latitude(), template.longitude(), start, end, template.timeZone(), template.locationConfirmed()));
             }
             return List.copyOf(results);
         } catch (DateTimeException error) {

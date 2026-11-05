@@ -7,6 +7,7 @@ import ScheduleAddressFields, {
 } from "./ScheduleAddressFields";
 import "./scheduleForm.css";
 import RepeatScheduleFields, { repeatPreview } from "./RepeatScheduleFields";
+import PickupPinConfirmation from './PickupPinConfirmation';
 
 const zones = [
   ["America/Los_Angeles", "Pacific — Los Angeles"],
@@ -77,7 +78,7 @@ export default function ScheduleForm({
       ) ?? "",
   );
   const [address, setAddress] = useState<ScheduleAddress | null>(
-    initial ?? null,
+    initial ? { address: initial.address, latitude: initial.latitude, longitude: initial.longitude, confirmed: false } : null,
   );
   const [error, setError] = useState("");
   const [repeat, setRepeat] = useState<RepeatRule | null>(null);
@@ -190,6 +191,10 @@ export default function ScheduleForm({
       setError("Find and select a street address before saving.");
       return;
     }
+    if (!address.confirmed) {
+      setError("Confirm the pickup pin before saving.");
+      return;
+    }
     if (!startsAt || !endsAt) {
       setError(
         "Choose valid times. Skipped daylight-saving hours are unavailable; repeated hours need a choice.",
@@ -225,6 +230,7 @@ export default function ScheduleForm({
       startsAt,
       endsAt,
       timeZone: zone,
+      locationConfirmed: true,
     }, initial ? undefined : repeat ?? undefined);
   }
 
@@ -273,6 +279,7 @@ export default function ScheduleForm({
             setError("");
           }}
         />
+        {address && <PickupPinConfirmation value={address} onChange={value => { setAddress(value); setError(''); }} />}
         <section className="sf-times" aria-label="Stop hours">
           <h3>When will you be there?</h3>
           <label>

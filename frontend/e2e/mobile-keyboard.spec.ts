@@ -128,8 +128,11 @@ for (const device of cases) {
           await activate(page, add, device.keyboard);
           await activate(page, page.getByRole("link", { name: /Cart \(/ }), device.keyboard);
           const quantity = page.getByLabel("Quantity for Campus Taco");
-          if (device.keyboard) { await tabTo(page, quantity); await page.keyboard.press("ArrowDown"); await page.keyboard.press("Tab"); }
-          else await quantity.selectOption("2");
+          if (device.keyboard) await tabTo(page, quantity);
+          // Native select popups differ across OS/headless browsers. Verify real
+          // Tab reachability above, then use the standard native selection API.
+          await quantity.selectOption("2");
+          if (device.keyboard) await page.keyboard.press("Tab");
           await expect(quantity).toHaveValue("2");
           await expect(page.getByText("18111 Nordhoff St", { exact: true })).toBeVisible();
         });
@@ -192,6 +195,10 @@ for (const device of cases) {
           ] }));
           await activate(ownerPage, form.getByRole("button", { name: "Find address", exact: true }), device.keyboard);
           await activate(ownerPage, form.getByRole("button", { name: /^Use 18111 Nordhoff St/ }), device.keyboard);
+          const pinConfirmation = form.getByRole('checkbox', { name: /I checked the pin/ });
+          if (device.keyboard) { await tabTo(ownerPage, pinConfirmation); await ownerPage.keyboard.press('Space'); }
+          else await pinConfirmation.tap();
+          await expect(pinConfirmation).toBeChecked();
           const day = (offset: number) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
           const values = { "Start date": day(3), "Start time": "11:00", "End date": day(3), "End time": "10:00" };
           for (const [label, value] of Object.entries(values)) {

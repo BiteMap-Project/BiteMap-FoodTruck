@@ -269,6 +269,7 @@ class DatabaseMigrationTests {
 		var stops = jdbc.queryForList("SELECT * FROM " + schema + ".vendor_stops ORDER BY id");
 		// V7 adds only a zero-initialized version; all pre-existing stop fields must remain identical.
 		stops.forEach(stop -> stop.put("version", 0L));
+		stops.forEach(stop -> stop.put("location_confirmed_at", null));
 		migrateAndValidate(migrations(false));
 		assertThat(vendorBusinessRows()).isEqualTo(vendors);
 		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendor_stops ORDER BY id")).isEqualTo(stops);
@@ -327,6 +328,8 @@ class DatabaseMigrationTests {
 		migrateAndValidate(migrations(false));
 		var after = jdbc.queryForMap("SELECT * FROM " + schema + ".vendor_stops");
 		assertThat(after.remove("version")).isEqualTo(0L);
+		assertThat(after).containsKey("location_confirmed_at");
+		assertThat(after.remove("location_confirmed_at")).isNull();
 		assertThat(after).isEqualTo(before);
 		assertThatThrownBy(() -> jdbc.update("UPDATE " + schema + ".vendor_stops SET version=-1"))
 				.isInstanceOf(DataIntegrityViolationException.class);
@@ -348,6 +351,7 @@ class DatabaseMigrationTests {
         upgradedVendors.forEach(row -> {
             assertThat(row.remove("accepting_orders")).isEqualTo(true);
             assertThat(row.remove("ordering_version")).isEqualTo(0L);
+            assertThat(row.remove("ordering_cutoff_minutes")).isEqualTo(15);
         });
         assertThat(upgradedVendors).isEqualTo(oldVendors);
         assertThat(jdbc.queryForObject("SELECT user_id FROM " + schema + ".operators WHERE id=?", Long.class, owner)).isEqualTo(owner);

@@ -5,6 +5,7 @@ export type ScheduleAddress = {
   address: string;
   latitude: number;
   longitude: number;
+  confirmed?: boolean;
 };
 
 type Props = {
@@ -173,7 +174,7 @@ export default function ScheduleAddressFields({ value, onChange }: Props) {
                 type="button"
                 key={`${match.address}-${match.latitude}-${match.longitude}`}
                 onClick={() => {
-                  onChange(match);
+                  onChange({ address: match.address, latitude: match.latitude, longitude: match.longitude, confirmed: false });
                   setEditing(false);
                   setMatches([]);
                   setError("");

@@ -115,6 +115,10 @@ public class OperatorOrderService {
                 || request.estimatedReadyAt().isAfter(now.plus(Duration.ofHours(24)))) {
             throw new OperatorOrderException(INVALID, "Choose an estimated ready time between 1 minute and 24 hours from now.");
         }
+        var pickup = pickups.saved(orderId);
+        if (pickup != null && request.estimatedReadyAt().isAfter(pickup.endsAt())) {
+            throw new OperatorOrderException(INVALID, "Estimated ready time must not be after the saved pickup closing time.");
+        }
         var updated = jdbc.query("UPDATE customer_orders SET estimated_ready_at=?,version=version+1,"
                 + "updated_at=clock_timestamp() WHERE id=? AND vendor_id=? AND version=? RETURNING " + FIELDS,
                 SUMMARY, java.sql.Timestamp.from(request.estimatedReadyAt()), orderId, vendorId, request.version());

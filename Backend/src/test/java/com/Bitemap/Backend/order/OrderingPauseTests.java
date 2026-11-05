@@ -28,6 +28,23 @@ class OrderingPauseTests {
         stop = PickupOrderApiTests.activeStop(jdbc, vendor);
     }
     String path() { return "/api/operator/vendors/" + vendor + "/ordering"; }
+    @Test void cutoffSettingsAreOwnedVersionedAndBounded() throws Exception {
+        mvc.perform(get(path()).with(TestAccounts.user(owner).roles("OPERATOR")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.cutoffMinutes").value(15));
+        for (String value : java.util.List.of("-1", "121", "1.5", "\"15\"", "9223372036854775808")) {
+            mvc.perform(put(path()).with(TestAccounts.user(owner).roles("OPERATOR")).with(csrf()).contentType("application/json")
+                .content("{\"acceptingOrders\":true,\"version\":0,\"cutoffMinutes\":"+value+"}"))
+                .andExpect(status().isBadRequest());
+        }
+        mvc.perform(put(path()).with(TestAccounts.user(owner).roles("OPERATOR")).with(csrf()).contentType("application/json")
+            .content("{\"acceptingOrders\":true,\"version\":0,\"cutoffMinutes\":0}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.cutoffMinutes").value(0)).andExpect(jsonPath("$.version").value(1));
+        jdbc.update("UPDATE vendor_stops SET ends_at=clock_timestamp()+interval '1 minute' WHERE id=?", stop);
+        checkout(command(UUID.randomUUID())).andExpect(status().isCreated());
+        change(false, 1); // Older clients must preserve the configured cutoff.
+        mvc.perform(get(path()).with(TestAccounts.user(owner).roles("OPERATOR")))
+            .andExpect(jsonPath("$.cutoffMinutes").value(0));
+    }
     void change(boolean accepting, long version) throws Exception {
         mvc.perform(put(path()).with(TestAccounts.user(owner).roles("OPERATOR")).with(csrf())
             .contentType("application/json").content("{\"acceptingOrders\":"+accepting+",\"version\":"+version+"}"))

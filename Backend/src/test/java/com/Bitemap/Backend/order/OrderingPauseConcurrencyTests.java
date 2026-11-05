@@ -9,7 +9,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,8 +24,8 @@ class OrderingPauseConcurrencyTests {
     @Autowired OperatorVendorService vendors;
     @Autowired PlatformTransactionManager manager;
 
-    @ParameterizedTest @ValueSource(booleans = {true, false})
-    void firstVendorLockDeterminesWhetherTheNewOrderIsAccepted(boolean pauseFirst) throws Exception {
+    @ParameterizedTest @CsvSource({"true,false", "false,false", "true,true", "false,true"})
+    void firstVendorLockDeterminesWhetherTheNewOrderIsAccepted(boolean pauseFirst, boolean cutoffChange) throws Exception {
         String email = "pause-race-"+UUID.randomUUID()+"@example.test";
         long owner = TestAccounts.operator(jdbc,"Race",email,"unused");
         long vendor = jdbc.queryForObject("INSERT INTO vendors(name,category,location,operator_id) VALUES ('Race','Food','LA',?) RETURNING id",Long.class,owner);
@@ -35,9 +35,10 @@ class OrderingPauseConcurrencyTests {
         var locked = new CountDownLatch(1);
         var release = new CountDownLatch(1);
         var attempted = new CountDownLatch(1);
+        var setting = cutoffChange ? new OrderingControl.Update(true,0L,120L) : new OrderingControl.Update(false,0L);
         try (var executor = Executors.newFixedThreadPool(2)) {
             var first = executor.submit(() -> new TransactionTemplate(manager).execute(status -> {
-                if (pauseFirst) vendors.updateOrdering(email,vendor,new OrderingControl.Update(false,0L));
+                if (pauseFirst) vendors.updateOrdering(email,vendor,setting);
                 else orders.create(email,command);
                 locked.countDown();
                 await(release);
@@ -48,8 +49,8 @@ class OrderingPauseConcurrencyTests {
                 attempted.countDown();
                 if (pauseFirst) {
                     assertThatThrownBy(() -> orders.create(email,command)).isInstanceOf(OrderUnavailableException.class)
-                        .hasMessage("Temporarily not accepting orders.");
-                } else vendors.updateOrdering(email,vendor,new OrderingControl.Update(false,0L));
+                        .hasMessage(cutoffChange ? "Ordering closed for this stop. New orders close 120 minutes before pickup ends." : "Temporarily not accepting orders.");
+                } else vendors.updateOrdering(email,vendor,setting);
                 return true;
             });
             try { assertThat(attempted.await(10,TimeUnit.SECONDS)).isTrue(); }
@@ -57,7 +58,7 @@ class OrderingPauseConcurrencyTests {
             assertThat(first.get(15,TimeUnit.SECONDS)).isTrue();
             assertThat(second.get(15,TimeUnit.SECONDS)).isTrue();
             assertThat(jdbc.queryForObject("SELECT count(*) FROM customer_orders WHERE vendor_id=?",Integer.class,vendor)).isEqualTo(pauseFirst?0:1);
-            assertThat(vendors.ordering(email,vendor).acceptingOrders()).isFalse();
+            assertThat(vendors.ordering(email,vendor).acceptingOrders()).isEqualTo(cutoffChange);
             if (!pauseFirst) assertThat(orders.create(email,command).vendorId()).isEqualTo(vendor);
         } finally {
             release.countDown();

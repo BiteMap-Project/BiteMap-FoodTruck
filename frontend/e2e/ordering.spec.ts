@@ -267,6 +267,46 @@ async function login(page: Page, email: string, owner = false) {
   await expect(page).toHaveURL(owner ? /\/operator$/ : /\/cart$/);
 }
 
+test('owner cutoff settings block new checkout while preserving existing order recovery', async ({ page, context }, testInfo) => {
+  const email = `cutoff-${randomUUID()}@example.test`;
+  expect((await write(context.request, '/api/auth/register', { displayName: 'Cutoff Owner', email, password })).status()).toBe(201);
+  sql(`INSERT INTO app_user_roles(user_id,role) SELECT id,'OPERATOR' FROM app_users WHERE email='${email}';
+    INSERT INTO operators(user_id) SELECT id FROM app_users WHERE email='${email}';`);
+  await login(page, email, true);
+  const vendor = await (await write(context.request, '/api/operator/vendors', { name: 'Cutoff truck', category: 'Food', location: 'CSUN' })).json();
+  const item = await (await write(context.request, `/api/operator/vendors/${vendor.id}/menu-items`, { name: 'Lunch', price: 5, status: 'ACTIVE' })).json();
+  const stop = Number(sql(`INSERT INTO vendor_stops(vendor_id,venue_name,address,latitude,longitude,starts_at,ends_at,time_zone)
+    VALUES (${vendor.id},'Entrance','18111 Nordhoff St',34.24,-118.53,now()-interval '1 hour',now()+interval '1 hour','America/Los_Angeles') RETURNING id`).split('\n')[0]);
+  expect(Number.isSafeInteger(stop)).toBe(true);
+  expect(stop).toBeGreaterThan(0);
+  const command = { vendorId: vendor.id, pickupStopId: stop, idempotencyKey: randomUUID(), items: [{ menuItemId: item.id, quantity: 1 }] };
+  const original = await write(context.request, '/api/customer/orders', command);
+  expect(original.status()).toBe(201);
+  const originalOrder = await original.json();
+  await page.goto(`/operator/vendors/${vendor.id}/orders`);
+  const input = page.getByLabel('Close new orders before pickup ends (minutes)');
+  await expect(input).toHaveValue('15');
+  await input.fill('120');
+  await page.getByRole('button', { name: 'Save cutoff' }).click();
+  await expect(page.getByText('Current cutoff: 120 minutes before pickup ends.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save cutoff' })).toBeDisabled();
+  await page.reload();
+  await expect(input).toHaveValue('120');
+  await page.screenshot({ path: testInfo.outputPath('owner-cutoff.png'), fullPage: true });
+  const rejected = await write(context.request, '/api/customer/orders', { ...command, idempotencyKey: randomUUID() });
+  expect(rejected.status()).toBe(409);
+  expect((await rejected.json()).detail).toContain('120 minutes');
+  const recovered = await write(context.request, '/api/customer/orders', command);
+  expect(recovered.status()).toBe(201);
+  expect((await recovered.json()).id).toBe(originalOrder.id);
+  expect(Number(sql(`SELECT count(*) FROM customer_orders WHERE vendor_id=${vendor.id}`))).toBe(1);
+  await input.fill('0');
+  await page.getByRole('button', { name: 'Save cutoff' }).click();
+  await expect(page.getByText('Current cutoff: 0 minutes before pickup ends.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save cutoff' })).toBeDisabled();
+  expect((await write(context.request, '/api/customer/orders', { ...command, idempotencyKey: randomUUID() })).status()).toBe(201);
+});
+
 test("real customer checkout, lost response retry, owner processing, tracking and isolation", async ({ browser }, testInfo) => {
   test.setTimeout(120_000); // Includes customer (10s) and owner (30s) real polling intervals.
   const customer = await browser.newContext({ baseURL });

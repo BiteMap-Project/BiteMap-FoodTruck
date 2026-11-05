@@ -15,6 +15,15 @@ export function LoadingState({ label }: { label: string }) {
   );
 }
 
+export function SuccessNotice({ message }: { message: string }) {
+  return (
+    <div className="state-notice state-success" role="status">
+      <span aria-hidden="true">✓</span>
+      <p>{message}</p>
+    </div>
+  );
+}
+
 type ErrorProps = {
   message: string;
   onRetry?: () => void;
@@ -46,7 +55,7 @@ type EmptyProps = {
 export function EmptyState({ title, hint, children }: EmptyProps) {
   return (
     <div className="state state-empty" role="status">
-      <p className="state-title">{title}</p>
+      <h2 className="state-title">{title}</h2>
       {hint && <p className="state-hint">{hint}</p>}
       {children && <div className="state-actions">{children}</div>}
     </div>

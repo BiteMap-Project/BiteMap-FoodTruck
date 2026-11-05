@@ -15,6 +15,39 @@
   margin: 0;
 }
 
+.state-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-h);
+}
+
+.state-notice p {
+  margin: 0;
+}
+
+.state-success {
+  border-left: 4px solid #6f8b52;
+  background: #f3f6ed;
+}
+
+.state-success > span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: #6f8b52;
+  color: #fff;
+  font-weight: 700;
+}
+
 .state-empty {
   border: 1px dashed var(--border);
   background: var(--surface-muted);
@@ -42,6 +75,7 @@
 }
 
 .state-title {
+  margin: 0;
   color: var(--text-h);
   font-weight: 600;
   font-size: 18px;

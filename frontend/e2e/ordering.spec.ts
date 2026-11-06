@@ -441,8 +441,24 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     for (const [button, message] of [
       ["Accept order", "Your order has been accepted."],
       ["Mark ready", "Your order is ready for pickup."],
-      ["Mark collected", "Your order has been collected."],
+      ["Verify pickup & mark collected", "Your order has been collected."],
     ]) {
+      if (button.startsWith("Verify")) {
+        const customerOrder = await (await customer.request.get(`/api/customer/orders/${savedId}`)).json();
+        await expect(customerPage.getByRole("region", { name: "Pickup verification" })).toContainText(customerOrder.pickupCode);
+        await customerPage.reload();
+        await expect(customerPage.getByRole("region", { name: "Pickup verification" })).toContainText(customerOrder.pickupCode);
+        expect((await write(owner.request, `${path}/${savedId}/status`, { status: "COMPLETED", version: customerOrder.version }, "PATCH")).status()).toBe(409);
+        await ownerPage.getByLabel("Customer pickup code").fill(customerOrder.pickupCode === "000000" ? "000001" : "000000");
+        await ownerPage.getByRole("button", { name: button, exact: true }).click();
+        await expect(ownerPage.getByText("Pickup code is incorrect. Ask the customer to check their order details.")).toBeVisible();
+        await ownerPage.getByRole("button", { name: "Refresh order details", exact: true }).click();
+        await expect(ownerPage.getByLabel("Customer pickup code")).toBeEnabled();
+        await ownerPage.getByLabel("Customer pickup code").fill(customerOrder.pickupCode);
+        // Synthetic disposable accounts only; never record real customer pickup secrets.
+        await ownerPage.getByRole("form", { name: "Verify pickup" }).screenshot({ path: testInfo.outputPath("pickup-owner-verification.png") });
+        await customerPage.getByRole("region", { name: "Pickup verification" }).screenshot({ path: testInfo.outputPath("pickup-customer-code.png") });
+      }
       await ownerPage.getByRole("button", { name: button, exact: true }).click();
       // No reload/click on the customer page: verify actual automatic polling.
       await expect(customerPage.getByRole("region", { name: "Order status", exact: true }).getByRole("status")).toHaveText(message, { timeout: 25_000 });

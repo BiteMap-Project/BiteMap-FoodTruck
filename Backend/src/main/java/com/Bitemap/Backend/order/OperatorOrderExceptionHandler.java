@@ -17,6 +17,10 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(assignableTypes = OperatorOrderController.class)
 public class OperatorOrderExceptionHandler {
+    @ExceptionHandler(PickupCodeUnavailableException.class)
+    ProblemDetail pickupUnavailable(PickupCodeUnavailableException exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage());
+    }
     @ExceptionHandler(OperatorOrderException.class)
     ProblemDetail domain(OperatorOrderException exception) {
         var status = switch (exception.kind()) {
@@ -32,7 +36,7 @@ public class OperatorOrderExceptionHandler {
             HandlerMethodValidationException.class, MethodArgumentTypeMismatchException.class, ConstraintViolationException.class})
     ProblemDetail invalid() {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
-                "Use a valid status, a nonnegative integer version, and a cancellation reason of at most 500 characters. Page must be 0–10000 and size 1–100.");
+                "Use a valid status, a nonnegative integer version, and a cancellation reason of at most 500 characters. Pickup codes must be exactly six digits sent as a string. Page must be 0–10000 and size 1–100.");
     }
 
     @ExceptionHandler({DataAccessException.class, TransactionException.class})

@@ -22,8 +22,9 @@ public class OrderService {
     private static final BigDecimal MAX_TOTAL = new BigDecimal("9999999999.99");
     private final JdbcTemplate jdbc;
     private final PickupService pickups;
+    private final PickupCodes codes;
 
-    public OrderService(JdbcTemplate jdbc, PickupService pickups) { this.jdbc = jdbc; this.pickups = pickups; }
+    public OrderService(JdbcTemplate jdbc, PickupService pickups, PickupCodes codes) { this.jdbc = jdbc; this.pickups = pickups; this.codes = codes; }
 
     @Transactional
     public OrderResponse create(String customerEmail, @NotNull @Valid CreateOrderRequest request) {
@@ -93,7 +94,7 @@ public class OrderService {
         return load(orderId);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public OrderResponse get(String customerEmail, long orderId) {
         Long id = jdbc.query("""
                 SELECT o.id FROM customer_orders o
@@ -176,7 +177,7 @@ public class OrderService {
     private OrderResponse load(long orderId) {
         var header = jdbc.queryForObject("""
                 SELECT o.id,o.vendor_id,v.name,o.status,o.total,o.created_at,o.estimated_ready_at,o.cancellation_reason,o.version
-                FROM customer_orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=?
+                FROM customer_orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=? FOR UPDATE OF o
                 """, (rs, row) -> new Header(rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4),
                         rs.getBigDecimal(5), rs.getTimestamp(6).toInstant(),
                         rs.getTimestamp(7) == null ? null : rs.getTimestamp(7).toInstant(), rs.getString(8), rs.getLong(9)), orderId);
@@ -187,7 +188,7 @@ public class OrderService {
                         rs.getInt(4), rs.getBigDecimal(5)), orderId);
         return new OrderResponse(header.id(), header.vendorId(), header.vendorName(), header.status(),
                 header.total(), header.createdAt(), header.estimatedReadyAt(), items,
-                header.cancellationReason(), pickups.saved(orderId), header.version());
+                header.cancellationReason(), pickups.saved(orderId), header.version(), codes.forCustomer(orderId, header.status()));
     }
 
     private record MenuLine(long id, String name, BigDecimal price, String status) {}

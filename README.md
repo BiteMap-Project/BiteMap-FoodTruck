@@ -113,6 +113,16 @@ Copy-Item compose.env.example .env
 Open `.env` and set `COMPOSE_DB_PASSWORD` to a local development password. Do
 not commit `.env` or share its contents.
 
+Also set `PICKUP_CODE_KEY` to a dedicated Base64-encoded 32-byte secret generated
+with `openssl rand -base64 32`. Keep the value only in your ignored `.env` (or a
+production secret manager), not in commits or chat. Back it up securely alongside
+your database: replacing it makes existing pickup codes unreadable. All backend
+instances sharing a database must use the same key. Native Java runs must also
+receive this environment variable; a root `.env` is not automatically loaded by Java.
+
+See [pickup verification and testing](docs/pickup-verification.md) for handoff,
+cooldown, recovery, and key-management rules.
+
 ### 3. Start the application
 
 ```bash

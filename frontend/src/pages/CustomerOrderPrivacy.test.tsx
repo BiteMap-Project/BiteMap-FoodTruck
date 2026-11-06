@@ -17,6 +17,17 @@ const show = (path: string) => render(<MemoryRouter initialEntries={[path]}><Aut
 
 beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal("fetch", fetchMock); });
 
+it("removes the private pickup code immediately when the account changes", async () => {
+  let account = alice;
+  fetchMock.mockImplementation((url: string) => Promise.resolve(url === "/api/auth/me" ? reply(account)
+    : account.id === alice.id ? reply({ ...order, status: "READY", pickupCode: "012345" }) : reply({},404)));
+  show("/orders/42/confirmation");
+  await screen.findByText("012345");
+  account = bob;
+  fireEvent(window,new Event("focus"));
+  await waitFor(()=>expect(screen.queryByText("012345")).not.toBeInTheDocument());
+});
+
 it.each(routes)("removes private data when a focus check discovers account switching on %s", async path => {
   let account = alice;
   fetchMock.mockImplementation((url: string) => Promise.resolve(url === "/api/auth/me" ? reply(account)

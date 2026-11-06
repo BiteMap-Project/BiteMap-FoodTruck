@@ -57,6 +57,102 @@ class OperatorOrderApiTests {
     }
 
     String path(long truck) { return "/api/operator/vendors/" + truck + "/orders"; }
+    String customerCode(long id) throws Exception {
+        var response = mvc.perform(get("/api/customer/orders/"+id).with(TestAccounts.user(OWNER).roles("CUSTOMER")))
+            .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store")).andReturn();
+        return json.readTree(response.getResponse().getContentAsString()).get("pickupCode").asString();
+    }
+
+    org.springframework.test.web.servlet.ResultActions verify(long id, String code, long version) throws Exception {
+        return mvc.perform(post(path(vendor)+"/"+id+"/verify-pickup").with(TestAccounts.user(OWNER).roles("OPERATOR")).with(csrf())
+            .contentType("application/json").content(json.writeValueAsString(Map.of("code",code,"version",version))));
+    }
+
+    @Test void pickupCodeIsStablePrivateAndEncryptedAndCompletionIsReplaySafe() throws Exception {
+        long ready = order(vendor,"READY");
+        String code = customerCode(ready);
+        assertThat(code).matches("[0-9]{6}");
+        assertThat(customerCode(ready)).isEqualTo(code);
+        assertThat(jdbc.queryForObject("SELECT ciphertext FROM order_pickup_codes WHERE order_id=?",String.class,ready)).isNotEqualTo(code);
+        mvc.perform(get(path(vendor)+"/"+ready).with(TestAccounts.user(OWNER).roles("OPERATOR")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.pickupCode").doesNotExist());
+        mvc.perform(get("/api/customer/orders/"+ready).with(TestAccounts.user(OTHER).roles("CUSTOMER"))).andExpect(status().isNotFound());
+        verify(ready,code,0).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETED")).andExpect(jsonPath("$.pickupCode").doesNotExist());
+        verify(ready,code,0).andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1));
+        verify(ready,code,1).andExpect(status().isConflict());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM customer_order_status_history WHERE order_id=?",Integer.class,ready)).isEqualTo(1);
+        mvc.perform(get("/api/customer/orders/"+ready).with(TestAccounts.user(OWNER).roles("CUSTOMER")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.pickupCode").doesNotExist());
+    }
+
+    @Test void fiveWrongCodesEnforceCooldownWithoutChangingOrderVersion() throws Exception {
+        long ready = order(vendor,"READY");
+        String code = customerCode(ready), wrong = code.equals("000000") ? "000001" : "000000";
+        for(int i=0;i<4;i++) verify(ready,wrong,0).andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value("Pickup code is incorrect. Ask the customer to check their order details."));
+        verify(ready,wrong,0).andExpect(status().isTooManyRequests()).andExpect(header().string("Retry-After","300"));
+        verify(ready,code,0).andExpect(status().isTooManyRequests());
+        assertThat(jdbc.queryForObject("SELECT version FROM customer_orders WHERE id=?",Long.class,ready)).isZero();
+        jdbc.update("UPDATE order_pickup_codes SET locked_until=clock_timestamp()-interval '1 second' WHERE order_id=?",ready);
+        verify(ready,wrong,0).andExpect(status().isConflict());
+        assertThat(jdbc.queryForObject("SELECT failed_attempts FROM order_pickup_codes WHERE order_id=?",Integer.class,ready)).isEqualTo(1);
+        verify(ready,code,0).andExpect(status().isOk());
+    }
+
+    @Test void pickupVerificationRequiresOwnerCsrfReadyStateAndCurrentVersion() throws Exception {
+        long ready=order(vendor,"READY"); String code=customerCode(ready);
+        String body=json.writeValueAsString(Map.of("code",code,"version",0));
+        String endpoint=path(vendor)+"/"+ready+"/verify-pickup";
+        mvc.perform(post(endpoint).contentType("application/json").content(body).with(csrf())).andExpect(status().isUnauthorized());
+        mvc.perform(post(endpoint).with(TestAccounts.user(OWNER).roles("OPERATOR")).contentType("application/json").content(body)).andExpect(status().isForbidden());
+        mvc.perform(post(endpoint).with(TestAccounts.user(OTHER).roles("OPERATOR")).with(csrf()).contentType("application/json").content(body)).andExpect(status().isNotFound());
+        mvc.perform(post(endpoint).with(TestAccounts.user(OWNER).roles("CUSTOMER")).with(csrf()).contentType("application/json").content(body)).andExpect(status().isForbidden());
+        verify(ready,code,99).andExpect(status().isConflict());
+        for(String state: new String[]{"PLACED","ACCEPTED","CANCELLED"}) {
+            jdbc.update("UPDATE customer_orders SET status=? WHERE id=?",state,ready);
+            verify(ready,code,0).andExpect(status().isConflict());
+        }
+        jdbc.update("UPDATE customer_orders SET status='READY' WHERE id=?",ready);
+        verify(ready,code,0).andExpect(status().isOk());
+    }
+    @Test void pickupVerificationCannotBeBypassedThroughStatusEndpoint() throws Exception {
+        long ready = order(vendor, "READY");
+        mvc.perform(patch(path(vendor)+"/"+ready+"/status")
+            .with(TestAccounts.user(OWNER).roles("OPERATOR")).with(csrf())
+            .contentType("application/json").content("{\"status\":\"COMPLETED\",\"version\":0}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.detail").value("Verify the customer's pickup code to complete this order."));
+        assertThat(jdbc.queryForObject("SELECT status FROM customer_orders WHERE id=?", String.class, ready)).isEqualTo("READY");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM customer_order_status_history WHERE order_id=?", Integer.class, ready)).isZero();
+    }
+
+    @Test void pickupVerificationRejectsMalformedCodesWithoutCompletingTheOrder() throws Exception {
+        long ready = order(vendor, "READY");
+        for (String code : new String[]{"", "12345", "1234567", "abcdef", " 123456"}) {
+            mvc.perform(post(path(vendor)+"/"+ready+"/verify-pickup")
+                .with(TestAccounts.user(OWNER).roles("OPERATOR")).with(csrf())
+                .contentType("application/json").content(json.writeValueAsString(Map.of("code", code, "version", 0))))
+                .andExpect(status().isBadRequest());
+        }
+        assertThat(jdbc.queryForObject("SELECT status FROM customer_orders WHERE id=?", String.class, ready)).isEqualTo("READY");
+        for (String body : new String[]{"{\"code\":123456,\"version\":0}", "{\"code\":\"123456\",\"version\":0.5}", "{\"code\":\"123456\",\"version\":\"0\"}", "{\"code\":\"123456\",\"version\":-1}"}) {
+            mvc.perform(post(path(vendor)+"/"+ready+"/verify-pickup").with(TestAccounts.user(OWNER).roles("OPERATOR")).with(csrf())
+                .contentType("application/json").content(body)).andExpect(status().isBadRequest());
+        }
+    }
+
+    @Test void pickupWorksAfterClosingAndCorruptCiphertextFailsClosed() throws Exception {
+        long ready=order(vendor,"READY");
+        String code=customerCode(ready);
+        jdbc.update("""
+            INSERT INTO customer_order_pickups(order_id,stop_id,venue_name,address,latitude,longitude,starts_at,ends_at,time_zone)
+            VALUES (?,123,'Campus','Address',34,-118,clock_timestamp()-interval '2 hours',clock_timestamp()-interval '1 hour','America/Los_Angeles')
+            """,ready);
+        verify(ready,code,0).andExpect(status().isOk());
+        long broken=order(vendor,"READY"); customerCode(broken);
+        jdbc.update("UPDATE order_pickup_codes SET ciphertext='corrupt' WHERE order_id=?",broken);
+        verify(broken,"123456",0).andExpect(status().isServiceUnavailable());
+        assertThat(jdbc.queryForObject("SELECT status FROM customer_orders WHERE id=?",String.class,broken)).isEqualTo("READY");
+    }
     @Test void estimateCannotExceedSavedPickupClosingTime() throws Exception {
         Instant close = Instant.now().plusSeconds(3600).truncatedTo(ChronoUnit.SECONDS);
         jdbc.update("""
@@ -122,8 +218,7 @@ class OperatorOrderApiTests {
         var states = java.util.List.of("PLACED","ACCEPTED","READY","COMPLETED","CANCELLED");
         return states.stream().flatMap(from -> states.stream().map(to -> Arguments.of(from,to,
                 (from.equals("PLACED") && (to.equals("ACCEPTED") || to.equals("CANCELLED")))
-                || (from.equals("ACCEPTED") && (to.equals("READY") || to.equals("CANCELLED")))
-                || (from.equals("READY") && to.equals("COMPLETED")))));
+                || (from.equals("ACCEPTED") && (to.equals("READY") || to.equals("CANCELLED"))))));
     }
 
     @ParameterizedTest

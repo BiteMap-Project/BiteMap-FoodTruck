@@ -38,12 +38,27 @@ public class OperatorOrderController {
 
     @PatchMapping("/{orderId}/status")
     @Operation(summary = "Change order status with its current version",
-            description = "PLACED → ACCEPTED → READY → COMPLETED. PLACED or ACCEPTED may be cancelled with a reason. Stale versions and invalid transitions return 409; refresh before retrying.")
+            description = "PLACED → ACCEPTED → READY. Completion requires verify-pickup. PLACED or ACCEPTED may be cancelled with a reason. Stale versions return 409.")
     @SecurityRequirement(name = "csrfToken")
     public ResponseEntity<OperatorOrderResponse> update(Authentication authentication,
             @PathVariable long vendorId, @PathVariable long orderId, @Valid @RequestBody OrderStatusRequest request) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(service.update(authentication.getName(), vendorId, orderId, request));
+    }
+
+    @PostMapping("/{orderId}/verify-pickup")
+    @Operation(summary = "Verify the customer's six-digit code and complete a ready order")
+    @SecurityRequirement(name = "csrfToken")
+    public ResponseEntity<?> verifyPickup(Authentication authentication, @PathVariable long vendorId,
+            @PathVariable long orderId, @Valid @RequestBody VerifyPickupRequest request) {
+        // The service transaction has committed before rendering a wrong-code response.
+        var result = service.verifyPickup(authentication.getName(), vendorId, orderId, request);
+        if (result.failure() == null) return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(result.order());
+        var failure = result.failure();
+        var response = ResponseEntity.status(failure.status()).cacheControl(CacheControl.noStore());
+        if (failure.retryAfter() > 0) response.header("Retry-After", Long.toString(failure.retryAfter()));
+        return response.body(org.springframework.http.ProblemDetail.forStatusAndDetail(
+                org.springframework.http.HttpStatusCode.valueOf(failure.status()), failure.message()));
     }
 
     @PatchMapping("/{orderId}/estimate")

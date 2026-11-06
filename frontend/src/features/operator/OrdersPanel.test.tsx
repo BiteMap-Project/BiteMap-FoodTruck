@@ -20,6 +20,7 @@ beforeEach(() => {
     if (url.includes("vendors?")) return response(200, page([{ id: 7, name: "Spicy Food", category: "Food", location: "CSUN" }, { id: 8, name: "Other truck", category: "Food", location: "CSUN" }]));
     if (url.includes("menu-items?")) return response(200, page([]));
     if (url.includes("/orders?")) return response(200, page([current]));
+    if (url.endsWith("/verify-pickup") && init?.method === "POST") { current = { ...current, status: "COMPLETED", version: current.version + 1 }; return response(200, current); }
     if (init?.method === "PATCH") { const body = JSON.parse(init.body as string); current = { ...current, ...body, version: current.version + 1 }; return response(200, current); }
     if (url.endsWith("/orders/42")) return response(200, current);
     return response(500);
@@ -63,8 +64,12 @@ it("sends current version and fresh CSRF then exposes only the next action", asy
     body: JSON.stringify({ status: "ACCEPTED", version: 0 }),
   }));
   fireEvent.click(screen.getByRole("button", { name: "Mark ready" }));
-  fireEvent.click(await screen.findByRole("button", { name: "Mark collected" }));
+  const verify = await screen.findByRole("button", { name: "Verify pickup & mark collected" });
+  expect(verify).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Customer pickup code"), { target: { value: "012345" } });
+  fireEvent.click(verify);
   expect(await screen.findByText("This order is completed. No further changes are allowed.")).toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/orders/42/verify-pickup", expect.objectContaining({ method: "POST", body: JSON.stringify({ code: "012345", version: 2 }) }));
 });
 it("sets a preparation estimate without changing order status", async () => {
   await detail();

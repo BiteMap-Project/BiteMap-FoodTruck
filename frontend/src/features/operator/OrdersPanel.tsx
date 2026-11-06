@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthApiError } from "../../services/auth";
-import { getOwnerOrder, listOwnerOrders, updateOrderEstimate, updateOwnerOrder, type OrderStatus, type OwnerOrder, type OwnerOrderSummary } from "../../services/operatorOrders";
+import { getOwnerOrder, listOwnerOrders, updateOrderEstimate, updateOwnerOrder, verifyOrderPickup, type OrderStatus, type OwnerOrder, type OwnerOrderSummary } from "../../services/operatorOrders";
 import type { Page } from "../../services/operatorWorkspace";
 import "./orders.css";
 import { PickupLocation } from "../orders/PickupLocation";
@@ -106,6 +106,7 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState("");
   const [estimateMinutes, setEstimateMinutes] = useState("20");
+  const [pickupCode, setPickupCode] = useState("");
   const lock = useRef(false);
   const mounted = useRef(false);
   const title = useRef<HTMLHeadingElement>(null);
@@ -127,12 +128,13 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
     if (status === "CANCELLED" && (!reason.trim() || reason.length > 500)) return;
     lock.current = true; setBusy(true); onBusy(true); setError(""); setMessage("");
     try {
-      const updated = await updateOwnerOrder(vendorId, orderId, {
+      const updated = status === "COMPLETED" ? await verifyOrderPickup(vendorId, orderId, pickupCode, order.version) : await updateOwnerOrder(vendorId, orderId, {
         status, version: order.version, ...(status === "CANCELLED" ? { cancellationReason: reason.trim() } : {}),
       });
       if (!mounted.current) return;
       title.current?.focus();
       setOrder(updated); setCancelling(false); setReason(""); setMessage(`Order #${orderId} updated to ${labels[updated.status]}.`); onSaved();
+      setPickupCode("");
     } catch (cause) {
       if (!mounted.current) return;
       if (cause instanceof AuthApiError && cause.status === 401) navigate("/operator/login", { replace: true });
@@ -192,9 +194,16 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
       </div>}
       {order.cancellationReason && <div><strong>Cancellation reason</strong><p>{order.cancellationReason}</p></div>}
       <div className="ow-order-actions">
-        {action && !cancelling && <button className="od-button od-button-primary" disabled={busy || blocked || loading} onClick={() => void change(action.status)}>{action.label}</button>}
+        {action && order.status !== "READY" && !cancelling && <button className="od-button od-button-primary" disabled={busy || blocked || loading} onClick={() => void change(action.status)}>{action.label}</button>}
         {["PLACED", "ACCEPTED"].includes(order.status) && !cancelling && <button disabled={busy || blocked || loading} onClick={() => setCancelling(true)}>Cancel order</button>}
       </div>
+      {order.status === "READY" && <form className="ow-pickup-verification" aria-label="Verify pickup" onSubmit={event => { event.preventDefault(); if (/^[0-9]{6}$/.test(pickupCode)) void change("COMPLETED"); }}>
+        <h4>Confirm food handoff</h4><p>Ask the customer for the six-digit code from their order. There is no manual override.</p>
+        <label>Customer pickup code<input type="text" inputMode="numeric" autoComplete="off" pattern="[0-9]{6}" maxLength={6}
+          required value={pickupCode} disabled={busy || blocked || loading} onChange={event => setPickupCode(event.target.value.replace(/[^0-9]/g, ""))} /></label>
+        <button className="od-button od-button-primary" disabled={busy || blocked || loading || !/^[0-9]{6}$/.test(pickupCode)}>
+          {busy ? "Verifying pickup…" : "Verify pickup & mark collected"}</button>
+      </form>}
       {cancelling && <form aria-label="Cancel order" onSubmit={event => { event.preventDefault(); void change("CANCELLED"); }}>
         <p>Cancel order #{orderId}? This cannot be undone.</p>
         <label>Reason visible to the customer<textarea value={reason} maxLength={500} required disabled={busy || blocked}

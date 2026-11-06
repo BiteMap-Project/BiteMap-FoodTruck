@@ -23,6 +23,14 @@ async function show(path = "/orders/42/confirmation") {
 }
 const tick = async (ms = 10000) => { await act(async () => { await vi.advanceTimersByTimeAsync(ms); }); };
 
+it("shows pickup codes with leading zeros and removes them after collection", async () => {
+  fetchMock.mockResolvedValue(response({ ...order, pickupCode: "012345" }));
+  await show();
+  expect(screen.getByText("012345")).toBeInTheDocument();
+  fetchMock.mockResolvedValue(response({ ...order, status: "COMPLETED", pickupCode: null }));
+  await tick();
+  expect(screen.queryByText("012345")).not.toBeInTheDocument();
+});
 it("shows placed, accepted, ready and collected status without reloading", async () => {
   await show();
   expect(screen.getByText("Your order has been placed.")).toBeInTheDocument();

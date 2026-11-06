@@ -53,7 +53,12 @@ function OrderDetails({ id }: { id: number }) {
           </li>)}</ol>}
         {order.status === "PLACED" && <p>Waiting for the truck to accept your order.</p>}
         {order.status === "ACCEPTED" && <p>The truck is preparing your food.</p>}
-        {order.status === "READY" && <p>Show order #{order.id} when you collect your food.</p>}
+        {active && <section className="customer-pickup-code" aria-label="Pickup verification">
+          <h3>Your pickup code</h3>
+          {order.pickupCode ? <strong aria-label={`Pickup code ${order.pickupCode.split('').join(' ')}`}>{order.pickupCode}</strong>
+            : <p>Refresh your order to load your pickup code.</p>}
+          <p>Share this code with the truck only when you collect your food. You can find it again in My orders.</p>
+        </section>}
         {readyTime && ["PLACED", "ACCEPTED"].includes(order.status) && <p className="customer-ready-estimate">
           <span>Estimated ready time</span><strong><time dateTime={order.estimatedReadyAt!}>{readyTime.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time></strong>
         </p>}

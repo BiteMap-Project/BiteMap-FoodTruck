@@ -47,3 +47,12 @@ export async function updateOrderEstimate(vendorId: number, orderId: number, com
     body: JSON.stringify(command),
   }));
 }
+
+export async function verifyOrderPickup(vendorId: number, orderId: number, code: string, version: number): Promise<OwnerOrder> {
+  const csrf = await read<{ headerName: string; token: string }>("/api/auth/csrf");
+  return checked<OwnerOrder>(await fetch(`${base(vendorId)}/${orderId}/verify-pickup`, {
+    method: "POST", credentials: "same-origin",
+    headers: { Accept: "application/json", "Content-Type": "application/json", [csrf.headerName]: csrf.token },
+    body: JSON.stringify({ code, version }),
+  }));
+}

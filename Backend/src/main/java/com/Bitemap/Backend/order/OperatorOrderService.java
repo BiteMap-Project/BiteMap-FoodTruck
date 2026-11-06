@@ -24,6 +24,7 @@ public class OperatorOrderService {
     private final JdbcTemplate jdbc;
     private final PickupService pickups;
     private final Clock clock;
+    private final PickupCodes codes;
     private static final String FIELDS = "id,vendor_id,status,total,created_at,updated_at,estimated_ready_at,version,cancellation_reason";
     private static final RowMapper<OperatorOrderResponse.Summary> SUMMARY = (row, index) ->
             new OperatorOrderResponse.Summary(row.getLong("id"), row.getLong("vendor_id"),
@@ -33,14 +34,15 @@ public class OperatorOrderService {
                     row.getLong("version"), row.getString("cancellation_reason"));
 
     @Autowired
-    public OperatorOrderService(JdbcTemplate jdbc, PickupService pickups) {
-        this(jdbc, pickups, Clock.systemUTC());
+    public OperatorOrderService(JdbcTemplate jdbc, PickupService pickups, PickupCodes codes) {
+        this(jdbc, pickups, codes, Clock.systemUTC());
     }
 
-    OperatorOrderService(JdbcTemplate jdbc, PickupService pickups, Clock clock) {
+    OperatorOrderService(JdbcTemplate jdbc, PickupService pickups, PickupCodes codes, Clock clock) {
         this.jdbc = jdbc;
         this.pickups = pickups;
         this.clock = clock;
+        this.codes = codes;
     }
 
     // Repeatable read makes count/page consistent. These transactions deliberately allow
@@ -70,6 +72,9 @@ public class OperatorOrderService {
             @NotNull @Valid OrderStatusRequest request) {
         long actor = ownedVendor(email, vendorId);
         var current = header(vendorId, orderId, true);
+        if (request.status() == OrderStatus.COMPLETED) {
+            throw new OperatorOrderException(CONFLICT, "Verify the customer's pickup code to complete this order.");
+        }
         if (current.version() != request.version()) {
             throw new OperatorOrderException(CONFLICT, "This order has changed. Refresh it before updating its status.");
         }
@@ -98,6 +103,27 @@ public class OperatorOrderService {
                 """, orderId, current.status().name(), result.status().name(), result.version(), actor,
                 java.sql.Timestamp.from(result.updatedAt()), savedReason);
         return detail(result);
+    }
+
+    public record Verification(OperatorOrderResponse order, PickupCodes.Failure failure) {}
+
+    public Verification verifyPickup(String email, long vendorId, long orderId, @NotNull @Valid VerifyPickupRequest request) {
+        long actor = ownedVendor(email, vendorId);
+        var current = header(vendorId, orderId, true);
+        if (current.status() == OrderStatus.COMPLETED && codes.verifiedRetry(orderId, request.version(), actor, request.code())) {
+            return new Verification(detail(current), null);
+        }
+        if (current.status() != OrderStatus.READY) throw new OperatorOrderException(CONFLICT, "Only a ready order can be collected.");
+        if (current.version() != request.version()) throw new OperatorOrderException(CONFLICT, "This order has changed. Refresh it before verifying pickup.");
+        var failure = codes.check(orderId, request.code());
+        if (failure != null) return new Verification(null, failure);
+        var result = jdbc.queryForObject("UPDATE customer_orders SET status='COMPLETED',version=version+1,updated_at=clock_timestamp() WHERE id=? RETURNING " + FIELDS, SUMMARY, orderId);
+        jdbc.update("""
+                INSERT INTO customer_order_status_history(order_id,from_status,to_status,version,changed_by_user_id,changed_at)
+                VALUES (?,'READY','COMPLETED',?,?,?)
+                """, orderId, result.version(), actor, java.sql.Timestamp.from(result.updatedAt()));
+        codes.markVerified(orderId, result.version(), actor);
+        return new Verification(detail(result), null);
     }
 
     public OperatorOrderResponse updateEstimate(String email, long vendorId, long orderId,

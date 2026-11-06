@@ -16,6 +16,10 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(assignableTypes = {CustomerOrderController.class, PickupController.class})
 public class OrderExceptionHandler {
+    @ExceptionHandler(PickupCodeUnavailableException.class)
+    ProblemDetail pickupUnavailable() {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "Your pickup code is temporarily unavailable. Please try again later.");
+    }
     @ExceptionHandler(OrderConflictException.class)
     ProblemDetail cancellationConflict(OrderConflictException exception) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());

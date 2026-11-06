@@ -90,7 +90,10 @@ class EndToEndOrderDemoTests {
 
         changeStatus(ordersPath, orderId, "ACCEPTED", 0);
         changeStatus(ordersPath, orderId, "READY", 1);
-        changeStatus(ordersPath, orderId, "COMPLETED", 2);
+        String code = json.readTree(placed.getResponse().getContentAsString()).get("pickupCode").asString();
+        mvc.perform(post(ordersPath+"/"+orderId+"/verify-pickup").with(TestAccounts.user(OPERATOR).roles("OPERATOR")).with(csrf())
+                .contentType("application/json").content(json.writeValueAsString(Map.of("code",code,"version",2))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETED"));
 
         mvc.perform(get("/api/customer/orders/" + orderId)
                         .with(TestAccounts.user(CUSTOMER).roles("CUSTOMER")))

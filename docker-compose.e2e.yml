@@ -24,6 +24,7 @@ services:
       DB_USERNAME: bitemap_e2e
       DB_PASSWORD: disposable_e2e_only
       AUTH_RATE_LIMIT_SECRET: disposable-e2e-auth-limit-secret-32-characters
+      PICKUP_CODE_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       PASSWORD_RECOVERY_ENABLED: "true"
       PASSWORD_RESET_URL: http://127.0.0.1:15173/reset-password
       PASSWORD_RESET_ALLOW_LOCAL_HTTP: "true"

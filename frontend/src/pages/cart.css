@@ -149,3 +149,5 @@ body:has(.cart-site) { background: #f8f8f4; }
     margin-left: 0;
   }
 }
+.customer-pickup-code { margin-block: 1.5rem; padding: 1.5rem; background: #f6f3e9; border: 1px solid #dedfce; border-radius: 1rem; }
+.customer-pickup-code > strong { display: block; font: 700 clamp(1.8rem, 6vw, 2.5rem) monospace; letter-spacing: .2em; color: #263e32; }

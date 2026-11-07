@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { AuthApiError } from "../services/auth";
 import { listCustomerOrders, type CustomerOrderPage } from "../services/orders";
 import "./cart.css";
+import { cancellationMessage } from '../features/orders/cancellationMessage';
 
 const labels: Record<string, string> = { PLACED: "Placed", ACCEPTED: "Accepted", READY: "Ready for pickup", COMPLETED: "Collected", CANCELLED: "Cancelled" };
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -38,7 +39,11 @@ export default function CustomerOrdersPage() {
         {state.data.items.length === 0 ? <section className="cart-empty"><h2>{page === 0 ? "No orders yet." : "No orders on this page."}</h2><Link to="/trucks">Find a truck</Link></section>
           : <ul className="customer-order-list">{state.data.items.map(order => <li key={order.id}>
             <div><h2>{order.vendorName}</h2><p>Order #{order.id} · <time dateTime={order.createdAt}>{new Date(order.createdAt).toLocaleString()}</time></p>
-              <p><strong>{labels[order.status] ?? "Status unavailable"}</strong> · {dollars.format(order.total)}</p></div>
+              <p><strong>{labels[order.status] ?? "Status unavailable"}</strong> · {dollars.format(order.total)}</p>
+              {order.status === 'CANCELLED' && <div className="customer-order-cancellation-summary">
+                <strong>{cancellationMessage(order.cancellationSource)}</strong>
+                <p>{order.cancellationReason || 'No cancellation reason was recorded.'}</p>
+              </div>}</div>
             <Link className="cart-primary" to={`/orders/${order.id}/confirmation`}>View order #{order.id}</Link>
           </li>)}</ul>}
         <nav className="customer-order-refresh" aria-label="Order pages">

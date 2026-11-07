@@ -59,6 +59,37 @@ it("shows cancellation reason as text and stops polling", async () => {
   expect(screen.queryByText("Total due at pickup")).not.toBeInTheDocument();
   await tick(60000); expect(fetchMock).toHaveBeenCalledTimes(1);
 });
+it.each([
+  ['CUSTOMER', 'You cancelled this order.'],
+  ['OWNER', 'The truck cancelled your order.'],
+  ['ACCEPTANCE_TIMEOUT', 'The truck did not accept in time.'],
+])('explains %s cancellation and offers browsing without creating another order', async (source, title) => {
+  fetchMock.mockResolvedValue(response({ ...order, status: 'CANCELLED', cancellationSource: source, cancellationReason: 'Recorded reason' }));
+  await show();
+  expect(screen.getByRole('heading', { level: 1, name: 'Order cancelled' })).toBeInTheDocument();
+  expect(screen.getByRole('status')).toHaveTextContent(title);
+  expect(screen.getByRole('status')).toHaveTextContent('Recorded reason');
+  expect(screen.getByRole('link', { name: 'Browse available trucks' })).toHaveAttribute('href', '/trucks');
+  expect(screen.queryByRole('region', { name: 'Pickup verification' })).not.toBeInTheDocument();
+  expect(fetchMock.mock.calls.every(([, init]) => !init.method)).toBe(true);
+});
+it('keeps one stable cancellation announcement across refreshes and recovers after a failed read', async () => {
+  await show();
+  const live = screen.getByRole('status');
+  fetchMock.mockRejectedValue(new TypeError('offline'));
+  await tick();
+  expect(live).toHaveTextContent('Your order has been placed.');
+  fetchMock.mockResolvedValue(response({ ...order, status: 'CANCELLED', cancellationSource: 'OWNER', cancellationReason: 'Closed early' }));
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Refresh status' })));
+  expect(screen.getByRole('status')).toBe(live);
+  expect(live).toHaveTextContent('The truck cancelled your order.');
+  const mutations: MutationRecord[] = [];
+  const observer = new MutationObserver(records => mutations.push(...records));
+  observer.observe(live, { childList: true, subtree: true, characterData: true });
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Refresh status' })));
+  expect(mutations).toHaveLength(0);
+  observer.disconnect();
+});
 it("pauses while hidden and refreshes immediately when visible", async () => {
   await show();
   vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");

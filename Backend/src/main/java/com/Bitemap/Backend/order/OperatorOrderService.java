@@ -93,9 +93,10 @@ public class OperatorOrderService {
         String savedReason = request.status() == OrderStatus.CANCELLED ? reason : null;
         // Row lock serializes writers; version predicate also rejects stale clients.
         var updated = jdbc.query("UPDATE customer_orders SET status=?,version=version+1,"
-                + "updated_at=clock_timestamp(),cancellation_reason=? WHERE id=? AND vendor_id=? AND version=?"
+                + "updated_at=clock_timestamp(),cancellation_reason=?,cancellation_source=? WHERE id=? AND vendor_id=? AND version=?"
                 + " AND (status<>'PLACED' OR acceptance_deadline IS NULL OR acceptance_deadline>clock_timestamp()) RETURNING " + FIELDS,
-                SUMMARY, request.status().name(), savedReason, orderId, vendorId, request.version());
+                SUMMARY, request.status().name(), savedReason, request.status()==OrderStatus.CANCELLED ? CancellationSource.OWNER.name() : null,
+                orderId, vendorId, request.version());
         if (updated.isEmpty()) throw new OperatorOrderException(CONFLICT, "The acceptance deadline has passed or this order changed. Refresh its details.");
         var result = updated.getFirst();
         jdbc.update("""

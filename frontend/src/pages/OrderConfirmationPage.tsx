@@ -4,6 +4,7 @@ import "./cart.css";
 import { PickupLocation } from "../features/orders/PickupLocation";
 import CustomerCancellation from '../features/orders/CustomerCancellation';
 import AcceptanceDeadline from '../features/orders/AcceptanceDeadline';
+import { cancellationMessage } from '../features/orders/cancellationMessage';
 
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const steps = ["PLACED", "ACCEPTED", "READY", "COMPLETED"];
@@ -33,6 +34,7 @@ function OrderDetails({ id }: { id: number }) {
   const current = order ? steps.indexOf(order.status) : -1;
   const active = order && ["PLACED", "ACCEPTED", "READY"].includes(order.status);
   const readyTime = order?.estimatedReadyAt ? new Date(order.estimatedReadyAt) : null;
+  const cancelled = order?.status === 'CANCELLED';
   return <>
     {!denied && <div className="customer-order-refresh"><button className="cart-primary" disabled={loading || paused} onClick={refresh}>Refresh status</button>
       <span>{loading ? "Checking order…" : checkedAt ? `Last checked ${checkedAt.toLocaleTimeString()}` : ""}</span></div>}
@@ -42,13 +44,20 @@ function OrderDetails({ id }: { id: number }) {
     {denied && <Link className="cart-primary" to="/trucks">Return to trucks</Link>}
     {order && <>
       <p className="cart-eyebrow">YOUR PICKUP ORDER</p>
-      <h1>{order.status === "PLACED" ? "Thanks, your pickup order is in." : "Your order updates"}</h1>
+      <h1>{cancelled ? 'Order cancelled' : order.status === "PLACED" ? "Thanks, your pickup order is in." : "Your order updates"}</h1>
       <p className="confirmation-number">Order #{order.id} · {order.vendorName}</p>
       {active && <p className="cart-note">{connection==='live' ? 'Live order updates connected.' : connection==='connecting' ? 'Connecting live updates…' : 'Live updates disconnected or paused. Periodic status checks remain available while this page is visible.'}</p>}
-      <PickupLocation pickup={order.pickup} />
+      {!cancelled && <PickupLocation pickup={order.pickup} />}
       <AcceptanceDeadline status={order.status} deadline={order.acceptanceDeadline} />
       <section className={`customer-order-status ${order.status === "CANCELLED" ? "is-cancelled" : ""}`} aria-label="Order status">
-        <h2 role="status" aria-live="polite" aria-atomic="true">{messages[order.status] ?? "Order status is unavailable."}</h2>
+        <div role="status" aria-live="polite" aria-atomic="true">
+          <h2>{cancelled ? cancellationMessage(order.cancellationSource) : messages[order.status] ?? "Order status is unavailable."}</h2>
+          {cancelled && <><h3>Cancellation reason</h3><p className="customer-cancellation-reason">{order.cancellationReason || "No cancellation reason was recorded."}</p></>}
+        </div>
+        {cancelled && <div className="customer-cancellation-next">
+          <p>This order will not be prepared. Browse available trucks when you are ready to place a new order.</p>
+          <Link className="cart-primary" to="/trucks">Browse available trucks</Link>
+        </div>}
         {current >= 0 && <ol className="customer-order-progress" aria-label="Preparation progress">{steps.map((step, index) =>
           <li key={step} className={index <= current ? "is-reached" : ""} aria-current={index === current ? "step" : undefined}>
             <span aria-hidden="true">{index < current ? "✓" : index + 1}</span>{labels[index]}
@@ -64,9 +73,12 @@ function OrderDetails({ id }: { id: number }) {
         {readyTime && ["PLACED", "ACCEPTED"].includes(order.status) && <p className="customer-ready-estimate">
           <span>Estimated ready time</span><strong><time dateTime={order.estimatedReadyAt!}>{readyTime.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time></strong>
         </p>}
-        {order.status === "CANCELLED" && <><h3>Cancellation reason</h3><p>{order.cancellationReason || "No cancellation reason was recorded."}</p></>}
         <p className="cart-note">{active ? paused ? "Automatic updates paused while this tab is hidden." : "This page updates automatically every 10 seconds while it is open." : "Automatic updates have stopped. You can still refresh manually."}</p>
       </section>
+      {cancelled && order.pickup && <details className="customer-cancelled-pickup">
+        <summary>Original pickup location</summary><p>This pickup is no longer active for this order.</p>
+        <PickupLocation pickup={order.pickup} showDirections={false} />
+      </details>}
       {order.status === 'PLACED' && <CustomerCancellation order={order} loading={loading || paused}
         onSaved={applyOrder} onRefresh={refresh}/>}
       <ul className="cart-items">{order.items.map(item => <li key={item.menuItemId}>
@@ -74,7 +86,7 @@ function OrderDetails({ id }: { id: number }) {
       </li>)}</ul>
       <section className="cart-total"><span>Order total</span><strong>{dollars.format(order.total)}</strong></section>
       <p className="cart-note">Online payment is not recorded here. Order status tracks preparation, not live truck GPS.</p>
-      <Link className="cart-primary" to="/trucks">Find another truck</Link>
+      {!cancelled && <Link className="cart-primary" to="/trucks">Find another truck</Link>}
     </>}
   </>;
 }

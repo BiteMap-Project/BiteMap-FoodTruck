@@ -384,9 +384,29 @@ class DatabaseMigrationTests {
         assertThat(after).containsKeys("acceptance_minutes", "acceptance_deadline");
         assertThat(after.remove("acceptance_minutes")).isNull();
         assertThat(after.remove("acceptance_deadline")).isNull();
+        assertThat(after).containsKey("cancellation_source");
+        assertThat(after.remove("cancellation_source")).isNull();
         assertThat(after).isEqualTo(before);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".customer_order_status_history",Integer.class)).isZero();
         assertThat(migrations(false).migrate().migrationsExecuted).isZero();
+    }
+
+    @Test
+    void cancellationSourceUpgradePreservesLegacyCancellationWithoutGuessingActorContext() {
+        Flyway.configure().configuration(migrations(false).getConfiguration()).target("23").load().migrate();
+        long user=jdbc.queryForObject("INSERT INTO " + schema + ".app_users(display_name,email,password_hash) VALUES ('Legacy','cancellation-migration@example.test','unused') RETURNING id",Long.class);
+        long vendor=jdbc.queryForObject("INSERT INTO " + schema + ".vendors(name,category,location) VALUES ('Truck','Food','LA') RETURNING id",Long.class);
+        jdbc.update("INSERT INTO " + schema + ".customer_orders(customer_user_id,vendor_id,idempotency_key,total,status,cancellation_reason) VALUES (?,?,?,5,'CANCELLED','Keep original reason')",user,vendor,UUID.randomUUID());
+        var before=jdbc.queryForMap("SELECT * FROM " + schema + ".customer_orders");
+        migrateAndValidate(migrations(false));
+        var after=jdbc.queryForMap("SELECT * FROM " + schema + ".customer_orders");
+        assertThat(after).containsKey("cancellation_source");
+        assertThat(after.remove("cancellation_source")).isNull();
+        assertThat(after).isEqualTo(before);
+        assertThatThrownBy(() -> jdbc.update("UPDATE " + schema + ".customer_orders SET cancellation_source='ADMIN'"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbc.update("UPDATE " + schema + ".customer_orders SET status='PLACED',cancellation_reason=NULL,cancellation_source='CUSTOMER'"))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
@@ -402,6 +422,8 @@ class DatabaseMigrationTests {
         assertThat(after).containsKeys("acceptance_minutes", "acceptance_deadline");
         assertThat(after.remove("acceptance_minutes")).isNull();
         assertThat(after.remove("acceptance_deadline")).isNull();
+        assertThat(after).containsKey("cancellation_source");
+        assertThat(after.remove("cancellation_source")).isNull();
         assertThat(after).isEqualTo(before);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".customer_order_pickups",Integer.class)).isZero();
         assertThat(migrations(false).migrate().migrationsExecuted).isZero();

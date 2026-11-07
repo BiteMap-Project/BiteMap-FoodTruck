@@ -327,6 +327,16 @@ test('owner acceptance window is saved, shown at checkout, and expires orders wi
     const reopened = await customer.newPage();
     await reopened.goto(`/orders/${id}/confirmation`);
     await expect(reopened.getByText('The truck did not accept your order in time.', { exact: true })).toBeVisible();
+    await expect(reopened.getByRole('heading', { level: 1, name: 'Order cancelled' })).toBeVisible();
+    await expect(reopened.getByRole('status')).toContainText('The truck did not accept in time.');
+    await expect(reopened.getByRole('link', { name: 'Browse available trucks' })).toHaveAttribute('href', '/trucks');
+    await reopened.goto('/orders');
+    await expect(reopened.getByText('The truck did not accept in time.', { exact: true })).toBeVisible();
+    await expect(reopened.getByText('The truck did not accept your order in time.', { exact: true })).toBeVisible();
+    await reopened.getByRole('link', { name: `View order #${id}`, exact: true }).click();
+    await expect(reopened.getByRole('status')).toContainText('The truck did not accept in time.');
+    await expect(reopened.getByText('The truck did not accept your order in time.', { exact: true })).toBeVisible();
+    await reopened.screenshot({ path: testInfo.outputPath('customer-timeout-cancellation.png'), fullPage: true });
     await expect(ownerPage.getByText('The truck did not accept your order in time.', { exact: true })).toBeVisible({ timeout: 35000 });
     await expect(ownerPage.getByRole('button', { name: 'Accept order', exact: true })).toHaveCount(0);
   } finally {
@@ -563,8 +573,19 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     await ownerPage.getByLabel("Reason visible to the customer").fill("Kitchen closed unexpectedly.");
     await ownerPage.getByRole("button", { name: "Confirm cancellation", exact: true }).click();
     await expect(customerPage.getByRole("region", { name: "Order status", exact: true }).getByRole("status"))
-      .toHaveText("Your order was cancelled.", { timeout: 25_000 });
+      .toContainText("The truck cancelled your order.", { timeout: 25_000 });
     await expect(customerPage.getByText("Kitchen closed unexpectedly.", { exact: true })).toBeVisible();
+    await expect(customerPage.getByRole('heading', { level: 1, name: 'Order cancelled' })).toBeVisible();
+    await expect(customerPage.getByRole('region', { name: 'Pickup verification' })).toHaveCount(0);
+    await expect(customerPage.getByRole('link', { name: 'Get directions' })).toHaveCount(0);
+    await customerPage.goto('/orders');
+    await expect(customerPage.getByText('The truck cancelled your order.', { exact: true })).toBeVisible();
+    await expect(customerPage.getByText('Kitchen closed unexpectedly.', { exact: true })).toBeVisible();
+    await customerPage.screenshot({ path: testInfo.outputPath('customer-cancellation-history.png'), fullPage: true });
+    await customerPage.getByRole('link', { name: `View order #${secondId}`, exact: true }).click();
+    await expect(customerPage.getByRole('status')).toContainText('The truck cancelled your order.');
+    await customerPage.setViewportSize({ width: 390, height: 844 });
+    await customerPage.screenshot({ path: testInfo.outputPath('customer-owner-cancellation-mobile.png'), fullPage: true });
     // Customer cancellation uses the real session, CSRF, row version and database.
     const third = await write(customer.request, "/api/customer/orders", { ...submitted, idempotencyKey: randomUUID() });
     expect(third.status()).toBe(201);
@@ -578,7 +599,7 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     await customerPage.getByRole("button", { name: "Cancel order", exact: true }).click();
     await customerPage.getByRole("button", { name: "Confirm cancellation", exact: true }).click();
     await expect(customerPage.getByRole("region", { name: "Order status", exact: true }).getByRole("status"))
-      .toHaveText("Your order was cancelled.");
+      .toContainText("You cancelled this order.");
     await expect(customerPage.getByRole("button", { name: "Cancel order", exact: true })).toHaveCount(0);
     const replayCancellation = await write(customer.request, cancelPath, { version: 0 });
     expect(replayCancellation.status()).toBe(200);

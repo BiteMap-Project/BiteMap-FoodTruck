@@ -23,7 +23,7 @@ public class OrderExpirationService {
         long id=due.getFirst();
         jdbc.update("""
             UPDATE customer_orders SET status='CANCELLED',version=version+1,updated_at=clock_timestamp(),
-                cancellation_reason=?,estimated_ready_at=NULL WHERE id=?
+                cancellation_reason=?,cancellation_source='ACCEPTANCE_TIMEOUT',estimated_ready_at=NULL WHERE id=?
             """,REASON,id);
         jdbc.update("""
             INSERT INTO customer_order_status_history

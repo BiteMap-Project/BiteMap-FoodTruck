@@ -17,6 +17,20 @@ const show = (path: string) => render(<MemoryRouter initialEntries={[path]}><Aut
 
 beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal("fetch", fetchMock); });
 
+it.each(routes)('clears cancellation reasons when a different account is recognized on %s', async path => {
+  let account = alice;
+  const cancelled = { ...order, status: 'CANCELLED', cancellationSource: 'OWNER', cancellationReason: 'Alice private cancellation reason' };
+  fetchMock.mockImplementation((url: string) => Promise.resolve(url === '/api/auth/me' ? reply(account)
+    : account.id === alice.id ? reply(path === '/orders' ? { items: [cancelled], page: 0, totalPages: 1 } : cancelled)
+      : path === '/orders' ? reply({ items: [], page: 0, totalPages: 0 }) : reply({},404)));
+  show(path);
+  await screen.findByText('Alice private cancellation reason');
+  account = bob;
+  fireEvent(window, new Event('focus'));
+  await waitFor(() => expect(screen.queryByText('Alice private cancellation reason')).not.toBeInTheDocument());
+  expect(screen.queryByText('The truck cancelled your order.')).not.toBeInTheDocument();
+});
+
 it("removes the private pickup code immediately when the account changes", async () => {
   let account = alice;
   fetchMock.mockImplementation((url: string) => Promise.resolve(url === "/api/auth/me" ? reply(account)

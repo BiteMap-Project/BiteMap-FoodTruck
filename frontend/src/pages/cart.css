@@ -61,6 +61,14 @@ body:has(.cart-site) { background: #f8f8f4; }
 .customer-order-status { background: #fff; border: 1px solid #e1e4da; border-radius: 14px; padding: 24px; overflow-wrap: anywhere; }
 .customer-order-status h2 { margin: 0 0 20px; font-size: 24px; }
 .customer-order-status.is-cancelled { background: #fff1ec; border-color: #edc5b8; }
+.customer-order-cancellation-summary { border-left: 3px solid #b64d29; padding: 10px 16px; margin-top: 16px; color: #713c2a; background: #fff5ef; border-radius: 0 8px 8px 0; }
+.customer-cancellation-reason { white-space: pre-wrap; overflow-wrap: anywhere; }
+.customer-cancellation-next { display: grid; gap: 16px; margin: 24px 0; padding-top: 20px; border-top: 1px solid #edc5b8; }
+.customer-cancellation-next p { margin: 0; }
+.customer-cancellation-next .cart-primary { justify-self: start; }
+.customer-cancelled-pickup { margin-block: 24px; }
+.customer-cancelled-pickup summary { cursor: pointer; padding: 12px 0; font-weight: 600; }
+.customer-cancelled-pickup summary:focus-visible { outline: 2px solid #b64d29; outline-offset: 4px; }
 .customer-order-progress { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; padding: 0; list-style: none; margin: 24px 0; }
 .customer-order-progress li { display: flex; flex-direction: column; gap: 8px; color: #626b60; }
 .customer-order-progress li > span { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: #edf0e8; }

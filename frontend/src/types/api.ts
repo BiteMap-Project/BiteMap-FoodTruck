@@ -73,6 +73,8 @@ export type PickupDetails = {
 };
 
 export type CustomerOrderSummary = {
+  cancellationSource?: 'CUSTOMER' | 'OWNER' | 'ACCEPTANCE_TIMEOUT' | null;
+  cancellationReason?: string | null;
   id: number;
   vendorId: number;
   vendorName: string;
@@ -88,7 +90,6 @@ export type CustomerOrder = CustomerOrderSummary & {
   pickupCode?: string | null;
   /** Older servers may omit this; cancellation stays disabled until refreshed from an upgraded server. */
   version?: number;
-  cancellationReason?: string | null;
   pickup?: PickupDetails | null;
   items: OrderItem[];
 };

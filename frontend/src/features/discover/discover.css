@@ -680,7 +680,39 @@ body:has(.discovery) {
 }
 
 /* Turn the sidebar into a compact header on tablets and phones. */
+.discovery .discover-desktop-navigation { display: contents; }
+.discovery .discover-mobile-menu-button { display: none; }
+.discovery .discover-mobile-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  box-sizing: border-box;
+  width: min(390px, 100%);
+  max-width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: max(20px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  border: 0;
+  border-radius: 24px 0 0 24px;
+  background: #fff;
+  color: var(--text);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.discovery .discover-mobile-drawer::backdrop { background: rgb(20 35 28 / 45%); }
+.discovery .discover-mobile-drawer-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.discovery .discover-mobile-drawer-heading h2 { margin: 0; font-size: 20px; }
+.discovery .discover-mobile-drawer-heading button { min-width: 44px; min-height: 44px; border: 1px solid var(--border); border-radius: 12px; background: #fff; color: var(--text-h); font-size: 28px; cursor: pointer; }
+.discovery .discover-mobile-drawer .discover-menu { display: grid; margin: 12px 0 24px; }
+.discovery .discover-mobile-drawer .sidebar-label { display: block; }
+.discovery .discover-mobile-drawer .discover-account-footer { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
+.discovery .discover-mobile-drawer .discover-business { margin-block: 24px; }
+.discovery .discover-mobile-drawer .discover-menu-link { min-height: 44px; }
+.discovery .discover-mobile-drawer :focus-visible,
+.discovery .discover-mobile-menu-button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 @media (max-width: 1000px) {
+  .discovery .discover-desktop-navigation { display: none; }
+  .discovery .discover-mobile-menu-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-left: auto; min-height: 44px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; background: white; color: var(--text-h); font: inherit; font-weight: 600; cursor: pointer; }
   .discovery {
     grid-template-columns: 1fr;
   }

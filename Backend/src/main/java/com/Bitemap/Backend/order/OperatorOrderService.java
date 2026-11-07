@@ -25,13 +25,14 @@ public class OperatorOrderService {
     private final PickupService pickups;
     private final Clock clock;
     private final PickupCodes codes;
-    private static final String FIELDS = "id,vendor_id,status,total,created_at,updated_at,estimated_ready_at,version,cancellation_reason";
+    private static final String FIELDS = "id,vendor_id,status,total,created_at,updated_at,estimated_ready_at,version,cancellation_reason,acceptance_deadline";
     private static final RowMapper<OperatorOrderResponse.Summary> SUMMARY = (row, index) ->
             new OperatorOrderResponse.Summary(row.getLong("id"), row.getLong("vendor_id"),
                     OrderStatus.valueOf(row.getString("status")), row.getBigDecimal("total"),
                     row.getTimestamp("created_at").toInstant(), row.getTimestamp("updated_at").toInstant(),
                     row.getTimestamp("estimated_ready_at") == null ? null : row.getTimestamp("estimated_ready_at").toInstant(),
-                    row.getLong("version"), row.getString("cancellation_reason"));
+                    row.getLong("version"), row.getString("cancellation_reason"),
+                    row.getTimestamp("acceptance_deadline")==null?null:row.getTimestamp("acceptance_deadline").toInstant());
 
     @Autowired
     public OperatorOrderService(JdbcTemplate jdbc, PickupService pickups, PickupCodes codes) {
@@ -92,9 +93,10 @@ public class OperatorOrderService {
         String savedReason = request.status() == OrderStatus.CANCELLED ? reason : null;
         // Row lock serializes writers; version predicate also rejects stale clients.
         var updated = jdbc.query("UPDATE customer_orders SET status=?,version=version+1,"
-                + "updated_at=clock_timestamp(),cancellation_reason=? WHERE id=? AND vendor_id=? AND version=? RETURNING " + FIELDS,
+                + "updated_at=clock_timestamp(),cancellation_reason=? WHERE id=? AND vendor_id=? AND version=?"
+                + " AND (status<>'PLACED' OR acceptance_deadline IS NULL OR acceptance_deadline>clock_timestamp()) RETURNING " + FIELDS,
                 SUMMARY, request.status().name(), savedReason, orderId, vendorId, request.version());
-        if (updated.isEmpty()) throw new OperatorOrderException(CONFLICT, "This order has changed. Refresh it before updating its status.");
+        if (updated.isEmpty()) throw new OperatorOrderException(CONFLICT, "The acceptance deadline has passed or this order changed. Refresh its details.");
         var result = updated.getFirst();
         jdbc.update("""
                 INSERT INTO customer_order_status_history
@@ -146,10 +148,11 @@ public class OperatorOrderService {
             throw new OperatorOrderException(INVALID, "Estimated ready time must not be after the saved pickup closing time.");
         }
         var updated = jdbc.query("UPDATE customer_orders SET estimated_ready_at=?,version=version+1,"
-                + "updated_at=clock_timestamp() WHERE id=? AND vendor_id=? AND version=? RETURNING " + FIELDS,
+                + "updated_at=clock_timestamp() WHERE id=? AND vendor_id=? AND version=?"
+                + " AND (status<>'PLACED' OR acceptance_deadline IS NULL OR acceptance_deadline>clock_timestamp()) RETURNING " + FIELDS,
                 SUMMARY, java.sql.Timestamp.from(request.estimatedReadyAt()), orderId, vendorId, request.version());
         if (updated.isEmpty()) {
-            throw new OperatorOrderException(CONFLICT, "This order has changed. Refresh it before updating its estimate.");
+            throw new OperatorOrderException(CONFLICT, "The acceptance deadline has passed or this order changed. Refresh its details.");
         }
         return detail(updated.getFirst());
     }
@@ -179,6 +182,6 @@ public class OperatorOrderService {
                 rs.getBigDecimal(3), rs.getInt(4), rs.getBigDecimal(5)), row.id());
         return new OperatorOrderResponse(row.id(), row.vendorId(), row.status(), row.total(),
                 row.createdAt(), row.updatedAt(), row.estimatedReadyAt(), row.version(),
-                row.cancellationReason(), items, pickups.saved(row.id()));
+                row.cancellationReason(), items, pickups.saved(row.id()),row.acceptanceDeadline());
     }
 }

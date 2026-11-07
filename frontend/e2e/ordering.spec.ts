@@ -267,6 +267,74 @@ async function login(page: Page, email: string, owner = false) {
   await expect(page).toHaveURL(owner ? /\/operator$/ : /\/cart$/);
 }
 
+test('owner acceptance window is saved, shown at checkout, and expires orders with the customer browser closed', async ({ browser }, testInfo) => {
+  const owner = await browser.newContext({ baseURL });
+  const customer = await browser.newContext({ baseURL });
+  try {
+    const ownerEmail = `deadline-owner-${randomUUID()}@example.test`;
+    const customerEmail = `deadline-customer-${randomUUID()}@example.test`;
+    for (const [api, email] of [[owner.request, ownerEmail], [customer.request, customerEmail]] as const) {
+      expect((await write(api, '/api/auth/register', { displayName: 'Deadline tester', email, password })).status()).toBe(201);
+    }
+    sql(`INSERT INTO app_user_roles(user_id,role) SELECT id,'OPERATOR' FROM app_users WHERE email='${ownerEmail}';
+      INSERT INTO operators(user_id) SELECT id FROM app_users WHERE email='${ownerEmail}';`);
+    const ownerPage = await owner.newPage();
+    const customerPage = await customer.newPage();
+    await login(ownerPage, ownerEmail, true);
+    await login(customerPage, customerEmail);
+    const vendor = await (await write(owner.request, '/api/operator/vendors', { name: 'Acceptance window truck', category: 'Food', location: 'CSUN' })).json();
+    const item = await (await write(owner.request, `/api/operator/vendors/${vendor.id}/menu-items`, { name: 'Deadline lunch', price: 5, status: 'ACTIVE' })).json();
+    sql(`INSERT INTO vendor_stops(vendor_id,venue_name,address,latitude,longitude,starts_at,ends_at,time_zone)
+      VALUES (${vendor.id},'Campus entrance','18111 Nordhoff St',34.24,-118.53,now()-interval '1 hour',now()+interval '1 hour','America/Los_Angeles')`);
+    await ownerPage.goto(`/operator/vendors/${vendor.id}/orders`);
+    await ownerPage.getByRole('combobox', { name: 'Time to accept new orders', exact: true }).selectOption('20');
+    await ownerPage.getByRole('button', { name: 'Save acceptance timeout' }).click();
+    await expect(ownerPage.getByText('Acceptance timeout saved. Existing order deadlines are unchanged.')).toBeVisible();
+    await ownerPage.reload();
+    await expect(ownerPage.getByRole('combobox', { name: 'Time to accept new orders', exact: true })).toHaveValue('20');
+    await ownerPage.screenshot({ path: testInfo.outputPath('acceptance-settings.png'), fullPage: true });
+    await customerPage.goto(`/trucks/${vendor.id}`);
+    await customerPage.getByRole('button', { name: 'Add Deadline lunch to cart' }).click();
+    await customerPage.getByRole('link', { name: /Cart \(/ }).click();
+    await expect(customerPage.getByText(/This truck may take up to 20 minutes/)).toBeVisible();
+    const submitted = customerPage.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/customer/orders'));
+    await customerPage.getByRole('button', { name: 'Place pickup order' }).click();
+    const command = (await submitted).postDataJSON();
+    await expect(customerPage).toHaveURL(/\/orders\/\d+\/confirmation$/);
+    const id = Number(customerPage.url().match(/\/orders\/(\d+)/)![1]);
+    await expect(customerPage.getByText(/Waiting for acceptance until/)).toBeVisible();
+    await customerPage.screenshot({ path: testInfo.outputPath('customer-acceptance-deadline.png'), fullPage: true });
+    const original = await (await customer.request.get(`/api/customer/orders/${id}`)).json();
+    expect(original.acceptanceMinutes).toBe(20);
+    expect(command.items[0].menuItemId).toBe(item.id);
+    await ownerPage.getByRole('combobox', { name: 'Time to accept new orders', exact: true }).selectOption('3');
+    await ownerPage.getByRole('button', { name: 'Save acceptance timeout' }).click();
+    await expect(ownerPage.getByText('Acceptance timeout saved. Existing order deadlines are unchanged.')).toBeVisible();
+    const unchanged = await (await customer.request.get(`/api/customer/orders/${id}`)).json();
+    expect(unchanged.acceptanceDeadline).toBe(original.acceptanceDeadline);
+    await ownerPage.getByRole('button', { name: 'Refresh orders', exact: true }).click();
+    await ownerPage.getByRole('button', { name: `View order #${id}`, exact: true }).click();
+    await expect(ownerPage.getByRole('button', { name: 'Accept order', exact: true })).toBeEnabled();
+    await customerPage.close();
+    // Time travel is restricted by sql() to this disposable test database, never the application database.
+    sql(`UPDATE customer_orders SET acceptance_deadline=clock_timestamp()-interval '1 second' WHERE id=${id}`);
+    await expect.poll(async () => (await (await customer.request.get(`/api/customer/orders/${id}`)).json()).status, { timeout: 20000 }).toBe('CANCELLED');
+    const recovered = await write(customer.request, '/api/customer/orders', command);
+    expect(recovered.status()).toBe(201);
+    expect((await recovered.json()).id).toBe(id);
+    expect(Number(sql(`SELECT count(*) FROM customer_orders WHERE vendor_id=${vendor.id}`))).toBe(1);
+    expect(sql(`SELECT actor_kind FROM customer_order_status_history WHERE order_id=${id}`)).toBe('SYSTEM');
+    const reopened = await customer.newPage();
+    await reopened.goto(`/orders/${id}/confirmation`);
+    await expect(reopened.getByText('The truck did not accept your order in time.', { exact: true })).toBeVisible();
+    await expect(ownerPage.getByText('The truck did not accept your order in time.', { exact: true })).toBeVisible({ timeout: 35000 });
+    await expect(ownerPage.getByRole('button', { name: 'Accept order', exact: true })).toHaveCount(0);
+  } finally {
+    await owner.close();
+    await customer.close();
+  }
+});
+
 test('owner cutoff settings block new checkout while preserving existing order recovery', async ({ page, context }, testInfo) => {
   const email = `cutoff-${randomUUID()}@example.test`;
   expect((await write(context.request, '/api/auth/register', { displayName: 'Cutoff Owner', email, password })).status()).toBe(201);

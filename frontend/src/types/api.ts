@@ -61,6 +61,7 @@ export type OrderItem = {
 };
 
 export type PickupDetails = {
+  acceptanceMinutes?: number | null;
   stopId: number;
   venueName: string;
   address: string;
@@ -82,6 +83,8 @@ export type CustomerOrderSummary = {
 };
 
 export type CustomerOrder = CustomerOrderSummary & {
+  acceptanceMinutes?: number | null;
+  acceptanceDeadline?: string | null;
   pickupCode?: string | null;
   /** Older servers may omit this; cancellation stays disabled until refreshed from an upgraded server. */
   version?: number;
@@ -91,6 +94,7 @@ export type CustomerOrder = CustomerOrderSummary & {
 };
 
 export type OwnerOrderSummary = {
+  acceptanceDeadline?: string | null;
   id: number;
   vendorId: number;
   status: OrderStatus;

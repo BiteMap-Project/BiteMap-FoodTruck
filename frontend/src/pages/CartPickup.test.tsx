@@ -20,6 +20,11 @@ function setup(pickupResponse:Response) {
     ?response(200,{id:1,displayName:'Customer',roles:['ROLE_CUSTOMER']}):pickupResponse);
   render(<MemoryRouter><CartPage/></MemoryRouter>);
 }
+it('shows the acceptance window before checkout separately from preparation time',async()=>{
+  setup(response(200,{...pickup,acceptanceMinutes:20}));
+  expect(await screen.findByText(/up to 20 minutes to accept/)).toBeInTheDocument();
+  expect(screen.getByText(/Preparation time is separate/)).toBeInTheDocument();
+});
 it('blocks checkout without a current stop and allows a retry',async()=>{
   setup(response(204));
   expect(await screen.findByText(/No active pickup stop/)).toBeInTheDocument();

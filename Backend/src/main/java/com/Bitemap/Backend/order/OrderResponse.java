@@ -6,7 +6,8 @@ import java.util.List;
 
 public record OrderResponse(long id, long vendorId, String vendorName, String status,
         BigDecimal total, Instant createdAt, Instant estimatedReadyAt, List<Item> items,
-        String cancellationReason, PickupDetails pickup, long version, String pickupCode) {
+        String cancellationReason, PickupDetails pickup, long version, String pickupCode,
+        Long acceptanceMinutes, Instant acceptanceDeadline) {
 
     @Override public String toString() { return "OrderResponse[id=" + id + ",status=" + status + "]"; }
 

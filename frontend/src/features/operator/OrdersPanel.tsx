@@ -7,6 +7,8 @@ import "./orders.css";
 import { PickupLocation } from "../orders/PickupLocation";
 import OrderingControl from "./OrderingControl";
 import ActionError from "../../components/ActionError";
+import AcceptanceDeadline from '../orders/AcceptanceDeadline';
+import { useAcceptanceDeadline } from '../orders/useAcceptanceDeadline';
 
 const labels: Record<OrderStatus, string> = { PLACED: "Placed", ACCEPTED: "Accepted", READY: "Ready", COMPLETED: "Completed", CANCELLED: "Cancelled" };
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -76,6 +78,7 @@ export default function OrdersPanel({ vendorId, notificationRevision=0 }: { vend
           <ul className="ow-order-list">{data.items.map(order => <li key={order.id}>
             <div className="ow-order-row-heading"><strong>Order #{order.id}</strong><span className={`ow-order-status ow-order-${order.status.toLowerCase()}`}>{labels[order.status]}</span></div>
             <p><time dateTime={order.createdAt}>{date(order.createdAt)}</time></p>
+            <AcceptanceDeadline status={order.status} deadline={order.acceptanceDeadline} owner />
             <div className="ow-order-row-heading"><strong>{money.format(order.total)}</strong><button disabled={busy}
               aria-pressed={selected === order.id} onClick={() => setSelected(order.id)}>View order #{order.id}</button></div>
           </li>)}</ul>
@@ -87,16 +90,18 @@ export default function OrdersPanel({ vendorId, notificationRevision=0 }: { vend
         </>}
       </div>
       {selected !== null ? <OrderDetail key={`${vendorId}-${selected}`} vendorId={vendorId} orderId={selected}
+        observedVersion={data?.items.find(item => item.id === selected)?.version}
         onBusy={setBusy} onSaved={refresh} /> : <div className="ow-order-placeholder"><h3>Order details</h3><p>Select an order to review its items and manage preparation.</p></div>}
     </div>
   </section></>;
 }
 
-function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
-  vendorId: number; orderId: number; onBusy: (value: boolean) => void; onSaved: () => void;
+function OrderDetail({ vendorId, orderId, observedVersion, onBusy, onSaved }: {
+  vendorId: number; orderId: number; observedVersion?: number; onBusy: (value: boolean) => void; onSaved: () => void;
 }) {
   const navigate = useNavigate();
   const [order, setOrder] = useState<OwnerOrder | null>(null);
+  const acceptance = useAcceptanceDeadline(order?.status ?? '',order?.acceptanceDeadline);
   const [attempt, setAttempt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -122,7 +127,7 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
       else { setError(errorText(cause)); setLoading(false); }
     });
     return () => controller.abort();
-  }, [vendorId, orderId, attempt, navigate]);
+  }, [vendorId, orderId, attempt, observedVersion, navigate]);
   async function change(status: OrderStatus) {
     if (!order || lock.current || blocked || loading) return;
     if (status === "CANCELLED" && (!reason.trim() || reason.length > 500)) return;
@@ -183,6 +188,7 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
       <p className="ow-order-total"><span>Order total</span><strong>{money.format(order.total)}</strong></p>
       <p className="ow-order-help">Saved checkout prices. No online payment is recorded here.</p>
       <PickupLocation pickup={order.pickup} />
+      <AcceptanceDeadline status={order.status} deadline={order.acceptanceDeadline} owner />
       {order.estimatedReadyAt && <p className="ow-order-estimate"><strong>Estimated ready</strong><time dateTime={order.estimatedReadyAt}>{date(order.estimatedReadyAt)}</time></p>}
       {["PLACED", "ACCEPTED"].includes(order.status) && <div className="ow-estimate-control">
         <label>Ready-time estimate<select value={estimateMinutes} disabled={busy || blocked} onChange={event => setEstimateMinutes(event.target.value)}>
@@ -194,7 +200,7 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
       </div>}
       {order.cancellationReason && <div><strong>Cancellation reason</strong><p>{order.cancellationReason}</p></div>}
       <div className="ow-order-actions">
-        {action && order.status !== "READY" && !cancelling && <button className="od-button od-button-primary" disabled={busy || blocked || loading} onClick={() => void change(action.status)}>{action.label}</button>}
+        {action && order.status !== "READY" && !cancelling && <button className="od-button od-button-primary" disabled={busy || blocked || loading || acceptance.expired} onClick={() => void change(action.status)}>{action.label}</button>}
         {["PLACED", "ACCEPTED"].includes(order.status) && !cancelling && <button disabled={busy || blocked || loading} onClick={() => setCancelling(true)}>Cancel order</button>}
       </div>
       {order.status === "READY" && <form className="ow-pickup-verification" aria-label="Verify pickup" onSubmit={event => { event.preventDefault(); if (/^[0-9]{6}$/.test(pickupCode)) void change("COMPLETED"); }}>

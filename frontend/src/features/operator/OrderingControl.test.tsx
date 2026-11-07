@@ -18,6 +18,18 @@ it('pauses with a version and fresh CSRF, then reflects the server state', async
     method:'PUT', body:'{"acceptingOrders":false,"version":0}', headers: expect.objectContaining({'X-CSRF-TOKEN':'fresh'})
   }));
 });
+it('offers only allowed acceptance windows and saves twenty minutes separately from the cutoff', async () => {
+  render(<OrderingControl vendorId={7} />);
+  const select = await screen.findByLabelText('Time to accept new orders');
+  expect(select).toHaveValue('5');
+  expect(Array.from(select.querySelectorAll('option')).map(option=>option.value)).toEqual(['3','5','10','15','20']);
+  fireEvent.change(select,{target:{value:'20'}});
+  fireEvent.click(screen.getByRole('button',{name:'Save acceptance timeout'}));
+  await screen.findByRole('button',{name:'Resume new orders'});
+  expect(fetchMock).toHaveBeenCalledWith('/api/operator/vendors/7/ordering',expect.objectContaining({
+    method:'PUT',body:'{"acceptingOrders":true,"version":0,"acceptanceMinutes":20}',
+  }));
+});
 it('blocks further writes after an uncertain response until settings are reloaded', async () => {
   render(<OrderingControl vendorId={7} />);
   await screen.findByRole('button', {name:'Pause new orders'});

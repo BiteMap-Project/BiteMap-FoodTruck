@@ -233,6 +233,7 @@ Useful documentation:
 - [Operator menus](docs/operator-menu.md)
 - [Operator schedules](docs/operator-schedules.md)
 - [Operator orders](docs/operator-orders.md)
+- [Order acceptance timeouts](docs/order-acceptance-timeouts.md)
 - [Unified accounts](docs/unified-accounts.md)
 - [Owner approval](docs/owner-approval.md)
 

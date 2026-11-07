@@ -4,12 +4,16 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import tools.jackson.databind.annotation.JsonDeserialize;
 
-public record OrderingControl(boolean acceptingOrders, long version, long cutoffMinutes) {
+public record OrderingControl(boolean acceptingOrders, long version, long cutoffMinutes, long acceptanceMinutes) {
+    public OrderingControl(boolean acceptingOrders, long version, long cutoffMinutes) { this(acceptingOrders,version,cutoffMinutes,5); }
     public record Update(@NotNull @JsonDeserialize(using = StrictBoolean.class) Boolean acceptingOrders,
                          @NotNull @PositiveOrZero @JsonDeserialize(using = StrictVersion.class) Long version,
                          @jakarta.validation.constraints.Min(0) @jakarta.validation.constraints.Max(120)
-                         @JsonDeserialize(using = StrictVersion.class) Long cutoffMinutes) {
-        public Update(Boolean acceptingOrders, Long version) { this(acceptingOrders, version, null); }
+                         @JsonDeserialize(using = StrictVersion.class) Long cutoffMinutes,
+                         @jakarta.validation.constraints.Min(3) @jakarta.validation.constraints.Max(20)
+                         @JsonDeserialize(using = StrictVersion.class) Long acceptanceMinutes) {
+        public Update(Boolean acceptingOrders, Long version) { this(acceptingOrders, version, null, null); }
+        public Update(Boolean acceptingOrders, Long version, Long cutoffMinutes) { this(acceptingOrders, version, cutoffMinutes, null); }
     }
 
     public static class StrictBoolean extends tools.jackson.databind.ValueDeserializer<Boolean> {

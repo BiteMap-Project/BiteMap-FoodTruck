@@ -81,6 +81,11 @@ function CartContent() {
                 : <p role="status">No active pickup stop. You can keep browsing, but this truck is not accepting orders right now.</p>}
             </div>
           </div>}
+          {stop.pickup?.acceptanceMinutes != null && <div className="cart-acceptance-notice">
+            <strong>Time to accept your order</strong>
+            <p>This truck may take up to {stop.pickup.acceptanceMinutes} minutes to accept your order, but no later than pickup closing time.</p>
+            <p>Preparation time is separate. If the truck does not accept by the saved deadline, your order automatically cancels. Your exact deadline is shown after checkout.</p>
+          </div>}
           <button className="cart-pickup-refresh" type="button" disabled={stop.loading || submitting} onClick={stop.refresh}>Refresh pickup details</button>
         </section>
         <p className="cart-note">Your order total is calculated using current menu prices when you place your order. No online payment is collected here.</p>

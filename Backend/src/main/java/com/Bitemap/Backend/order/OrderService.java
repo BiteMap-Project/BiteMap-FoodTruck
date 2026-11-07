@@ -83,9 +83,10 @@ public class OrderService {
         // Evaluate the clock after waiting for menu locks, immediately before inserting.
         var pickup = pickups.requireCurrent(request.vendorId(), request.pickupStopId());
         long orderId = jdbc.queryForObject("""
-                INSERT INTO customer_orders(customer_user_id,vendor_id,idempotency_key,total)
-                VALUES (?,?,?,?) RETURNING id
-                """, Long.class, customerId, request.vendorId(), request.idempotencyKey(), total);
+                INSERT INTO customer_orders(customer_user_id,vendor_id,idempotency_key,total,acceptance_minutes,acceptance_deadline)
+                VALUES (?,?,?,?,?,LEAST(clock_timestamp()+(? * interval '1 minute'),?)) RETURNING id
+                """, Long.class, customerId, request.vendorId(), request.idempotencyKey(), total,
+                pickup.acceptanceMinutes(),pickup.acceptanceMinutes(),java.sql.Timestamp.from(pickup.endsAt()));
         pickups.save(orderId, pickup);
         for (var line : lines) jdbc.update("""
                 INSERT INTO customer_order_items(order_id,menu_item_id,name_snapshot,unit_price,quantity,line_total)
@@ -176,11 +177,12 @@ public class OrderService {
 
     private OrderResponse load(long orderId) {
         var header = jdbc.queryForObject("""
-                SELECT o.id,o.vendor_id,v.name,o.status,o.total,o.created_at,o.estimated_ready_at,o.cancellation_reason,o.version
+                SELECT o.id,o.vendor_id,v.name,o.status,o.total,o.created_at,o.estimated_ready_at,o.cancellation_reason,o.version,o.acceptance_minutes,o.acceptance_deadline
                 FROM customer_orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=? FOR UPDATE OF o
                 """, (rs, row) -> new Header(rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4),
                         rs.getBigDecimal(5), rs.getTimestamp(6).toInstant(),
-                        rs.getTimestamp(7) == null ? null : rs.getTimestamp(7).toInstant(), rs.getString(8), rs.getLong(9)), orderId);
+                        rs.getTimestamp(7) == null ? null : rs.getTimestamp(7).toInstant(), rs.getString(8), rs.getLong(9),
+                        rs.getObject(10)==null?null:rs.getLong(10),rs.getTimestamp(11)==null?null:rs.getTimestamp(11).toInstant()), orderId);
         var items = jdbc.query("""
                 SELECT menu_item_id,name_snapshot,unit_price,quantity,line_total
                 FROM customer_order_items WHERE order_id=? ORDER BY id
@@ -188,11 +190,13 @@ public class OrderService {
                         rs.getInt(4), rs.getBigDecimal(5)), orderId);
         return new OrderResponse(header.id(), header.vendorId(), header.vendorName(), header.status(),
                 header.total(), header.createdAt(), header.estimatedReadyAt(), items,
-                header.cancellationReason(), pickups.saved(orderId), header.version(), codes.forCustomer(orderId, header.status()));
+                header.cancellationReason(), pickups.saved(orderId), header.version(), codes.forCustomer(orderId, header.status()),
+                header.acceptanceMinutes(),header.acceptanceDeadline());
     }
 
     private record MenuLine(long id, String name, BigDecimal price, String status) {}
 
     private record Header(long id, long vendorId, String vendorName, String status,
-            BigDecimal total, Instant createdAt, Instant estimatedReadyAt, String cancellationReason, long version) {}
+            BigDecimal total, Instant createdAt, Instant estimatedReadyAt, String cancellationReason, long version,
+            Long acceptanceMinutes, Instant acceptanceDeadline) {}
 }

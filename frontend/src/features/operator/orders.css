@@ -30,12 +30,14 @@
 }
 .ow-connected .ow-cutoff-form h3 { margin: 0; font-size: 1.1rem; font-weight: 650; }
 .ow-connected .ow-cutoff-form label { display: grid; gap: 10px; line-height: 1.5; }
-.ow-connected .ow-cutoff-form input { width: 100%; max-width: 320px; min-height: 44px; box-sizing: border-box; }
+.ow-connected .ow-cutoff-form input,
+.ow-connected .ow-cutoff-form select { width: 100%; max-width: 320px; min-height: 44px; box-sizing: border-box; }
 .ow-connected .ow-cutoff-form p { margin: 0; color: #596354; line-height: 1.65; }
 .ow-connected .ow-cutoff-form > .od-button { justify-self: start; min-height: 44px; margin-top: 4px; }
 @media (max-width: 480px) {
   .ow-connected .ow-cutoff-form { margin-top: 24px; padding-top: 24px; }
-  .ow-connected .ow-cutoff-form input { max-width: none; }
+  .ow-connected .ow-cutoff-form input,
+  .ow-connected .ow-cutoff-form select { max-width: none; }
   .ow-connected .ow-cutoff-form > .od-button { width: 100%; justify-content: center; }
   .ow-connected .ow-ordering-actions { flex-direction: column; align-items: stretch; }
   .ow-connected .ow-ordering-actions .od-button { width: 100%; justify-content: center; }

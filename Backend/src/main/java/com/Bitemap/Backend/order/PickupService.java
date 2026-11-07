@@ -19,8 +19,8 @@ public class PickupService {
 
     @Transactional(readOnly=true)
     public PickupDetails current(long vendorId) {
-        var settings = jdbc.query("SELECT accepting_orders,ordering_cutoff_minutes FROM vendors WHERE id=?",
-            (r, n) -> new com.Bitemap.Backend.vendor.OrderingControl(r.getBoolean(1), 0, r.getLong(2)), vendorId);
+        var settings = jdbc.query("SELECT accepting_orders,ordering_cutoff_minutes,acceptance_minutes FROM vendors WHERE id=?",
+            (r, n) -> new com.Bitemap.Backend.vendor.OrderingControl(r.getBoolean(1), 0, r.getLong(2), r.getLong(3)), vendorId);
         if (settings.isEmpty()) return null;
         if (!settings.getFirst().acceptingOrders()) throw new OrderUnavailableException("Temporarily not accepting orders.");
         var now=Timestamp.from(clock.instant());
@@ -35,7 +35,8 @@ public class PickupService {
         long cutoff = settings.getFirst().cutoffMinutes();
         if (!now.toInstant().isBefore(stop.endsAt().minusSeconds(cutoff * 60)))
             throw new OrderUnavailableException("Ordering closed for this stop. New orders close " + cutoff + " minutes before pickup ends.");
-        return stop;
+        return new PickupDetails(stop.stopId(),stop.venueName(),stop.address(),stop.latitude(),stop.longitude(),
+            stop.startsAt(),stop.endsAt(),stop.timeZone(),settings.getFirst().acceptanceMinutes());
     }
 
     // Caller holds the vendor row FOR SHARE. Schedule writers take FOR UPDATE on that

@@ -50,25 +50,28 @@ public class OperatorVendorService {
 
     public OrderingControl ordering(String email, long vendorId) {
         long owner = activeOwner(email);
-        return jdbc.query("SELECT accepting_orders,ordering_version,ordering_cutoff_minutes FROM vendors WHERE id=? AND operator_id=? FOR SHARE",
-                (r, n) -> new OrderingControl(r.getBoolean(1), r.getLong(2), r.getLong(3)), vendorId, owner).stream().findFirst()
+        return jdbc.query("SELECT accepting_orders,ordering_version,ordering_cutoff_minutes,acceptance_minutes FROM vendors WHERE id=? AND operator_id=? FOR SHARE",
+                (r, n) -> new OrderingControl(r.getBoolean(1), r.getLong(2), r.getLong(3), r.getLong(4)), vendorId, owner).stream().findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vendor not found."));
     }
 
     public OrderingControl updateOrdering(String email, long vendorId, OrderingControl.Update command) {
         long owner = activeOwner(email);
         // Conflicts with checkout's FOR SHARE. Keep this lock through commit.
-        var current = jdbc.query("SELECT accepting_orders,ordering_version,ordering_cutoff_minutes FROM vendors WHERE id=? AND operator_id=? FOR UPDATE",
-                (r, n) -> new OrderingControl(r.getBoolean(1), r.getLong(2), r.getLong(3)), vendorId, owner).stream().findFirst()
+        var current = jdbc.query("SELECT accepting_orders,ordering_version,ordering_cutoff_minutes,acceptance_minutes FROM vendors WHERE id=? AND operator_id=? FOR UPDATE",
+                (r, n) -> new OrderingControl(r.getBoolean(1), r.getLong(2), r.getLong(3), r.getLong(4)), vendorId, owner).stream().findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vendor not found."));
         if (current.version() != command.version())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ordering settings changed. Refresh before trying again.");
         long cutoff = command.cutoffMinutes() == null ? current.cutoffMinutes() : command.cutoffMinutes();
         if (cutoff < 0 || cutoff > 120)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose a cutoff between 0 and 120 minutes.");
-        if (current.acceptingOrders() == command.acceptingOrders() && current.cutoffMinutes() == cutoff) return current;
-        jdbc.update("UPDATE vendors SET accepting_orders=?,ordering_cutoff_minutes=?,ordering_version=ordering_version+1 WHERE id=?", command.acceptingOrders(), cutoff, vendorId);
-        return new OrderingControl(command.acceptingOrders(), current.version() + 1, cutoff);
+        long acceptance = command.acceptanceMinutes() == null ? current.acceptanceMinutes() : command.acceptanceMinutes();
+        if (!java.util.Set.of(3L,5L,10L,15L,20L).contains(acceptance))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose an acceptance timeout of 3, 5, 10, 15, or 20 minutes.");
+        if (current.acceptingOrders() == command.acceptingOrders() && current.cutoffMinutes() == cutoff && current.acceptanceMinutes() == acceptance) return current;
+        jdbc.update("UPDATE vendors SET accepting_orders=?,ordering_cutoff_minutes=?,acceptance_minutes=?,ordering_version=ordering_version+1 WHERE id=?", command.acceptingOrders(), cutoff, acceptance, vendorId);
+        return new OrderingControl(command.acceptingOrders(), current.version() + 1, cutoff, acceptance);
     }
 
 	private long activeOwner(String email) {

@@ -4,6 +4,7 @@ import { ClockIcon, PinIcon, SearchIcon } from "../components/icons";
 import StopResults from "../features/discover/StopResults";
 import VendorResults from "../features/discover/VendorResults";
 import AccountNavigation from "../features/discover/AccountNavigation";
+import ResponsiveNavigation from "../features/discover/ResponsiveNavigation";
 import "../features/discover/discover.css";
 
 type View = "map" | "trucks" | "stops";
@@ -120,6 +121,7 @@ export default function DiscoverPage() {
           </span>
         </Link>
 
+        <ResponsiveNavigation>
         <p className="discover-eyebrow sidebar-label">EXPLORE BITEMAP</p>
 
         <div className="discover-menu" role="group" aria-label="Explore">
@@ -143,6 +145,7 @@ export default function DiscoverPage() {
         </div>
 
         <AccountNavigation />
+        </ResponsiveNavigation>
       </aside>
 
       <div className="discover-workspace">

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { listFavorites, isSignedOut, removeFavorite, type FavoritePage } from "../services/favorites";
 import { forgetFavorite } from "../features/favorites/favoritesStore";
 import "./cart.css";
+import RatingBadge from "../features/reviews/RatingBadge";
 import "../features/favorites/favorites.css";
 
 type State = { kind: "loading" } | { kind: "error" } | { kind: "ready"; data: FavoritePage };
@@ -89,6 +90,7 @@ export default function FavoritesPage() {
                 <li key={truck.id}>
                   <div>
                     <h2>{truck.name}</h2>
+                    <RatingBadge vendorId={truck.id} averageRating={truck.averageRating} reviewCount={truck.reviewCount} />
                     <p>{truck.category} · {truck.location}</p>
                   </div>
                   <div className="favorites-actions">

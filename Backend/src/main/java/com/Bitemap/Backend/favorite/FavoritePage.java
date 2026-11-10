@@ -7,5 +7,5 @@ import java.util.List;
 public record FavoritePage(List<Truck> items, int page, int size, long totalElements, long totalPages) {
 	public FavoritePage { items = List.copyOf(items); }
 
-	public record Truck(long id, String name, String category, String location, Instant savedAt) {}
+	public record Truck(long id, String name, String category, String location, Instant savedAt, java.math.BigDecimal averageRating, long reviewCount) {}
 }

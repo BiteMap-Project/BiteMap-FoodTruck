@@ -12,6 +12,8 @@ export type Vendor = {
   name: string;
   category: string;
   location: string;
+  averageRating?: number | null;
+  reviewCount?: number;
 };
 
 export type PublicMenuItem = {

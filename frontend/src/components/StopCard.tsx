@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import RatingBadge from "../features/reviews/RatingBadge";
 import type { Stop } from "../services/stops";
 import { formatDistance, formatStopTime } from "../features/discover/format";
 import { ClockIcon, NavigationIcon, PinIcon } from "./icons";
@@ -14,6 +15,7 @@ function StopCard({ stop, stale = false, selected = false, onShowMap }: { stop: 
         {stale ? <span className="badge">Status unconfirmed</span> : stop.status === "serving" && <span className="badge">Serving now</span>}
         <FavoriteButton vendorId={stop.vendor.id} vendorName={stop.vendor.name} />
       </div>
+            <RatingBadge vendorId={stop.vendor.id} averageRating={stop.vendor.averageRating} reviewCount={stop.vendor.reviewCount} />
       <p className="chip">{stop.vendor.category}</p>
       <p className="card-line">
         <PinIcon />

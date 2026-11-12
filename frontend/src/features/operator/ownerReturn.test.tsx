@@ -139,7 +139,7 @@ it("returns to business insights when the preview was opened from analytics", as
 
 it("points the truck page's Owner workspace link at the workspace, not the login form", async () => {
   render(<MemoryRouter initialEntries={["/trucks/8"]}><App /></MemoryRouter>);
-  expect(await screen.findByRole("link", { name: "Owner workspace →" })).toHaveAttribute("href", "/operator");
+  expect(await screen.findByRole("link", { name: "Access your truck" })).toHaveAttribute("href", "/operator");
 });
 
 it("ignores missing or malformed navigation state", () => {

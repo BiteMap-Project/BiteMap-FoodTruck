@@ -295,7 +295,7 @@ test('owner acceptance window is saved, shown at checkout, and expires orders wi
     await ownerPage.screenshot({ path: testInfo.outputPath('acceptance-settings.png'), fullPage: true });
     await customerPage.goto(`/trucks/${vendor.id}`);
     await customerPage.getByRole('button', { name: 'Add Deadline lunch to cart' }).click();
-    await customerPage.getByRole('link', { name: /Cart \(/ }).click();
+    await customerPage.getByRole('link', { name: /My cart, \d+ items/ }).click();
     await expect(customerPage.getByText(/This truck may take up to 20 minutes/)).toBeVisible();
     const submitted = customerPage.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/customer/orders'));
     await customerPage.getByRole('button', { name: 'Place pickup order' }).click();
@@ -434,7 +434,7 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     await customerPage.getByRole("article").filter({ has: customerPage.getByRole("heading", { name, exact: true }) })
       .getByRole("link", { name: "View Profile & Menu" }).click();
     await customerPage.getByRole("button", { name: "Add Campus Taco to cart" }).click();
-    await customerPage.getByRole("link", { name: /Cart \(/ }).click();
+    await customerPage.getByRole("link", { name: /My cart, \d+ items/ }).click();
     await customerPage.getByLabel("Quantity for Campus Taco").selectOption("2");
     await expect(customerPage.getByText("18111 Nordhoff St", { exact: true })).toBeVisible();
 
@@ -512,7 +512,7 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     const pausedCart = await customer.newPage();
     await pausedCart.goto(`/trucks/${vendor.id}`);
     await pausedCart.getByRole("button", { name: "Add Campus Taco to cart" }).click();
-    await pausedCart.getByRole("link", { name: /Cart \(/ }).click();
+    await pausedCart.getByRole("link", { name: /My cart, \d+ items/ }).click();
     await expect(pausedCart.getByText("Temporarily not accepting orders.", {exact: true})).toBeVisible();
     await expect(pausedCart.getByRole("button", {name:"Place pickup order"})).toBeDisabled();
     await ownerPage.getByRole("button", { name: `View order #${savedId}`, exact: true }).click();
@@ -695,7 +695,7 @@ test("negative fixture IDs work; sold-out items and inactive pickup stops fail c
   await login(page, email);
   await page.goto("/trucks/-900001");
   await page.getByRole("button", { name: "Add Fixture Taco to cart" }).click();
-  await page.getByRole("link", { name: /Cart \(/ }).click();
+  await page.getByRole("link", { name: /My cart, \d+ items/ }).click();
   await expect(page.getByRole("button", { name: "Place pickup order" })).toBeEnabled();
   sql("UPDATE vendor_menu_items SET availability_status='SOLD_OUT' WHERE id=-900001;");
   await page.getByRole("button", { name: "Place pickup order" }).click();

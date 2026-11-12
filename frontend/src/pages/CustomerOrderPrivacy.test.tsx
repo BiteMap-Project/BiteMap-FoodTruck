@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import App from "../App";
@@ -91,7 +91,7 @@ it.each(routes)("hides private orders if session verification fails on %s", asyn
   await screen.findByText(/Alice private truck/);
   failed = true;
   fireEvent(window, new Event("focus"));
-  expect(await screen.findByRole("alert")).toHaveTextContent("Unable to check your session");
+  await waitFor(() => expect(within(screen.getByRole("main")).getByRole("alert")).toHaveTextContent("Unable to check your session"));
   expect(screen.queryByText(/Alice private truck/)).not.toBeInTheDocument();
 });
 

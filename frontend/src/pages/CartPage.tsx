@@ -52,7 +52,7 @@ function CartContent() {
   }
 
   return <div className="cart-site">
-    <header className="cart-header"><Link className="cart-brand" to="/">BiteMap<span>.</span></Link><Link to="/trucks">Continue browsing</Link></header>
+    <nav className="customer-page-links" aria-label="Page navigation"><Link to="/trucks">Browse trucks</Link></nav>
     <main className="cart-page">
       <p className="cart-eyebrow">PICKUP ORDER</p>
       <h1>Your cart</h1>

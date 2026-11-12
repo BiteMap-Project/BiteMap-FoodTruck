@@ -44,7 +44,7 @@ it("adds an available database menu item to the customer cart", async () => {
   open();
   fireEvent.click(await screen.findByRole("button", { name: "Add Veggie Taco to cart" }));
   expect(screen.getByRole("status")).toHaveTextContent("Veggie Taco added");
-  expect(screen.getByRole("link", { name: "Cart (1)" })).toHaveAttribute("href", "/cart");
+  expect(screen.getByRole("link", { name: "My cart, 1 items" })).toHaveAttribute("href", "/cart");
 });
 
 it("shows inline quantity controls, updates the cart and removes the whole item", async () => {
@@ -56,13 +56,13 @@ it("shows inline quantity controls, updates the cart and removes the whole item"
   fireEvent.click(screen.getByRole("button", { name: "Increase Veggie Taco quantity" }));
   expect(screen.getByText("Added to cart (2)")).toBeInTheDocument();
   expect(readCart()?.items[0].quantity).toBe(2);
-  expect(screen.getByRole("link", { name: "Cart (2)" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "My cart, 2 items" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Decrease Veggie Taco quantity" }));
   expect(readCart()?.items[0].quantity).toBe(1);
   fireEvent.click(screen.getByRole("button", { name: "Remove Veggie Taco from cart" }));
   expect(readCart()).toBeNull();
   expect(screen.getByRole("button", { name: "Add Veggie Taco to cart" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Cart (0)" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "My cart, 0 items" })).toBeInTheDocument();
 });
 
 it("restores quantities and synchronizes other cart changes, with a maximum of ten", async () => {

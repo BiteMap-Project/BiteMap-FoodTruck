@@ -126,7 +126,7 @@ for (const device of cases) {
           await usable(add);
           await fits(page, "menu");
           await activate(page, add, device.keyboard);
-          await activate(page, page.getByRole("link", { name: /Cart \(/ }), device.keyboard);
+          await activate(page, page.getByRole("link", { name: /My cart, \d+ items/ }), device.keyboard);
           const quantity = page.getByLabel("Quantity for Campus Taco");
           if (device.keyboard) await tabTo(page, quantity);
           // Native select popups differ across OS/headless browsers. Verify real

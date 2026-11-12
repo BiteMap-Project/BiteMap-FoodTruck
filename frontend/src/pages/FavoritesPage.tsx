@@ -56,10 +56,7 @@ export default function FavoritesPage() {
 
   return (
     <div className="cart-site">
-      <header className="cart-header">
-        <Link className="cart-brand" to="/trucks">BiteMap<span>.</span></Link>
-        <Link to="/trucks">Browse trucks</Link>
-      </header>
+      <nav className="customer-page-links" aria-label="Page navigation"><Link to="/trucks">Browse trucks</Link></nav>
       <main className="cart-page">
         <p className="cart-eyebrow">SAVED FOR LATER</p>
         <h1>Favorites</h1>

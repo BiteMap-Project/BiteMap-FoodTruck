@@ -3,6 +3,8 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { getVendor, type VendorProfile } from "../services/vendors";
 import { EmptyState, ErrorState, LoadingState } from "../components/StatusViews";
 import "./truck-profile.css";
+import RatingBadge from "../features/reviews/RatingBadge";
+import ReviewsSection from "../features/reviews/ReviewsSection";
 import { addCartItem, cartChangedEvent, readCart, setCartQuantity } from "../features/cart/cart";
 import { useCheckoutLock } from '../features/cart/useCheckoutLock';
 import FavoriteButton from "../features/favorites/FavoriteButton";
@@ -156,6 +158,7 @@ function TruckMenuPage() {
               <h1>{current.truck.name}</h1>
               <p>Category: {current.truck.category}</p>
               <p>Location: {current.truck.location}</p>
+              <RatingBadge vendorId={current.truck.id} averageRating={current.truck.averageRating} reviewCount={current.truck.reviewCount} onProfile />
               <div className="truck-hero-actions">
                 <a className="truck-menu-jump" href="#menu-heading">Explore the menu ↓</a>
                 <FavoriteButton vendorId={current.truck.id} vendorName={current.truck.name} />
@@ -163,6 +166,7 @@ function TruckMenuPage() {
             </div>
             <ChefBearIllustration />
           </div>
+          <ReviewsSection vendorId={current.truck.id} />
           <section aria-labelledby="menu-heading">
             <div className="truck-menu-heading">
               <div><p className="truck-eyebrow">TODAY'S MENU</p><h2 id="menu-heading">Pick your favorite</h2></div>

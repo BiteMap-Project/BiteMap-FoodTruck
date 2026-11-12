@@ -7,6 +7,8 @@ export type FavoriteTruck = {
   category: string;
   location: string;
   savedAt: string;
+  averageRating?: number | null;
+  reviewCount?: number;
 };
 
 export type FavoritePage = Page<FavoriteTruck>;

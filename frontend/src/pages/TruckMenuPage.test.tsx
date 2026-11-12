@@ -11,6 +11,9 @@ const truck = {
   id: -2, name: "Database Taco", category: "Tacos", location: "Northridge",
   menu: [{ id: 40, name: "Veggie Taco", description: "Beans and salsa", price: 4.5, available: false }],
 };
+// Review API/form behavior is tested in features/reviews/ReviewsSection.test.tsx.
+// Keep these menu/cart tests isolated from that independent network feature.
+vi.mock("../features/reviews/ReviewsSection", () => ({ default: () => null }));
 const fetchMock = vi.fn();
 vi.mock("../services/auth", async (importOriginal) => ({
   ...await importOriginal<typeof import("../services/auth")>(),

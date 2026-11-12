@@ -1,10 +1,8 @@
 import { useDiscoveryQuery } from "../features/discover/discoveryQuery";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ClockIcon, PinIcon, SearchIcon } from "../components/icons";
+import { useLocation, useNavigate } from "react-router-dom";
+import { SearchIcon } from "../components/icons";
 import StopResults from "../features/discover/StopResults";
 import VendorResults from "../features/discover/VendorResults";
-import AccountNavigation from "../features/discover/AccountNavigation";
-import ResponsiveNavigation from "../features/discover/ResponsiveNavigation";
 import "../features/discover/discover.css";
 
 type View = "map" | "trucks" | "stops";
@@ -106,47 +104,10 @@ export default function DiscoverPage() {
   const setSearch = (q: string) => update({ q }, true);
 
   return (
-    <div className="discovery">
+    <>
       <a className="discover-skip" href="#browse">
         Skip to truck search
       </a>
-
-      <aside className="discover-sidebar" aria-label="BiteMap explorer">
-        <Link className="discover-brand" to="/" aria-label="BiteMap home">
-          <span className="discover-brand-mark">
-            <PinIcon />
-          </span>
-          <span>
-            BiteMap<span className="discover-dot">.</span>
-          </span>
-        </Link>
-
-        <ResponsiveNavigation>
-        <p className="discover-eyebrow sidebar-label">EXPLORE BITEMAP</p>
-
-        <div className="discover-menu" role="group" aria-label="Explore">
-          <button type="button" aria-pressed={view === "map"} onClick={() => setView("map")}>
-            <PinIcon /> Truck map
-          </button>
-          <button
-            type="button"
-            aria-pressed={view === "trucks"}
-            onClick={() => setView("trucks")}
-          >
-            <SearchIcon /> Discover trucks
-          </button>
-          <button
-            type="button"
-            aria-pressed={view === "stops"}
-            onClick={() => setView("stops")}
-          >
-            <ClockIcon /> Upcoming stops
-          </button>
-        </div>
-
-        <AccountNavigation />
-        </ResponsiveNavigation>
-      </aside>
 
       <div className="discover-workspace">
         <header className="discover-topbar">
@@ -257,6 +218,6 @@ export default function DiscoverPage() {
           </footer>
         </main>
       </div>
-    </div>
+    </>
   );
 }

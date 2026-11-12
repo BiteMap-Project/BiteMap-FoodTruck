@@ -32,7 +32,6 @@ it("shows loading then database cards under StrictMode with matching profile lin
   render(<StrictMode><DiscoverPage /></StrictMode>);
   expect(screen.getByRole("status")).toHaveTextContent("Loading trucks");
   await tick();
-  expect(screen.getByRole("link", { name: /Customer sign in/ })).toHaveAttribute("href", "/customer/login");
   expect(screen.getByRole("region", { name: "Truck results" })).toBeInTheDocument();
   expect(screen.getByRole("status")).toHaveTextContent("1 truck found");
   expect(screen.getByRole("heading", { name: vendor.name })).toBeInTheDocument();

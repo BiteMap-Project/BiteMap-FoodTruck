@@ -21,7 +21,7 @@ export default function OrderConfirmationPage() {
   const id = Number(useParams().id);
   const valid = Number.isSafeInteger(id) && id > 0;
   return <div className="cart-site">
-    <header className="cart-header"><Link className="cart-brand" to="/">BiteMap<span>.</span></Link><Link to="/trucks">Browse more trucks</Link></header>
+    <nav className="customer-page-links" aria-label="Page navigation"><Link to="/trucks">Browse trucks</Link></nav>
     <main className="cart-page order-confirmation">
       <Link to="/orders">← My orders</Link>
       {valid ? <OrderDetails key={id} id={id} /> : <section className="cart-empty"><h1>We couldn’t load this order.</h1><p role="alert">Order not found.</p><Link className="cart-primary" to="/trucks">Return to trucks</Link></section>}

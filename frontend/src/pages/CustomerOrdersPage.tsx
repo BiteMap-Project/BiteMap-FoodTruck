@@ -27,7 +27,7 @@ export default function CustomerOrdersPage() {
   }, [page, attempt]);
   function reload(next = page) { setState({ kind: "loading" }); setPage(next); setAttempt(value => value + 1); }
   return <div className="cart-site">
-    <header className="cart-header"><Link className="cart-brand" to="/trucks">BiteMap<span>.</span></Link><Link to="/trucks">Browse trucks</Link></header>
+    <nav className="customer-page-links" aria-label="Page navigation"><Link to="/trucks">Browse trucks</Link></nav>
     <main className="cart-page customer-order-history">
       <p className="cart-eyebrow">YOUR PICKUP ORDERS</p><h1>My orders</h1>
       <p>Reopen an order to follow its latest status or view its details.</p>

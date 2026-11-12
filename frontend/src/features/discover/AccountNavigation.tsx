@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { BagIcon, ReceiptIcon, TruckIcon, LogoutIcon, SettingsIcon, HeartOutlineIcon } from "../../components/icons";
 import { hasRole } from "../../services/auth";
 import { useAuth } from "../../auth/authState";
+import { useCartCount } from "../cart/useCartCount";
 
 export default function AccountNavigation() {
   const { account, status, error, refreshAccount, signOut: logout } = useAuth();
+  const count = useCartCount();
   const [signingOut, setSigningOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
 
@@ -30,9 +32,9 @@ export default function AccountNavigation() {
     {status === "ready" && (account ? <>
       <nav className="discover-order-nav" aria-label="Your orders">
         <p className="discover-eyebrow">YOUR ORDERS</p>
-        <Link className="discover-menu-link" to="/cart"><BagIcon />My cart</Link>
-        {hasRole(account, "ROLE_CUSTOMER") && <Link className="discover-menu-link" to="/orders"><ReceiptIcon />My orders</Link>}
-        {hasRole(account, "ROLE_CUSTOMER") && <Link className="discover-menu-link" to="/favorites"><HeartOutlineIcon />Favorites</Link>}
+        <NavLink className="discover-menu-link" to="/cart"><BagIcon />My cart<span className="customer-cart-badge" aria-hidden="true">{count}</span></NavLink>
+        {hasRole(account, "ROLE_CUSTOMER") && <NavLink className="discover-menu-link" to="/orders"><ReceiptIcon />My orders</NavLink>}
+        {hasRole(account, "ROLE_CUSTOMER") && <NavLink className="discover-menu-link" to="/favorites"><HeartOutlineIcon />Favorites</NavLink>}
       </nav>
       {hasRole(account, "ROLE_OPERATOR")
         ? <section className="discover-business" aria-label="Your business"><h2>Your business</h2><p>Manage your truck, menu and orders.</p><Link className="discover-menu-link" to="/operator"><TruckIcon />Access your truck <span aria-hidden="true">→</span></Link></section>
@@ -42,7 +44,7 @@ export default function AccountNavigation() {
         <div className="discover-profile"><span className="discover-profile-initials" aria-hidden="true">{account.displayName.trim().split(/\s+/).slice(0, 2).map(part => Array.from(part)[0] ?? "").join("").toUpperCase()}</span>
           <p className="discover-account-name"><strong>{account.displayName}</strong><span>{hasRole(account, "ROLE_CUSTOMER") ? "Signed in · Customer" : "Signed in"}</span></p>
         </div>
-        <Link className="discover-menu-link" to="/account"><SettingsIcon />Account settings</Link>
+        <NavLink className="discover-menu-link" to="/account"><SettingsIcon />Account settings</NavLink>
         <button className="discover-menu-link discover-signout" type="button" disabled={signingOut} onClick={handleSignOut}><LogoutIcon />{signingOut ? "Signing out…" : "Sign out"}</button>
       </div>
     </> : <>

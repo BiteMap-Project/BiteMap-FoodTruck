@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { getVendor, type VendorProfile } from "../services/vendors";
 import { EmptyState, ErrorState, LoadingState } from "../components/StatusViews";
 import "./truck-profile.css";
-import { addCartItem, cartChangedEvent, cartItemCount, readCart, setCartQuantity } from "../features/cart/cart";
+import { addCartItem, cartChangedEvent, readCart, setCartQuantity } from "../features/cart/cart";
 import { useCheckoutLock } from '../features/cart/useCheckoutLock';
 import FavoriteButton from "../features/favorites/FavoriteButton";
 import { ownerBackLink, readOwnerReturn } from "../features/operator/ownerReturn";
@@ -81,7 +81,6 @@ function TruckMenuPage() {
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<Result>({ status: "loading", id });
   const [cart, setCart] = useState(readCart);
-  const cartCount = cartItemCount(cart);
   const [cartMessage, setCartMessage] = useState("");
 
   useEffect(() => {
@@ -123,7 +122,7 @@ function TruckMenuPage() {
 
   return (
     <div className="truck-site">
-      <header className="truck-site-header"><Link className="truck-site-brand" to="/trucks">BiteMap<span>.</span></Link><nav aria-label="Truck page navigation"><Link to="/trucks">Discover trucks</Link><Link to="/cart">Cart ({cartCount})</Link><Link to="/operator">Owner workspace →</Link></nav></header>
+      <nav className="customer-page-links" aria-label="Truck page navigation"><Link to="/trucks">Discover trucks</Link></nav>
     <main className="truck-profile">
       {back ? (
         <>

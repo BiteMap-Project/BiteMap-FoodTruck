@@ -1,0 +1,19 @@
+.customer-layout .customer-content { min-width: 0; }
+.customer-layout .discover-menu-link[aria-current="page"] { background: #faeee5; color: #a64220; box-shadow: inset 3px 0 #b74d27; font-weight: 700; }
+.customer-layout .customer-cart-badge { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 5px; border-radius: 20px; background: #b74d27; color: #fff; font-size: 12px; font-weight: 700; margin-left: auto; }
+.customer-layout .customer-cart-shortcut { display: flex; align-self: flex-start; align-items: center; gap: 8px; min-height: 44px; color: #263d33; }
+.customer-layout .customer-cart-shortcut .customer-cart-badge { margin-left: 0; }
+.customer-layout .customer-cart-shortcut svg { width: 22px; height: 22px; }
+.customer-layout .cart-site, .customer-layout .truck-site { min-height: 100%; }
+.customer-layout .customer-page-links { display: flex; flex-wrap: wrap; gap: 16px; padding: 16px 24px; border-bottom: 1px solid #e3e6dc; background: white; }
+.customer-layout .customer-page-links a { color: #a64220; }
+@media (max-width: 1000px) {
+  .customer-layout .discover-sidebar { gap: 10px; flex-wrap: nowrap; }
+  .customer-layout .customer-cart-shortcut { margin-left: auto; }
+  .customer-layout .discover-mobile-menu-button { margin-left: 0; }
+}
+@media (max-width: 380px) {
+  .customer-layout .discover-brand { font-size: 21px; gap: 6px; }
+  .customer-layout .discover-brand-mark { width: 34px; height: 38px; }
+  .customer-layout .discover-mobile-menu-button { padding: 8px; }
+}

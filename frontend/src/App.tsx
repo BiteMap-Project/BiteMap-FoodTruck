@@ -17,25 +17,27 @@ import CustomerOrdersPage from "./pages/CustomerOrdersPage";
 import AdminApplicationsPage from "./pages/AdminApplicationsPage";
 import AccountSettingsPage from "./pages/AccountSettingsPage";
 import { RequireAccount, RequireAdmin, RequireOperator } from "./auth/RouteGuards";
+import CustomerLayout from "./features/discover/CustomerLayout";
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<DiscoverPage />} />
-      <Route path="/trucks" element={<DiscoverPage />} />
-      <Route path="/stops" element={<DiscoverPage />} />
-
-      <Route path="/trucks/:id" element={<TruckMenuPage />} />
-      <Route path="/cart" element={<CartPage />} />
-      <Route path="/favorites" element={<RequireAccount><FavoritesPage /></RequireAccount>} />
+      <Route element={<CustomerLayout />}>
+        <Route path="/" element={<DiscoverPage />} />
+        <Route path="/trucks" element={<DiscoverPage />} />
+        <Route path="/stops" element={<DiscoverPage />} />
+        <Route path="/trucks/:id" element={<TruckMenuPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        {/* Account-keyed guards discard private results and abort reads on session changes. */}
+        <Route path="/favorites" element={<RequireAccount><FavoritesPage /></RequireAccount>} />
+        <Route path="/orders/:id/confirmation" element={<RequireAccount><OrderConfirmationPage /></RequireAccount>} />
+        <Route path="/orders" element={<RequireAccount><CustomerOrdersPage /></RequireAccount>} />
+        <Route path="/account" element={<RequireAccount><AccountSettingsPage /></RequireAccount>} />
+      </Route>
       <Route path="/customer/login" element={<CustomerLoginPage />} />
       <Route path="/forgot-password" element={<PasswordRecoveryPage key="forgot" />} />
       <Route path="/reset-password" element={<PasswordRecoveryPage key="reset" reset />} />
       <Route path="/customer/register" element={<CustomerRegisterPage />} />
-      {/* Account-keyed guards discard private results and abort reads on session changes. */}
-      <Route path="/orders/:id/confirmation" element={<RequireAccount><OrderConfirmationPage /></RequireAccount>} />
-      <Route path="/orders" element={<RequireAccount><CustomerOrdersPage /></RequireAccount>} />
-      <Route path="/account" element={<RequireAccount><AccountSettingsPage /></RequireAccount>} />
       <Route path="/owner" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />
       <Route path="/operator" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />
       <Route path="/operator/vendors/:vendorId/:section" element={<RequireOperator><OperatorHomePage /></RequireOperator>} />

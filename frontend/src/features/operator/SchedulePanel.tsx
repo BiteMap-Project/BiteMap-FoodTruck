@@ -4,6 +4,7 @@ import { cancelStop, createRepeatingStops, createStop, editStop, listStops, type
 import { WorkspaceError, type Page } from "../../services/operatorWorkspace";
 import ScheduleForm from "./ScheduleForm";
 import ActionError from "../../components/ActionError";
+import SavedLocations from "./SavedLocations";
 
 const errorText = (error: unknown) => error instanceof WorkspaceError ? error.message : "Connection interrupted. Reload the schedule to check whether your change was saved before trying again.";
 const displayTime = (instant: string, timeZone: string) => new Intl.DateTimeFormat(undefined, { timeZone, dateStyle: "medium", timeStyle: "short" }).format(new Date(instant));
@@ -14,6 +15,7 @@ export default function SchedulePanel({ vendorId }: { vendorId: number }) {
   const [data, setData] = useState<Page<ManagedStop> | null>(null);
   const [editor, setEditor] = useState<ManagedStop | "new" | null>(null);
   const [repeat, setRepeat] = useState(false);
+  const [locationsOpen, setLocationsOpen] = useState(false);
   const [confirm, setConfirm] = useState<ManagedStop | null>(null);
   const [error, setError] = useState(""), [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false), [blocked, setBlocked] = useState(false);
@@ -60,7 +62,9 @@ export default function SchedulePanel({ vendorId }: { vendorId: number }) {
   const unavailable = busy || blocked;
   return <section className="ow-panel" aria-label="Truck schedule">
     <div className="ow-toolbar"><h2>Your schedule</h2><button className="od-button od-button-primary" disabled={!data || unavailable || editor !== null || confirm !== null} onClick={() => setEditor("new")}>Add stop</button>
-      <button className="od-button od-button-secondary" disabled={busy || (editor !== null && !blocked)} onClick={() => reload()}>Reload schedule{editor !== null && blocked ? " (discard draft)" : ""}</button></div>
+      <button className="od-button od-button-secondary" disabled={busy || (editor !== null && !blocked)} onClick={() => reload()}>Reload schedule{editor !== null && blocked ? " (discard draft)" : ""}</button>
+      <button className="od-button od-button-secondary" disabled={busy || editor !== null || confirm !== null} aria-expanded={locationsOpen} onClick={() => setLocationsOpen(open => !open)}>Saved locations</button></div>
+    {locationsOpen && <SavedLocations />}
     <p>Planned locations, not live GPS. Times are shown in each stop’s time zone. Cancelled and completed stops remain in your history.</p>
     {message && <p role="status" className="ow-message">{message}</p>}
     <ActionError className="ow-error" message={error ? error + (blocked ? " Reload before making another change." : "") : ""} />

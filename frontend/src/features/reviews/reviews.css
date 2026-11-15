@@ -18,6 +18,7 @@
 .reviews-section button { min-height: 44px; padding: 10px 16px; border: 1px solid #d6dacf; border-radius: 8px; background: #fff; color: #455b49; font: inherit; cursor: pointer; }
 .reviews-section button:disabled { opacity: .6; cursor: default; }
 .review-editor { margin-top: 24px; padding-top: 20px; border-top: 1px solid #e1e4da; }
+.review-editor form { margin-top: 20px; max-width: 680px; }
 .review-editor fieldset { border: 0; padding: 0; margin: 0 0 16px; }
 .review-editor legend { font-weight: 650; margin-bottom: 8px; }
 .review-rating-options { display: flex; flex-wrap: wrap; gap: 8px; }

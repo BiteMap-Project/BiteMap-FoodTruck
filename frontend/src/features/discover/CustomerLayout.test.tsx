@@ -15,6 +15,15 @@ function show(path: string, value = auth) {
   </Route></Routes></MemoryRouter></AuthContext.Provider>);
 }
 beforeEach(() => { sessionStorage.clear(); });
+it("hides empty badges and keeps a cart navigation link for guests", () => {
+  const view = show("/cart", { ...auth, account: null });
+  expect(screen.getByRole("link", { name: "My cart" })).toHaveAttribute("href", "/cart");
+  expect(view.container.querySelectorAll(".customer-cart-badge")).toHaveLength(0);
+  act(() => { addCartItem(2, "Truck", { id: 3, name: "Taco", price: 4 }); });
+  expect(view.container.querySelectorAll(".customer-cart-badge")).toHaveLength(2);
+  act(() => { setCartQuantity(3, 0); });
+  expect(view.container.querySelectorAll(".customer-cart-badge")).toHaveLength(0);
+});
 it.each(paths)("keeps customer navigation accessible on %s", path => {
   show(path);
   for (const name of ["My cart", "My orders", "Favorites", "Account settings"]) expect(screen.getByRole("link", { name })).toBeInTheDocument();

@@ -33,10 +33,12 @@ const lastUrl = () => new URL(fetchMock.mock.lastCall![0], "http://localhost");
 
 it("refreshes in the background and removes stops no longer returned by the server", async () => {
   await openSchedule();
+  expect(screen.queryByRole("button", { name: "Refresh stops" })).not.toBeInTheDocument();
+  expect(screen.queryByText(/Updates every 30 seconds/)).not.toBeInTheDocument();
   fetchMock.mockResolvedValue(ok({ ...data, items: [], totalElements: 0 }));
   await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
   expect(screen.queryByText("CSUN Oviatt Lawn")).not.toBeInTheDocument();
-  expect(screen.getByText(/Last updated/)).toBeInTheDocument();
+  expect(screen.queryByText(/Last updated/)).not.toBeInTheDocument();
 });
 
 it("retains results on refresh failure and recovers through explicit refresh", async () => {
@@ -47,9 +49,10 @@ it("retains results on refresh failure and recovers through explicit refresh", a
   expect(screen.getByRole("alert")).toHaveTextContent("may be outdated");
   expect(screen.queryByText("Serving now")).not.toBeInTheDocument();
   fetchMock.mockResolvedValue(ok(data));
-  fireEvent.click(screen.getByRole("button", { name: "Refresh stops" }));
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
   await tick();
   expect(screen.queryByText(/may be outdated/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
 });
 
 it("times out a stalled refresh, avoids overlapping reconnects, and ignores its late response", async () => {

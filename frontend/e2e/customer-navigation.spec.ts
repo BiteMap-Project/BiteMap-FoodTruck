@@ -1,5 +1,33 @@
 import { test, expect } from "@playwright/test";
 
+test("mobile discovery puts search before promotional copy without changing desktop", async ({ page }) => {
+  await page.route("**/api/**", route => route.fulfill({
+    status: new URL(route.request().url()).pathname === "/api/auth/me" ? 401 : 200,
+    contentType: "application/json",
+    body: JSON.stringify({ items: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }),
+  }));
+  await page.goto("/");
+  const intro = page.locator(".discover-intro");
+  const heading = page.locator(".discover-browse > .discover-results-heading");
+  const search = page.getByRole("searchbox", { name: "Search trucks, food, or location" });
+  for (const width of [375, 600]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(search).toBeVisible();
+    for (const element of [intro, heading]) {
+      await expect(element).toHaveCSS("clip-path", "inset(50%)");
+      expect((await element.boundingBox())!.height).toBe(1);
+    }
+    expect(await search.evaluate(element => element.getBoundingClientRect().top)).toBeLessThan(180);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  for (const width of [768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(intro).toHaveCSS("clip-path", "none");
+    await expect(heading).toHaveCSS("clip-path", "none");
+    expect((await intro.boundingBox())!.height).toBeGreaterThan(1);
+  }
+});
+
 test("shared customer navigation preserves checkout recovery and follows account changes", async ({ page }) => {
   // Deterministic UI contract test; real checkout is covered by ordering.spec.ts.
   let account = { id: 1, displayName: "Navigation A", email: "nav@example.test", roles: ["ROLE_CUSTOMER", "ROLE_OPERATOR"] };
@@ -57,5 +85,7 @@ test("shared customer navigation preserves checkout recovery and follows account
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   await expect(menu).toBeHidden();
+  await expect(page.getByRole("link", { name: "My cart, 3 items", exact: true })).toBeHidden();
+  await expect(page.getByRole("link", { name: "My cart", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "My orders", exact: true })).toBeVisible();
 });

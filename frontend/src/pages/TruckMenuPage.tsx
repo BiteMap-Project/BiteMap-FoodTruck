@@ -166,7 +166,6 @@ function TruckMenuPage() {
             </div>
             <ChefBearIllustration />
           </div>
-          <ReviewsSection vendorId={current.truck.id} />
           <section aria-labelledby="menu-heading">
             <div className="truck-menu-heading">
               <div><p className="truck-eyebrow">TODAY'S MENU</p><h2 id="menu-heading">Pick your favorite</h2></div>
@@ -189,10 +188,12 @@ function TruckMenuPage() {
                     <div className="menu-item-content">
                       <div className="menu-item-heading">
                         <h3>{item.name}</h3>
-                        <span>{dollars.format(item.price)}</span>
                       </div>
                       {item.description && <p>{item.description}</p>}
+                      <p className="menu-item-price">{dollars.format(item.price)}</p>
                       {!item.available && <p className="unavailable">Currently unavailable</p>}
+                    </div>
+                    <div className="menu-item-actions">
                       {quantity > 0 ? <div className="menu-cart-controls" role="group" aria-label={`Cart controls for ${item.name}`}>
                         <button disabled={checkoutLocked} type="button" aria-label={`Remove ${item.name} from cart`} title="Remove item" onClick={() => changeQuantity(current.truck.id, item.id, item.name, "remove")}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></svg>
@@ -215,6 +216,7 @@ function TruckMenuPage() {
               </ul>
             )}
           </section>
+          <ReviewsSection vendorId={current.truck.id} />
         </>
       )}
     </main>

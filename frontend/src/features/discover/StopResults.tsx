@@ -49,7 +49,6 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
   const [categories, setCategories] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [stale, setStale] = useState(false);
-  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [selectedStopId, setSelectedStopId] = useState<number | null>(null);
   const [mapTarget, setMapTarget] = useState<{ id: number } | null>(null);
 
@@ -60,7 +59,6 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
     setLastSearch(requestKey);
     setResult({ status: "loading" });
     setStale(false);
-    setUpdatedAt(null);
     setSelectedStopId(null);
     setMapTarget(null);
   }
@@ -104,7 +102,6 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
         setSelectedStopId(previous => data.items.some(stop => stop.stopId === previous) ? previous : null);
         setMapTarget(previous => data.items.some(stop => stop.stopId === previous?.id) ? previous : null);
         setStale(false);
-        setUpdatedAt(new Date().toISOString());
         setCategories((known) => {
           const next = new Set(known);
           data.items.forEach((stop) => next.add(stop.vendor.category));
@@ -284,12 +281,10 @@ function StopResults({ search, showMap = false }: { search: string; showMap?: bo
             )}
             {result.status === "success" && (
               <>
-                <div className="stop-freshness">
-                  <p>{updatedAt && <>Last updated <time dateTime={updatedAt}>{new Date(updatedAt).toLocaleTimeString()}</time>. </>}
-                    {refreshing ? "Checking for updates…" : "Updates every 30 seconds while visible."}</p>
-                  <button type="button" disabled={refreshing} onClick={() => setAttempt(value => value + 1)}>Refresh stops</button>
-                </div>
-                {stale && <p role="alert" className="truck-map-notice">Updates unavailable. These stops may be outdated; confirm pickup availability before travelling.</p>}
+                {stale && <div className="stop-freshness">
+                  <p role="alert" className="truck-map-notice">Updates unavailable. These stops may be outdated; confirm pickup availability before travelling.</p>
+                  <button type="button" disabled={refreshing} onClick={() => setAttempt(value => value + 1)}>{refreshing ? "Trying again…" : "Try again"}</button>
+                </div>}
                 {result.data.items.length > 0 && (
                   <>
                     <p role="status" className="results-count">

@@ -39,12 +39,15 @@ it("shows why an ineligible customer cannot review",async()=>{
 });
 it("publishes a rating and comment once and refreshes the summary",async()=>{
   open();
+  fireEvent.click(await screen.findByRole("button",{name:"Write a review"}));
   await screen.findByRole("button",{name:"Publish review"});
   fireEvent.click(screen.getByRole("radio",{name:/5 stars/}));
   fireEvent.change(screen.getByLabelText("Your experience"),{target:{value:"Great tacos"}});
   vi.mocked(listReviews).mockResolvedValue({...empty,items:[review],totalElements:1,totalPages:1,summary:{averageRating:5,reviewCount:1}});
   fireEvent.click(screen.getByRole("button",{name:"Publish review"}));
   expect(await screen.findByText("Your review has been saved.")).toBeInTheDocument();
+  expect(screen.queryByLabelText("Your experience")).not.toBeInTheDocument();
+  expect(screen.getByRole("button",{name:"Edit your review"})).toHaveFocus();
   expect(saveReview).toHaveBeenCalledExactlyOnceWith(9,7,5,"Great tacos",-1);
   expect(await screen.findByText("Great tacos",{selector:"p"})).toBeInTheDocument();
   expect(screen.getAllByText("5.0 / 5 · 1 review").length).toBe(2);
@@ -52,12 +55,27 @@ it("publishes a rating and comment once and refreshes the summary",async()=>{
 it("edits using the loaded review version",async()=>{
   vi.mocked(getMyReview).mockResolvedValue({eligible:true,reason:"",review:{...review,version:3}});
   open();
+  expect(screen.queryByLabelText("Your experience")).not.toBeInTheDocument();
+  fireEvent.click(await screen.findByRole("button",{name:"Edit your review"}));
   fireEvent.click(await screen.findByRole("button",{name:"Update review"}));
   await waitFor(()=>expect(saveReview).toHaveBeenCalledWith(9,7,5,"Great tacos",3));
+});
+it("keeps an unfinished draft when the customer closes and reopens the editor",async()=>{
+  open();
+  const toggle = await screen.findByRole("button",{name:"Write a review"});
+  expect(toggle).toHaveAttribute("aria-expanded","false");
+  fireEvent.click(toggle);
+  fireEvent.change(screen.getByLabelText("Your experience"),{target:{value:"My unfinished review"}});
+  fireEvent.click(screen.getByRole("button",{name:"Close editor"}));
+  expect(screen.queryByLabelText("Your experience")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button",{name:"Write a review"}));
+  expect(screen.getByLabelText("Your experience")).toHaveValue("My unfinished review");
+  expect(saveReview).not.toHaveBeenCalled();
 });
 it("requires reload after an uncertain save and focuses the error",async()=>{
   vi.mocked(saveReview).mockRejectedValue(new Error("Connection interrupted."));
   open();
+  fireEvent.click(await screen.findByRole("button",{name:"Write a review"}));
   await screen.findByRole("button",{name:"Publish review"});
   fireEvent.click(screen.getByRole("radio",{name:/5 stars/}));
   fireEvent.change(screen.getByLabelText("Your experience"),{target:{value:"Great tacos"}});
@@ -86,6 +104,7 @@ it("renders comments as text, not HTML",async()=>{
 });
 it("clears the private draft when accounts change",async()=>{
   const view=open();
+  fireEvent.click(await screen.findByRole("button",{name:"Write a review"}));
   await screen.findByRole("button",{name:"Publish review"});
   fireEvent.change(screen.getByLabelText("Your experience"),{target:{value:"Private unfinished draft"}});
   view.rerender(<MemoryRouter><AuthContext.Provider value={auth(null)}><ReviewsSection vendorId={9}/></AuthContext.Provider></MemoryRouter>);

@@ -13,7 +13,7 @@ const truck = {
 };
 // Review API/form behavior is tested in features/reviews/ReviewsSection.test.tsx.
 // Keep these menu/cart tests isolated from that independent network feature.
-vi.mock("../features/reviews/ReviewsSection", () => ({ default: () => null }));
+vi.mock("../features/reviews/ReviewsSection", () => ({ default: () => <section aria-label="Customer reviews" /> }));
 const fetchMock = vi.fn();
 vi.mock("../services/auth", async (importOriginal) => ({
   ...await importOriginal<typeof import("../services/auth")>(),
@@ -27,6 +27,14 @@ beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
   sessionStorage.clear();
+});
+
+it("places customer reviews after the menu", async () => {
+  fetchMock.mockResolvedValue(response(truck));
+  open();
+  const menu = await screen.findByRole("region", { name: "Pick your favorite" });
+  const reviews = screen.getByRole("region", { name: "Customer reviews" });
+  expect(menu.compareDocumentPosition(reviews) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
 it('locks menu cart controls while a checkout needs recovery', async () => {

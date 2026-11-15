@@ -19,7 +19,7 @@ export default function CustomerLayout() {
     <a className="discover-skip" href="#customer-content">Skip to content</a>
     <aside className="discover-sidebar" aria-label="BiteMap explorer">
       <Link className="discover-brand" to="/" aria-label="BiteMap home"><span className="discover-brand-mark"><PinIcon /></span><span>BiteMap<span className="discover-dot">.</span></span></Link>
-      <Link className="customer-cart-shortcut" to="/cart" aria-label={`My cart, ${count} items`}><BagIcon /><span className="customer-cart-badge" aria-hidden="true">{count}</span></Link>
+      <Link className="customer-cart-shortcut" to="/cart" aria-label={`My cart, ${count} items`}><BagIcon />{count > 0 && <span className="customer-cart-badge" aria-hidden="true">{count}</span>}</Link>
       <ResponsiveNavigation>
         <p className="discover-eyebrow sidebar-label">EXPLORE BITEMAP</p>
         <nav className="discover-menu" aria-label="Explore">

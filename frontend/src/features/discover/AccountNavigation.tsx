@@ -24,6 +24,7 @@ export default function AccountNavigation() {
   }
 
   return <div className="discover-account" aria-label="Your BiteMap account">
+    {!account && <NavLink className="discover-menu-link" to="/cart"><BagIcon />My cart{count > 0 && <span className="customer-cart-badge" aria-hidden="true">{count}</span>}</NavLink>}
     {status === "loading" && <p>Checking your session…</p>}
     {status === "error" && <>
       <p role="alert">{error || "Unable to check your session."}</p>
@@ -32,7 +33,7 @@ export default function AccountNavigation() {
     {status === "ready" && (account ? <>
       <nav className="discover-order-nav" aria-label="Your orders">
         <p className="discover-eyebrow">YOUR ORDERS</p>
-        <NavLink className="discover-menu-link" to="/cart"><BagIcon />My cart<span className="customer-cart-badge" aria-hidden="true">{count}</span></NavLink>
+        <NavLink className="discover-menu-link" to="/cart"><BagIcon />My cart{count > 0 && <span className="customer-cart-badge" aria-hidden="true">{count}</span>}</NavLink>
         {hasRole(account, "ROLE_CUSTOMER") && <NavLink className="discover-menu-link" to="/orders"><ReceiptIcon />My orders</NavLink>}
         {hasRole(account, "ROLE_CUSTOMER") && <NavLink className="discover-menu-link" to="/favorites"><HeartOutlineIcon />Favorites</NavLink>}
       </nav>

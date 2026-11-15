@@ -67,6 +67,8 @@ function ReviewContent({ vendorId, owner, accountId, customer, authReady }: {
   </section>;
 }
 function ReviewEditor({ vendorId, accountId, onSaved }: { vendorId: number; accountId: number; onSaved: ()=>void }) {
+  const [editing, setEditing] = useState(false);
+  const editorToggle = useRef<HTMLButtonElement>(null);
   const [mine, setMine] = useState<MyReview | null>(null);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -77,6 +79,9 @@ function ReviewEditor({ vendorId, accountId, onSaved }: { vendorId: number; acco
   const [blocked, setBlocked] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  useEffect(() => {
+    if (message && !editing && !busy) editorToggle.current?.focus();
+  }, [message, editing, busy]);
   const lock = useRef(false);
   const mounted = useRef(true);
   useEffect(() => { mounted.current=true; return ()=>{mounted.current=false;}; },[]);
@@ -99,7 +104,7 @@ function ReviewEditor({ vendorId, accountId, onSaved }: { vendorId: number; acco
     try {
       const review=await saveReview(vendorId,accountId,rating,comment.trim(),mine.review?.version ?? -1);
       if(!mounted.current)return;
-      setMine({...mine,review});setComment(review.comment);setMessage("Your review has been saved.");onSaved();
+      setMine({...mine,review});setComment(review.comment);setMessage("Your review has been saved.");setEditing(false);onSaved();
     } catch(cause) {
       if(!mounted.current)return;
       setError(cause instanceof Error ? cause.message : "Unable to confirm the save.");
@@ -107,8 +112,10 @@ function ReviewEditor({ vendorId, accountId, onSaved }: { vendorId: number; acco
     } finally {lock.current=false;if(mounted.current)setBusy(false);}
   }
   return <div className="review-editor">
-    <h3>{mine?.review ? "Edit your review" : "Write a review"}</h3>
-    {loading ? <p role="status">Checking review eligibility…</p> : mine?.eligible ? <form onSubmit={submit}>
+    {!loading && mine?.eligible && <button ref={editorToggle} type="button" aria-expanded={editing} aria-controls="customer-review-form" disabled={busy} onClick={()=>setEditing(value=>!value)}>
+      {editing ? "Close editor" : mine.review ? "Edit your review" : "Write a review"}
+    </button>}
+    {loading ? <p role="status">Checking review eligibility…</p> : mine?.eligible ? editing && <form id="customer-review-form" onSubmit={submit}>
       <fieldset disabled={busy || blocked}><legend>Your rating</legend><div className="review-rating-options">
         {[1,2,3,4,5].map(value=><label key={value}><input type="radio" aria-label={`${value} ${value===1?"star":"stars"}`} name="review-rating" required value={value} checked={rating===value} onChange={()=>setRating(value)} /><span aria-hidden="true">★</span> {value}<span className="review-sr-only"> {value===1?"star":"stars"}</span></label>)}
       </div></fieldset>

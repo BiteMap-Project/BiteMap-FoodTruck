@@ -60,7 +60,7 @@ it("selects cards from pins and opens pins from cards, including shared location
   fireEvent.click(buttons[1]);
   expect(buttons[1]).toHaveAttribute("aria-pressed", "true");
   fetchMock.mockResolvedValue(ok({ ...data, items: [stop], totalElements: 1, totalPages: 1 }));
-  fireEvent.click(screen.getByRole("button", { name: "Refresh stops" }));
+  fireEvent(window, new Event("online"));
   await waitFor(() => expect(document.getElementById("stop-card-8")).toBeNull());
   expect(screen.getByRole("button", { name: "Show on map" })).toHaveAttribute("aria-pressed", "false");
 });

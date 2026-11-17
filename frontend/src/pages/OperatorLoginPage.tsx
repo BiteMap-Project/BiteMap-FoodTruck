@@ -50,7 +50,7 @@ function OperatorLoginPage() {
       </aside>
       <section className="auth-card" aria-labelledby="login-heading">
         <p className="auth-eyebrow">WELCOME BACK</p>
-        <h1 id="login-heading">Operator Sign in</h1>
+        <h1 id="login-heading">Operator sign in</h1>
         {registration?.registered && (
           <p className="auth-success" role="status">Account created. You can sign in now.</p>
         )}

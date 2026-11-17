@@ -45,7 +45,7 @@ export default function CustomerLoginPage() {
     </aside>
     <section className="auth-card" aria-labelledby="customer-login-heading">
       <p className="auth-eyebrow">CUSTOMER CHECKOUT</p>
-      <h1 id="customer-login-heading">Customer Sign in</h1>
+      <h1 id="customer-login-heading">Customer sign in</h1>
       {state?.registered && <p className="auth-success" role="status">Account created. You can sign in now.</p>}
       {error && <p className="auth-error" role="alert">{error}</p>}
       <form onSubmit={submit}>

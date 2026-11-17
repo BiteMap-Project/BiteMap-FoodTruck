@@ -32,7 +32,7 @@ export default function CustomerLoginPage() {
       navigate(returnTo, { replace: true });
     } catch (cause) {
       handleRateLimit(cause);
-      setError(cause instanceof AuthApiError ? cause.message : "Unable to log in. Please try again.");
+      setError(cause instanceof AuthApiError ? cause.message : "Unable to sign in. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -41,12 +41,12 @@ export default function CustomerLoginPage() {
   return <main className="auth-page auth-login-page">
     <aside className="auth-story" aria-label="Customer account introduction">
       <Link className="auth-brand" to="/trucks">BiteMap<span>.</span></Link>
-      <div><p className="auth-eyebrow">YOUR ORDER. YOUR PICKUP.</p><h2>Save your cart.<br />Confirm your order.<br /><em>Pick up fresh.</em></h2><p>Log in when you’re ready to continue your pickup order.</p></div>
+      <div><p className="auth-eyebrow">YOUR ORDER. YOUR PICKUP.</p><h2>Save your cart.<br />Confirm your order.<br /><em>Pick up fresh.</em></h2><p>Sign in when you’re ready to continue your pickup order.</p></div>
     </aside>
     <section className="auth-card" aria-labelledby="customer-login-heading">
       <p className="auth-eyebrow">CUSTOMER CHECKOUT</p>
-      <h1 id="customer-login-heading">Customer Log in</h1>
-      {state?.registered && <p className="auth-success" role="status">Account created. You can log in now.</p>}
+      <h1 id="customer-login-heading">Customer Sign in</h1>
+      {state?.registered && <p className="auth-success" role="status">Account created. You can sign in now.</p>}
       {error && <p className="auth-error" role="alert">{error}</p>}
       <form onSubmit={submit}>
         <label htmlFor="customer-login-email">Email</label>
@@ -57,12 +57,12 @@ export default function CustomerLoginPage() {
           {seconds > 0
             ? `Try again in ${seconds}s`
             : submitting
-              ? "Logging in…"
+              ? "Signing in…"
               : returnTo === "/cart"
-                ? "Log in and return to cart"
+                ? "Sign in and return to cart"
                 : returnTo === "/trucks"
-                  ? "Log in and browse trucks"
-                  : "Log in and continue"}
+                  ? "Sign in and browse trucks"
+                  : "Sign in and continue"}
         </button>
       </form>
       <p className="auth-switch"><Link to="/forgot-password">Forgot password?</Link></p>

@@ -36,7 +36,7 @@ function OperatorLoginPage() {
       navigate(hasRole(current, "ROLE_OPERATOR") ? returnTo : "/operator/onboarding", { replace: true });
     } catch (cause) {
       handleRateLimit(cause);
-      setError(cause instanceof AuthApiError ? cause.message : "Unable to log in. Please try again.");
+      setError(cause instanceof AuthApiError ? cause.message : "Unable to sign in. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -50,9 +50,9 @@ function OperatorLoginPage() {
       </aside>
       <section className="auth-card" aria-labelledby="login-heading">
         <p className="auth-eyebrow">WELCOME BACK</p>
-        <h1 id="login-heading">Operator Log in</h1>
+        <h1 id="login-heading">Operator Sign in</h1>
         {registration?.registered && (
-          <p className="auth-success" role="status">Account created. You can log in now.</p>
+          <p className="auth-success" role="status">Account created. You can sign in now.</p>
         )}
         {error && <p className="auth-error" role="alert">{error}</p>}
         <form onSubmit={submit}>
@@ -79,8 +79,8 @@ function OperatorLoginPage() {
             {seconds > 0
               ? `Try again in ${seconds}s`
               : submitting
-                ? "Logging in…"
-                : "Log in"}
+                ? "Signing in…"
+                : "Sign in"}
           </button>
         </form>
         <p className="auth-switch"><Link to="/forgot-password">Forgot password?</Link></p>

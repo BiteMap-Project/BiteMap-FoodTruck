@@ -8,7 +8,7 @@ across server restarts and does not automatically reset at the next stop.
 ## API
 
 `GET /api/operator/vendors/{id}/ordering` returns
-`{"acceptingOrders":true,"version":0}` with `Cache-Control: no-store`.
+`{"acceptingOrders":true,"version":0,"cutoffMinutes":15}` with `Cache-Control: no-store`.
 
 `PUT /api/operator/vendors/{id}/ordering` accepts the same shape with the desired
 boolean and the version last read. It requires an enabled owning operator session
@@ -16,6 +16,10 @@ and CSRF. Foreign/missing trucks return 404; stale versions return 409. Missing,
 null, non-boolean flags and non-integer/negative versions return 400. The response
 contains the persisted state and new version. Refresh after an uncertain write;
 the frontend never automatically retries it.
+
+`cutoffMinutes` is an optional whole number from 0 to 120 on PUT; omission
+preserves the current setting. Resume does not bypass this cutoff. See
+[closing-time policy](closing-time-and-pickup-confirmation.md) for boundary and retry behavior.
 
 `GET /api/vendors/{id}/pickup-stop` returns 409 with the safe detail
 "Temporarily not accepting orders." while paused. The cart displays this message,

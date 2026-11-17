@@ -9,7 +9,7 @@ import static com.Bitemap.Backend.location.management.RecurringStopService.Frequ
 class RecurringStopServiceTests {
     private StopRequests.Details stop(String start, String end) {
         return new StopRequests.Details("Lunch", "CSUN", 34.24, -118.53,
-                OffsetDateTime.parse(start), OffsetDateTime.parse(end), "America/Los_Angeles");
+                OffsetDateTime.parse(start), OffsetDateTime.parse(end), "America/Los_Angeles", true);
     }
 
     private RecurringStopService.Request request(StopRequests.Details stop,

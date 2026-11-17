@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthApiError } from "../../services/auth";
-import { getOwnerOrder, listOwnerOrders, updateOrderEstimate, updateOwnerOrder, type OrderStatus, type OwnerOrder, type OwnerOrderSummary } from "../../services/operatorOrders";
+import { getOwnerOrder, listOwnerOrders, updateOrderEstimate, updateOwnerOrder, verifyOrderPickup, type OrderStatus, type OwnerOrder, type OwnerOrderSummary } from "../../services/operatorOrders";
 import type { Page } from "../../services/operatorWorkspace";
 import "./orders.css";
 import { PickupLocation } from "../orders/PickupLocation";
 import OrderingControl from "./OrderingControl";
 import ActionError from "../../components/ActionError";
+import AcceptanceDeadline from '../orders/AcceptanceDeadline';
+import { useAcceptanceDeadline } from '../orders/useAcceptanceDeadline';
 
 const labels: Record<OrderStatus, string> = { PLACED: "Placed", ACCEPTED: "Accepted", READY: "Ready", COMPLETED: "Completed", CANCELLED: "Cancelled" };
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -76,6 +78,7 @@ export default function OrdersPanel({ vendorId, notificationRevision=0 }: { vend
           <ul className="ow-order-list">{data.items.map(order => <li key={order.id}>
             <div className="ow-order-row-heading"><strong>Order #{order.id}</strong><span className={`ow-order-status ow-order-${order.status.toLowerCase()}`}>{labels[order.status]}</span></div>
             <p><time dateTime={order.createdAt}>{date(order.createdAt)}</time></p>
+            <AcceptanceDeadline status={order.status} deadline={order.acceptanceDeadline} owner />
             <div className="ow-order-row-heading"><strong>{money.format(order.total)}</strong><button disabled={busy}
               aria-pressed={selected === order.id} onClick={() => setSelected(order.id)}>View order #{order.id}</button></div>
           </li>)}</ul>
@@ -87,16 +90,18 @@ export default function OrdersPanel({ vendorId, notificationRevision=0 }: { vend
         </>}
       </div>
       {selected !== null ? <OrderDetail key={`${vendorId}-${selected}`} vendorId={vendorId} orderId={selected}
+        observedVersion={data?.items.find(item => item.id === selected)?.version}
         onBusy={setBusy} onSaved={refresh} /> : <div className="ow-order-placeholder"><h3>Order details</h3><p>Select an order to review its items and manage preparation.</p></div>}
     </div>
   </section></>;
 }
 
-function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
-  vendorId: number; orderId: number; onBusy: (value: boolean) => void; onSaved: () => void;
+function OrderDetail({ vendorId, orderId, observedVersion, onBusy, onSaved }: {
+  vendorId: number; orderId: number; observedVersion?: number; onBusy: (value: boolean) => void; onSaved: () => void;
 }) {
   const navigate = useNavigate();
   const [order, setOrder] = useState<OwnerOrder | null>(null);
+  const acceptance = useAcceptanceDeadline(order?.status ?? '',order?.acceptanceDeadline);
   const [attempt, setAttempt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -106,6 +111,7 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
   const [cancelling, setCancelling] = useState(false);
   const [reason, setReason] = useState("");
   const [estimateMinutes, setEstimateMinutes] = useState("20");
+  const [pickupCode, setPickupCode] = useState("");
   const lock = useRef(false);
   const mounted = useRef(false);
   const title = useRef<HTMLHeadingElement>(null);
@@ -121,18 +127,19 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
       else { setError(errorText(cause)); setLoading(false); }
     });
     return () => controller.abort();
-  }, [vendorId, orderId, attempt, navigate]);
+  }, [vendorId, orderId, attempt, observedVersion, navigate]);
   async function change(status: OrderStatus) {
     if (!order || lock.current || blocked || loading) return;
     if (status === "CANCELLED" && (!reason.trim() || reason.length > 500)) return;
     lock.current = true; setBusy(true); onBusy(true); setError(""); setMessage("");
     try {
-      const updated = await updateOwnerOrder(vendorId, orderId, {
+      const updated = status === "COMPLETED" ? await verifyOrderPickup(vendorId, orderId, pickupCode, order.version) : await updateOwnerOrder(vendorId, orderId, {
         status, version: order.version, ...(status === "CANCELLED" ? { cancellationReason: reason.trim() } : {}),
       });
       if (!mounted.current) return;
       title.current?.focus();
       setOrder(updated); setCancelling(false); setReason(""); setMessage(`Order #${orderId} updated to ${labels[updated.status]}.`); onSaved();
+      setPickupCode("");
     } catch (cause) {
       if (!mounted.current) return;
       if (cause instanceof AuthApiError && cause.status === 401) navigate("/operator/login", { replace: true });
@@ -181,6 +188,7 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
       <p className="ow-order-total"><span>Order total</span><strong>{money.format(order.total)}</strong></p>
       <p className="ow-order-help">Saved checkout prices. No online payment is recorded here.</p>
       <PickupLocation pickup={order.pickup} />
+      <AcceptanceDeadline status={order.status} deadline={order.acceptanceDeadline} owner />
       {order.estimatedReadyAt && <p className="ow-order-estimate"><strong>Estimated ready</strong><time dateTime={order.estimatedReadyAt}>{date(order.estimatedReadyAt)}</time></p>}
       {["PLACED", "ACCEPTED"].includes(order.status) && <div className="ow-estimate-control">
         <label>Ready-time estimate<select value={estimateMinutes} disabled={busy || blocked} onChange={event => setEstimateMinutes(event.target.value)}>
@@ -192,9 +200,16 @@ function OrderDetail({ vendorId, orderId, onBusy, onSaved }: {
       </div>}
       {order.cancellationReason && <div><strong>Cancellation reason</strong><p>{order.cancellationReason}</p></div>}
       <div className="ow-order-actions">
-        {action && !cancelling && <button className="od-button od-button-primary" disabled={busy || blocked || loading} onClick={() => void change(action.status)}>{action.label}</button>}
+        {action && order.status !== "READY" && !cancelling && <button className="od-button od-button-primary" disabled={busy || blocked || loading || acceptance.expired} onClick={() => void change(action.status)}>{action.label}</button>}
         {["PLACED", "ACCEPTED"].includes(order.status) && !cancelling && <button disabled={busy || blocked || loading} onClick={() => setCancelling(true)}>Cancel order</button>}
       </div>
+      {order.status === "READY" && <form className="ow-pickup-verification" aria-label="Verify pickup" onSubmit={event => { event.preventDefault(); if (/^[0-9]{6}$/.test(pickupCode)) void change("COMPLETED"); }}>
+        <h4>Confirm food handoff</h4><p>Ask the customer for the six-digit code from their order. There is no manual override.</p>
+        <label>Customer pickup code<input type="text" inputMode="numeric" autoComplete="off" pattern="[0-9]{6}" maxLength={6}
+          required value={pickupCode} disabled={busy || blocked || loading} onChange={event => setPickupCode(event.target.value.replace(/[^0-9]/g, ""))} /></label>
+        <button className="od-button od-button-primary" disabled={busy || blocked || loading || !/^[0-9]{6}$/.test(pickupCode)}>
+          {busy ? "Verifying pickup…" : "Verify pickup & mark collected"}</button>
+      </form>}
       {cancelling && <form aria-label="Cancel order" onSubmit={event => { event.preventDefault(); void change("CANCELLED"); }}>
         <p>Cancel order #{orderId}? This cannot be undone.</p>
         <label>Reason visible to the customer<textarea value={reason} maxLength={500} required disabled={busy || blocked}

@@ -11,6 +11,9 @@ const truck = {
   id: -2, name: "Database Taco", category: "Tacos", location: "Northridge",
   menu: [{ id: 40, name: "Veggie Taco", description: "Beans and salsa", price: 4.5, available: false }],
 };
+// Review API/form behavior is tested in features/reviews/ReviewsSection.test.tsx.
+// Keep these menu/cart tests isolated from that independent network feature.
+vi.mock("../features/reviews/ReviewsSection", () => ({ default: () => <section aria-label="Customer reviews" /> }));
 const fetchMock = vi.fn();
 vi.mock("../services/auth", async (importOriginal) => ({
   ...await importOriginal<typeof import("../services/auth")>(),
@@ -24,6 +27,14 @@ beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
   sessionStorage.clear();
+});
+
+it("places customer reviews after the menu", async () => {
+  fetchMock.mockResolvedValue(response(truck));
+  open();
+  const menu = await screen.findByRole("region", { name: "Pick your favorite" });
+  const reviews = screen.getByRole("region", { name: "Customer reviews" });
+  expect(menu.compareDocumentPosition(reviews) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
 it('locks menu cart controls while a checkout needs recovery', async () => {
@@ -41,7 +52,7 @@ it("adds an available database menu item to the customer cart", async () => {
   open();
   fireEvent.click(await screen.findByRole("button", { name: "Add Veggie Taco to cart" }));
   expect(screen.getByRole("status")).toHaveTextContent("Veggie Taco added");
-  expect(screen.getByRole("link", { name: "Cart (1)" })).toHaveAttribute("href", "/cart");
+  expect(screen.getByRole("link", { name: "My cart, 1 items" })).toHaveAttribute("href", "/cart");
 });
 
 it("shows inline quantity controls, updates the cart and removes the whole item", async () => {
@@ -53,13 +64,13 @@ it("shows inline quantity controls, updates the cart and removes the whole item"
   fireEvent.click(screen.getByRole("button", { name: "Increase Veggie Taco quantity" }));
   expect(screen.getByText("Added to cart (2)")).toBeInTheDocument();
   expect(readCart()?.items[0].quantity).toBe(2);
-  expect(screen.getByRole("link", { name: "Cart (2)" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "My cart, 2 items" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Decrease Veggie Taco quantity" }));
   expect(readCart()?.items[0].quantity).toBe(1);
   fireEvent.click(screen.getByRole("button", { name: "Remove Veggie Taco from cart" }));
   expect(readCart()).toBeNull();
   expect(screen.getByRole("button", { name: "Add Veggie Taco to cart" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Cart (0)" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "My cart, 0 items" })).toBeInTheDocument();
 });
 
 it("restores quantities and synchronizes other cart changes, with a maximum of ten", async () => {

@@ -16,8 +16,10 @@ public class VendorService {
 
 	private final VendorRepository repository;
 	private final JdbcTemplate jdbc;
+		private final com.Bitemap.Backend.review.ReviewService reviews;
 
-	public VendorService(VendorRepository repository, JdbcTemplate jdbc) {
+	public VendorService(VendorRepository repository, JdbcTemplate jdbc, com.Bitemap.Backend.review.ReviewService reviews) {
+        this.reviews = reviews;
 		this.repository = repository;
 		this.jdbc = jdbc;
 	}
@@ -33,7 +35,8 @@ public class VendorService {
 				""", (row, index) -> new VendorProfile.MenuItem(row.getLong("id"), row.getString("name"),
 						row.getString("description"), row.getBigDecimal("price"), row.getBoolean("available"),
 						row.getString("image_preset"), row.getBoolean("has_custom_image")), id);
-		return new VendorProfile(vendor.getId(), vendor.getName(), vendor.getCategory(), vendor.getLocation(), menu);
+		var rating = reviews.summary(id);
+        return new VendorProfile(vendor.getId(), vendor.getName(), vendor.getCategory(), vendor.getLocation(), menu, rating.averageRating(), rating.reviewCount());
 	}
 
 	public VendorPage list(String query, int page, int size) {
@@ -47,7 +50,11 @@ public class VendorService {
 			String pattern = "%" + search.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
 			result = repository.search(pattern, request);
 		}
-		return new VendorPage(result.getContent().stream().map(VendorSummary::from).toList(),
+		var ratings = reviews.summaries(result.getContent().stream().map(Vendor::getId).toList());
+        return new VendorPage(result.getContent().stream().map(v -> {
+            var rating = ratings.getOrDefault(v.getId(), new com.Bitemap.Backend.review.ReviewService.Summary(null, 0));
+            return new VendorSummary(v.getId(), v.getName(), v.getCategory(), v.getLocation(), rating.averageRating(), rating.reviewCount());
+        }).toList(),
 				result.getNumber(), result.getSize(), result.getTotalElements(), result.getTotalPages());
 	}
 }

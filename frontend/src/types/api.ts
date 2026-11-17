@@ -12,6 +12,8 @@ export type Vendor = {
   name: string;
   category: string;
   location: string;
+  averageRating?: number | null;
+  reviewCount?: number;
 };
 
 export type PublicMenuItem = {
@@ -61,6 +63,7 @@ export type OrderItem = {
 };
 
 export type PickupDetails = {
+  acceptanceMinutes?: number | null;
   stopId: number;
   venueName: string;
   address: string;
@@ -72,6 +75,8 @@ export type PickupDetails = {
 };
 
 export type CustomerOrderSummary = {
+  cancellationSource?: 'CUSTOMER' | 'OWNER' | 'ACCEPTANCE_TIMEOUT' | null;
+  cancellationReason?: string | null;
   id: number;
   vendorId: number;
   vendorName: string;
@@ -82,14 +87,17 @@ export type CustomerOrderSummary = {
 };
 
 export type CustomerOrder = CustomerOrderSummary & {
+  acceptanceMinutes?: number | null;
+  acceptanceDeadline?: string | null;
+  pickupCode?: string | null;
   /** Older servers may omit this; cancellation stays disabled until refreshed from an upgraded server. */
   version?: number;
-  cancellationReason?: string | null;
   pickup?: PickupDetails | null;
   items: OrderItem[];
 };
 
 export type OwnerOrderSummary = {
+  acceptanceDeadline?: string | null;
   id: number;
   vendorId: number;
   status: OrderStatus;

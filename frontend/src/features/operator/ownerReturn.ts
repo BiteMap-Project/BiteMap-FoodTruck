@@ -6,9 +6,9 @@
  * Browser history keeps the state, so it still works after a refresh.
  */
 
-export const WORKSPACE_TABS = ["Overview", "Menu", "Schedule", "Truck Details", "Orders"] as const;
+export const WORKSPACE_TABS = ["Overview", "Menu", "Schedule", "Truck Details", "Orders", "Reviews"] as const;
 export type WorkspaceTab = (typeof WORKSPACE_TABS)[number];
-const sections: Record<WorkspaceTab, string> = { Overview: "overview", Menu: "menu", Schedule: "schedule", "Truck Details": "details", Orders: "orders" };
+const sections: Record<WorkspaceTab, string> = { Overview: "overview", Menu: "menu", Schedule: "schedule", "Truck Details": "details", Orders: "orders", Reviews: "reviews" };
 export const workspaceUrl = (vendorId: number, tab: WorkspaceTab) => `/operator/vendors/${vendorId}/${sections[tab]}`;
 export function workspaceRoute(path: string) {
   const match = /^\/operator\/vendors\/(-?\d+)\/([^/]+)\/?$/.exec(path);

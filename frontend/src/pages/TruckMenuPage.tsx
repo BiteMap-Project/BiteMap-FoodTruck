@@ -3,7 +3,9 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { getVendor, type VendorProfile } from "../services/vendors";
 import { EmptyState, ErrorState, LoadingState } from "../components/StatusViews";
 import "./truck-profile.css";
-import { addCartItem, cartChangedEvent, cartItemCount, readCart, setCartQuantity } from "../features/cart/cart";
+import RatingBadge from "../features/reviews/RatingBadge";
+import ReviewsSection from "../features/reviews/ReviewsSection";
+import { addCartItem, cartChangedEvent, readCart, setCartQuantity } from "../features/cart/cart";
 import { useCheckoutLock } from '../features/cart/useCheckoutLock';
 import FavoriteButton from "../features/favorites/FavoriteButton";
 import { ownerBackLink, readOwnerReturn } from "../features/operator/ownerReturn";
@@ -81,7 +83,6 @@ function TruckMenuPage() {
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<Result>({ status: "loading", id });
   const [cart, setCart] = useState(readCart);
-  const cartCount = cartItemCount(cart);
   const [cartMessage, setCartMessage] = useState("");
 
   useEffect(() => {
@@ -123,7 +124,7 @@ function TruckMenuPage() {
 
   return (
     <div className="truck-site">
-      <header className="truck-site-header"><Link className="truck-site-brand" to="/trucks">BiteMap<span>.</span></Link><nav aria-label="Truck page navigation"><Link to="/trucks">Discover trucks</Link><Link to="/cart">Cart ({cartCount})</Link><Link to="/operator">Owner workspace →</Link></nav></header>
+      <nav className="customer-page-links" aria-label="Truck page navigation"><Link to="/trucks">Discover trucks</Link></nav>
     <main className="truck-profile">
       {back ? (
         <>
@@ -157,6 +158,7 @@ function TruckMenuPage() {
               <h1>{current.truck.name}</h1>
               <p>Category: {current.truck.category}</p>
               <p>Location: {current.truck.location}</p>
+              <RatingBadge vendorId={current.truck.id} averageRating={current.truck.averageRating} reviewCount={current.truck.reviewCount} onProfile />
               <div className="truck-hero-actions">
                 <a className="truck-menu-jump" href="#menu-heading">Explore the menu ↓</a>
                 <FavoriteButton vendorId={current.truck.id} vendorName={current.truck.name} />
@@ -186,10 +188,12 @@ function TruckMenuPage() {
                     <div className="menu-item-content">
                       <div className="menu-item-heading">
                         <h3>{item.name}</h3>
-                        <span>{dollars.format(item.price)}</span>
                       </div>
                       {item.description && <p>{item.description}</p>}
+                      <p className="menu-item-price">{dollars.format(item.price)}</p>
                       {!item.available && <p className="unavailable">Currently unavailable</p>}
+                    </div>
+                    <div className="menu-item-actions">
                       {quantity > 0 ? <div className="menu-cart-controls" role="group" aria-label={`Cart controls for ${item.name}`}>
                         <button disabled={checkoutLocked} type="button" aria-label={`Remove ${item.name} from cart`} title="Remove item" onClick={() => changeQuantity(current.truck.id, item.id, item.name, "remove")}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></svg>
@@ -212,6 +216,7 @@ function TruckMenuPage() {
               </ul>
             )}
           </section>
+          <ReviewsSection vendorId={current.truck.id} />
         </>
       )}
     </main>

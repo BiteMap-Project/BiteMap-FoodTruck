@@ -4,9 +4,17 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import tools.jackson.databind.annotation.JsonDeserialize;
 
-public record OrderingControl(boolean acceptingOrders, long version) {
+public record OrderingControl(boolean acceptingOrders, long version, long cutoffMinutes, long acceptanceMinutes) {
+    public OrderingControl(boolean acceptingOrders, long version, long cutoffMinutes) { this(acceptingOrders,version,cutoffMinutes,5); }
     public record Update(@NotNull @JsonDeserialize(using = StrictBoolean.class) Boolean acceptingOrders,
-                         @NotNull @PositiveOrZero @JsonDeserialize(using = StrictVersion.class) Long version) {}
+                         @NotNull @PositiveOrZero @JsonDeserialize(using = StrictVersion.class) Long version,
+                         @jakarta.validation.constraints.Min(0) @jakarta.validation.constraints.Max(120)
+                         @JsonDeserialize(using = StrictVersion.class) Long cutoffMinutes,
+                         @jakarta.validation.constraints.Min(3) @jakarta.validation.constraints.Max(20)
+                         @JsonDeserialize(using = StrictVersion.class) Long acceptanceMinutes) {
+        public Update(Boolean acceptingOrders, Long version) { this(acceptingOrders, version, null, null); }
+        public Update(Boolean acceptingOrders, Long version, Long cutoffMinutes) { this(acceptingOrders, version, cutoffMinutes, null); }
+    }
 
     public static class StrictBoolean extends tools.jackson.databind.ValueDeserializer<Boolean> {
         @Override public Boolean deserialize(tools.jackson.core.JsonParser p, tools.jackson.databind.DeserializationContext c) {
@@ -18,7 +26,7 @@ public record OrderingControl(boolean acceptingOrders, long version) {
     public static class StrictVersion extends tools.jackson.databind.ValueDeserializer<Long> {
         @Override public Long deserialize(tools.jackson.core.JsonParser p, tools.jackson.databind.DeserializationContext c) {
             if (!p.hasToken(tools.jackson.core.JsonToken.VALUE_NUMBER_INT))
-                return c.reportInputMismatch(Long.class, "Expected an integer version.");
+                return c.reportInputMismatch(Long.class, "Expected an integer.");
             return p.getLongValue();
         }
     }

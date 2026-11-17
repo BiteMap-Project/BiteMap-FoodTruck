@@ -33,6 +33,7 @@ services:
       DB_PASSWORD: ${COMPOSE_DB_PASSWORD:?Set COMPOSE_DB_PASSWORD in your root .env file}
       # This Compose file is for local development only; enables demo fixtures.
       SPRING_PROFILES_ACTIVE: dev
+      PICKUP_CODE_KEY: ${PICKUP_CODE_KEY:?Set a dedicated Base64 32-byte PICKUP_CODE_KEY in .env}
       PASSWORD_RECOVERY_ENABLED: "true"
       PASSWORD_RESET_URL: ${PASSWORD_RESET_URL:-http://localhost:5173/reset-password}
       PASSWORD_RESET_ALLOW_LOCAL_HTTP: "true"

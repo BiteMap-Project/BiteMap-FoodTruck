@@ -82,12 +82,12 @@ public class StopService {
         }
         long count = jdbc.queryForObject(cte + "SELECT count(*) FROM matches" + where, params, Long.class);
         String order = lat == null ? "starts_at, id" : "distance_meters, starts_at, id";
-        var items = jdbc.query(cte + "SELECT * FROM matches" + where
+        var items = jdbc.query(cte + "SELECT *, (SELECT round(avg(rating),1) FROM customer_reviews r WHERE r.vendor_id=matches.vendor_id) AS average_rating, (SELECT count(*) FROM customer_reviews r WHERE r.vendor_id=matches.vendor_id) AS review_count FROM matches" + where
                 + " ORDER BY " + order + " LIMIT :limit OFFSET :offset", params, (rs, row) -> {
             Timestamp confirmed = rs.getTimestamp("last_confirmed_at");
             return new StopPage.Stop(rs.getLong("id"),
                     new VendorSummary(rs.getLong("vendor_id"), rs.getString("name"),
-                            rs.getString("category"), rs.getString("vendor_location")),
+                            rs.getString("category"), rs.getString("vendor_location"), rs.getBigDecimal("average_rating"), rs.getLong("review_count")),
                     rs.getString("venue_name"), rs.getString("address"),
                     rs.getDouble("latitude"), rs.getDouble("longitude"),
                     rs.getTimestamp("starts_at").toInstant(), rs.getTimestamp("ends_at").toInstant(),

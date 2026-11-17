@@ -1,4 +1,4 @@
-import { useState, type SubmitEvent } from "react";
+import { useRef, useState, type SubmitEvent } from "react";
 import ActionError from "../../components/ActionError";
 import type { ManagedStop, StopInput, RepeatRule } from "../../services/operatorSchedules";
 import { localTime, timeCandidates } from "./scheduleTime";
@@ -7,6 +7,8 @@ import ScheduleAddressFields, {
 } from "./ScheduleAddressFields";
 import "./scheduleForm.css";
 import RepeatScheduleFields, { repeatPreview } from "./RepeatScheduleFields";
+import PickupPinConfirmation from './PickupPinConfirmation';
+import SavedLocationPicker from './SavedLocationPicker';
 
 const zones = [
   ["America/Los_Angeles", "Pacific — Los Angeles"],
@@ -45,6 +47,10 @@ export default function ScheduleForm({
   onSave: (stop: StopInput, repeat?: RepeatRule) => Promise<void>;
 }) {
   const [zone, setZone] = useState(initial?.timeZone ?? "America/Los_Angeles");
+  const [venueName, setVenueName] = useState(initial?.venueName ?? '');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [addressKey, setAddressKey] = useState(0);
+  const venueInput = useRef<HTMLInputElement>(null);
   const [suggested] = useState(
     () => Math.ceil((Date.now() + 60000) / 900000) * 900000,
   );
@@ -77,7 +83,7 @@ export default function ScheduleForm({
       ) ?? "",
   );
   const [address, setAddress] = useState<ScheduleAddress | null>(
-    initial ?? null,
+    initial ? { address: initial.address, latitude: initial.latitude, longitude: initial.longitude, confirmed: false } : null,
   );
   const [error, setError] = useState("");
   const [repeat, setRepeat] = useState<RepeatRule | null>(null);
@@ -190,6 +196,10 @@ export default function ScheduleForm({
       setError("Find and select a street address before saving.");
       return;
     }
+    if (!address.confirmed) {
+      setError("Confirm the pickup pin before saving.");
+      return;
+    }
     if (!startsAt || !endsAt) {
       setError(
         "Choose valid times. Skipped daylight-saving hours are unavailable; repeated hours need a choice.",
@@ -225,6 +235,7 @@ export default function ScheduleForm({
       startsAt,
       endsAt,
       timeZone: zone,
+      locationConfirmed: true,
     }, initial ? undefined : repeat ?? undefined);
   }
 
@@ -256,23 +267,35 @@ export default function ScheduleForm({
             </label>
           </div>
         )}
+        <button type="button" aria-expanded={pickerOpen} onClick={() => setPickerOpen(open => !open)}>Choose saved location</button>
+        {pickerOpen && <SavedLocationPicker onChoose={location => {
+          setVenueName(location.venueName);
+          setAddress({ address: location.address, latitude: location.latitude, longitude: location.longitude, confirmed: false });
+          setZone(location.timeZone); setStartChoice(''); setEndChoice('');
+          setAddressKey(key => key + 1); setPickerOpen(false); setError('');
+          venueInput.current?.focus();
+        }} />}
         <label>
           Venue name
           <input
             name="venueName"
+            ref={venueInput}
             required
             maxLength={160}
-            defaultValue={initial?.venueName}
+            value={venueName}
+            onChange={event => setVenueName(event.target.value)}
             placeholder="CSUN lunch stop"
           />
         </label>
         <ScheduleAddressFields
+          key={addressKey}
           value={address}
           onChange={(value) => {
             setAddress(value);
             setError("");
           }}
         />
+        {address && <PickupPinConfirmation value={address} onChange={value => { setAddress(value); setError(''); }} />}
         <section className="sf-times" aria-label="Stop hours">
           <h3>When will you be there?</h3>
           <label>

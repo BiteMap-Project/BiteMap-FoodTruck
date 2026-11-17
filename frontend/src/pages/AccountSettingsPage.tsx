@@ -46,7 +46,7 @@ export default function AccountSettingsPage() {
   }
 
   return <div className="cart-site">
-    <header className="cart-header"><Link className="cart-brand" to="/trucks">BiteMap<span>.</span></Link><Link to="/trucks">Browse trucks</Link></header>
+    <nav className="customer-page-links" aria-label="Page navigation"><Link to="/trucks">Browse trucks</Link></nav>
     <main className="cart-page account-settings">
       <p className="cart-eyebrow">YOUR ACCOUNT</p>
       <h1>Account settings</h1>

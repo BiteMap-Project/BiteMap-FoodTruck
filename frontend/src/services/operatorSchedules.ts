@@ -2,8 +2,8 @@ import { WorkspaceError } from "./operatorWorkspace";
 import type { Page } from "../types/api";
 import { reportAuthorizationResponse } from "../auth/authEvents";
 
-export type StopInput = { venueName: string; address: string; latitude: number; longitude: number; startsAt: string; endsAt: string; timeZone: string };
-export type ManagedStop = StopInput & { id: number; vendorId: number; status: "scheduled" | "serving" | "ended" | "cancelled"; version: number; createdAt: string; updatedAt: string };
+export type StopInput = { venueName: string; address: string; latitude: number; longitude: number; startsAt: string; endsAt: string; timeZone: string; locationConfirmed: true };
+export type ManagedStop = Omit<StopInput, 'locationConfirmed'> & { id: number; vendorId: number; status: "scheduled" | "serving" | "ended" | "cancelled"; version: number; createdAt: string; updatedAt: string };
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(path, { ...options, credentials: "same-origin", headers: { Accept: "application/json", ...options.headers } });

@@ -15,7 +15,10 @@ public final class StopRequests {
             @NotNull @DecimalMin("-180") @DecimalMax("180") Double longitude,
             @NotNull @JsonFormat(without = JsonFormat.Feature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE) OffsetDateTime startsAt,
             @NotNull @JsonFormat(without = JsonFormat.Feature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE) OffsetDateTime endsAt,
-            @NotBlank @Size(max = 80) String timeZone) {
+            @NotBlank @Size(max = 80) String timeZone,
+            @NotNull @AssertTrue(message = "Confirm the pickup pin before publishing.")
+            @tools.jackson.databind.annotation.JsonDeserialize(using = com.Bitemap.Backend.vendor.OrderingControl.StrictBoolean.class)
+            Boolean locationConfirmed) {
         public Details {
             venueName = venueName == null ? null : venueName.strip();
             address = address == null ? null : address.strip();

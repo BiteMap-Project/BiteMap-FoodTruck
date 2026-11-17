@@ -56,11 +56,16 @@ Create request (choose future dates when testing):
   "longitude": -118.53,
   "startsAt": "2030-01-02T11:00:00-08:00",
   "endsAt": "2030-01-02T14:00:00-08:00",
-  "timeZone": "America/Los_Angeles"
+  "timeZone": "America/Los_Angeles",
+  "locationConfirmed": true
 }
 ```
 
-The response includes `id`, `vendorId`, these business fields, `status`, `version`,
+`locationConfirmed` must be literal `true` after the owner checks the pickup pin.
+It is required for create, edit and repeat requests, and is not a response field.
+See [pickup confirmation and closing-time policy](closing-time-and-pickup-confirmation.md).
+
+The response includes `id`, `vendorId`, the location/time business fields, `status`, `version`,
 `createdAt`, and `updatedAt`. New records are always `scheduled`, version 0;
 request fields cannot select ownership or force a status.
 

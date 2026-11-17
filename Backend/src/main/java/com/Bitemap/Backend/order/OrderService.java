@@ -22,8 +22,9 @@ public class OrderService {
     private static final BigDecimal MAX_TOTAL = new BigDecimal("9999999999.99");
     private final JdbcTemplate jdbc;
     private final PickupService pickups;
+    private final PickupCodes codes;
 
-    public OrderService(JdbcTemplate jdbc, PickupService pickups) { this.jdbc = jdbc; this.pickups = pickups; }
+    public OrderService(JdbcTemplate jdbc, PickupService pickups, PickupCodes codes) { this.jdbc = jdbc; this.pickups = pickups; this.codes = codes; }
 
     @Transactional
     public OrderResponse create(String customerEmail, @NotNull @Valid CreateOrderRequest request) {
@@ -82,9 +83,10 @@ public class OrderService {
         // Evaluate the clock after waiting for menu locks, immediately before inserting.
         var pickup = pickups.requireCurrent(request.vendorId(), request.pickupStopId());
         long orderId = jdbc.queryForObject("""
-                INSERT INTO customer_orders(customer_user_id,vendor_id,idempotency_key,total)
-                VALUES (?,?,?,?) RETURNING id
-                """, Long.class, customerId, request.vendorId(), request.idempotencyKey(), total);
+                INSERT INTO customer_orders(customer_user_id,vendor_id,idempotency_key,total,acceptance_minutes,acceptance_deadline)
+                VALUES (?,?,?,?,?,LEAST(clock_timestamp()+(? * interval '1 minute'),?)) RETURNING id
+                """, Long.class, customerId, request.vendorId(), request.idempotencyKey(), total,
+                pickup.acceptanceMinutes(),pickup.acceptanceMinutes(),java.sql.Timestamp.from(pickup.endsAt()));
         pickups.save(orderId, pickup);
         for (var line : lines) jdbc.update("""
                 INSERT INTO customer_order_items(order_id,menu_item_id,name_snapshot,unit_price,quantity,line_total)
@@ -93,7 +95,7 @@ public class OrderService {
         return load(orderId);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public OrderResponse get(String customerEmail, long orderId) {
         Long id = jdbc.query("""
                 SELECT o.id FROM customer_orders o
@@ -129,7 +131,7 @@ public class OrderService {
         String reason = "Cancelled by customer.";
         jdbc.update("""
                 UPDATE customer_orders SET status='CANCELLED',version=version+1,updated_at=clock_timestamp(),
-                    cancellation_reason=?,estimated_ready_at=NULL WHERE id=? AND customer_user_id=?
+                    cancellation_reason=?,cancellation_source='CUSTOMER',estimated_ready_at=NULL WHERE id=? AND customer_user_id=?
                 """,reason,orderId,customerId);
         jdbc.update("""
                 INSERT INTO customer_order_status_history(order_id,from_status,to_status,version,changed_by_user_id,changed_at,cancellation_reason)
@@ -159,10 +161,11 @@ public class OrderService {
                 WHERE lower(u.email)=lower(?) AND u.enabled
                 """;
         long count = jdbc.queryForObject("SELECT count(*) " + scope, Long.class, email);
-        var items = jdbc.query("SELECT o.id,o.vendor_id,v.name,o.status,o.total,o.created_at " + scope
+        var items = jdbc.query("SELECT o.id,o.vendor_id,v.name,o.status,o.total,o.created_at,o.cancellation_reason,o.cancellation_source " + scope
                 + " ORDER BY o.created_at DESC,o.id DESC LIMIT ? OFFSET ?",
                 (rs, row) -> new CustomerOrderPage.Summary(rs.getLong(1), rs.getLong(2), rs.getString(3),
-                        OrderStatus.valueOf(rs.getString(4)), rs.getBigDecimal(5), rs.getTimestamp(6).toInstant()),
+                        OrderStatus.valueOf(rs.getString(4)), rs.getBigDecimal(5), rs.getTimestamp(6).toInstant(),
+                        rs.getString(7),CancellationSource.fromDatabase(rs.getString(8))),
                 email, size, (long) page * size);
         return new CustomerOrderPage(items, page, size, count, (count + size - 1) / size);
     }
@@ -175,11 +178,13 @@ public class OrderService {
 
     private OrderResponse load(long orderId) {
         var header = jdbc.queryForObject("""
-                SELECT o.id,o.vendor_id,v.name,o.status,o.total,o.created_at,o.estimated_ready_at,o.cancellation_reason,o.version
-                FROM customer_orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=?
+                SELECT o.id,o.vendor_id,v.name,o.status,o.total,o.created_at,o.estimated_ready_at,o.cancellation_reason,o.version,o.acceptance_minutes,o.acceptance_deadline,o.cancellation_source
+                FROM customer_orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=? FOR UPDATE OF o
                 """, (rs, row) -> new Header(rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4),
                         rs.getBigDecimal(5), rs.getTimestamp(6).toInstant(),
-                        rs.getTimestamp(7) == null ? null : rs.getTimestamp(7).toInstant(), rs.getString(8), rs.getLong(9)), orderId);
+                        rs.getTimestamp(7) == null ? null : rs.getTimestamp(7).toInstant(), rs.getString(8), rs.getLong(9),
+                        rs.getObject(10)==null?null:rs.getLong(10),rs.getTimestamp(11)==null?null:rs.getTimestamp(11).toInstant(),
+                        CancellationSource.fromDatabase(rs.getString(12))), orderId);
         var items = jdbc.query("""
                 SELECT menu_item_id,name_snapshot,unit_price,quantity,line_total
                 FROM customer_order_items WHERE order_id=? ORDER BY id
@@ -187,11 +192,13 @@ public class OrderService {
                         rs.getInt(4), rs.getBigDecimal(5)), orderId);
         return new OrderResponse(header.id(), header.vendorId(), header.vendorName(), header.status(),
                 header.total(), header.createdAt(), header.estimatedReadyAt(), items,
-                header.cancellationReason(), pickups.saved(orderId), header.version());
+                header.cancellationReason(), pickups.saved(orderId), header.version(), codes.forCustomer(orderId, header.status()),
+                header.acceptanceMinutes(),header.acceptanceDeadline(),header.cancellationSource());
     }
 
     private record MenuLine(long id, String name, BigDecimal price, String status) {}
 
     private record Header(long id, long vendorId, String vendorName, String status,
-            BigDecimal total, Instant createdAt, Instant estimatedReadyAt, String cancellationReason, long version) {}
+            BigDecimal total, Instant createdAt, Instant estimatedReadyAt, String cancellationReason, long version,
+            Long acceptanceMinutes, Instant acceptanceDeadline, CancellationSource cancellationSource) {}
 }

@@ -71,6 +71,7 @@ public class SecurityConfiguration {
                 .requestMatchers(request -> request.getDispatcherType()==DispatcherType.ASYNC
                     && Boolean.TRUE.equals(request.getAttribute("bitemap.authorized-order-stream"))).permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/vendors/{vendorId}/review-summary", "/api/vendors/{vendorId}/reviews").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/vendors/{vendorId}/menu-items/{itemId}/image").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/vendors/{id}/pickup-stop").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/logout",

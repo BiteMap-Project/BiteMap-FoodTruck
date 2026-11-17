@@ -22,6 +22,13 @@ it("shows an empty state", async () => {
   fetchMock.mockResolvedValue(reply({ items: [], page: 0, totalPages: 0 })); show();
   expect(await screen.findByText("No orders yet.")).toBeInTheDocument();
 });
+it('shows the cancellation source and reason in history without rendering owner text as HTML', async () => {
+  fetchMock.mockResolvedValue(reply({ items: [{ ...item, status: 'CANCELLED', cancellationSource: 'OWNER', cancellationReason: '<b>Kitchen closed</b>' }], page: 0, totalPages: 1 }));
+  show();
+  expect(await screen.findByText('The truck cancelled your order.')).toBeInTheDocument();
+  expect(screen.getByText('<b>Kitchen closed</b>')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'View order #42' })).toBeInTheDocument();
+});
 it("offers sign in when the session expires", async () => {
   fetchMock.mockResolvedValue(reply({}, 401)); show();
   expect(await screen.findByRole("link", { name: "Customer sign in" })).toHaveAttribute("href", "/customer/login");

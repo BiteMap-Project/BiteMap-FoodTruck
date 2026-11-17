@@ -7,6 +7,7 @@ import MenuPhoto from "../menu/MenuPhoto";
 import { ItemForm, VendorForm } from "./WorkspaceForms";
 import SchedulePanel from "./SchedulePanel";
 import OrdersPanel from "./OrdersPanel";
+import ReviewsSection from "../reviews/ReviewsSection";
 import { useOrderNotifications } from './useOrderNotifications';
 import { previewState, readWorkspaceRestore, workspaceRoute, workspaceUrl, WORKSPACE_TABS, type WorkspaceTab } from "./ownerReturn";
 import "./owner-design.css";
@@ -31,7 +32,7 @@ export default function OperatorWorkspace({ account, onSignOut, signingOut, logo
   const tab: Tab = restore?.tab ?? "Overview";
   const invalidRoute = location.pathname.startsWith("/operator/vendors/") && !route;
   const setTab = (next: Tab) => { if (selected) navigate(workspaceUrl(selected.id, next)); };
-  const compactLayout = tab === "Schedule" || tab === "Orders";
+  const compactLayout = tab === "Schedule" || tab === "Orders" || tab === "Reviews";
   const [page, setPage] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [vendors, setVendors] = useState<Load<Page<Vendor>>>({ kind: "loading" });
@@ -161,6 +162,7 @@ function VendorWorkspace({ vendor, tab, onSaved, orderRevision }: { vendor: Vend
     {tab !== "Schedule" && tab !== "Orders" && <section className="od-hero"><div className="od-hero-copy"><span className="od-label">YOUR TRUCK</span><h2>{vendor.name}</h2><p>{vendor.category} · {vendor.location}</p><div className="od-hero-bottom"><Link className="od-button od-button-secondary" to={`/trucks/${vendor.id}`} state={previewState({ from: "workspace", vendorId: vendor.id, tab })}>View customer menu →</Link></div></div></section>}
     {message && <p role="status" className="ow-message">{message}</p>}{error && <p role="alert" className="ow-error">{error}</p>}
     {tab === "Overview" && <section className="ow-panel"><h2>Your workspace is connected</h2><p>Use Menu to add items, edit prices and change availability. Use Truck Details to update this truck’s public profile. Use Schedule to publish, edit and cancel planned stops. Use Orders to review customer orders and manage preparation.</p><p>Revenue and opening-hours controls are not available yet.</p></section>}
+    {tab === "Reviews" && <ReviewsSection vendorId={vendor.id} owner />}
     {tab === "Schedule" && <SchedulePanel key={vendor.id} vendorId={vendor.id} />}
     {tab === "Orders" && <OrdersPanel key={vendor.id} vendorId={vendor.id} notificationRevision={orderRevision} />}
     {tab === "Truck Details" && <section className="ow-panel"><h2>Truck details</h2><VendorForm key={`${vendor.id}-${vendor.name}-${vendor.category}-${vendor.location}`} initial={vendor} busy={busy} disabled={blocked} onSave={input => mutate(() => saveVendor(input, vendor.id), result => onSaved(result as Vendor))} />{blocked && <p>Refresh trucks to reload your access before retrying.</p>}</section>}

@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import OperatorWorkspace from "./OperatorWorkspace";
+import type { OwnerOrder } from '../../types/api';
 
 const fetchMock = vi.fn();
 const account = { id: 1, displayName: "Owner", email: "owner@example.com", roles: ["ROLE_OPERATOR"] };
@@ -10,9 +11,9 @@ const order = { id: 42, vendorId: 7, status: "PLACED", version: 0, total: 8.5,
   items: [{ menuItemId: 2, name: "Saved taco", unitPrice: 4.25, quantity: 2, lineTotal: 8.5 }] };
 const page = (items: unknown[], current = 0, totalPages = 1) => ({ items, page: current, size: 20, totalElements: items.length, totalPages });
 const response = (status: number, body?: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
-let current: typeof order;
+let current: OwnerOrder;
 beforeEach(() => {
-  current = { ...order };
+  current = { ...order, status: 'PLACED' };
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
@@ -20,6 +21,7 @@ beforeEach(() => {
     if (url.includes("vendors?")) return response(200, page([{ id: 7, name: "Spicy Food", category: "Food", location: "CSUN" }, { id: 8, name: "Other truck", category: "Food", location: "CSUN" }]));
     if (url.includes("menu-items?")) return response(200, page([]));
     if (url.includes("/orders?")) return response(200, page([current]));
+    if (url.endsWith("/verify-pickup") && init?.method === "POST") { current = { ...current, status: "COMPLETED", version: current.version + 1 }; return response(200, current); }
     if (init?.method === "PATCH") { const body = JSON.parse(init.body as string); current = { ...current, ...body, version: current.version + 1 }; return response(200, current); }
     if (url.endsWith("/orders/42")) return response(200, current);
     return response(500);
@@ -53,6 +55,21 @@ it("loads the selected truck queue and saved order detail", async () => {
   expect(screen.getByRole("button", { name: "Accept order" })).toBeEnabled();
   expect(screen.queryByRole("button", { name: "Mark ready" })).not.toBeInTheDocument();
 });
+it("refreshes an open detail when the queue observes automatic expiration", async () => {
+  await detail();
+  current = { ...current, status: 'CANCELLED', version: 1, cancellationReason: 'The truck did not accept your order in time.' };
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh orders' }));
+  expect(await screen.findByText('The truck did not accept your order in time.')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Accept order' })).not.toBeInTheDocument();
+});
+it('disables acceptance when a saved deadline has passed without inventing a server status', async () => {
+  current = { ...current, acceptanceDeadline: '2000-01-01T00:00:00Z' };
+  await detail();
+  expect(screen.getByRole('button', { name: 'Accept order' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Accept order' }));
+  expect(writes()).toHaveLength(0);
+  expect(screen.getAllByText(/Waiting for the server to confirm/).length).toBeGreaterThan(0);
+});
 it("sends current version and fresh CSRF then exposes only the next action", async () => {
   await detail();
   fireEvent.click(screen.getByRole("button", { name: "Accept order" }));
@@ -63,8 +80,12 @@ it("sends current version and fresh CSRF then exposes only the next action", asy
     body: JSON.stringify({ status: "ACCEPTED", version: 0 }),
   }));
   fireEvent.click(screen.getByRole("button", { name: "Mark ready" }));
-  fireEvent.click(await screen.findByRole("button", { name: "Mark collected" }));
+  const verify = await screen.findByRole("button", { name: "Verify pickup & mark collected" });
+  expect(verify).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Customer pickup code"), { target: { value: "012345" } });
+  fireEvent.click(verify);
   expect(await screen.findByText("This order is completed. No further changes are allowed.")).toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledWith("/api/operator/vendors/7/orders/42/verify-pickup", expect.objectContaining({ method: "POST", body: JSON.stringify({ code: "012345", version: 2 }) }));
 });
 it("sets a preparation estimate without changing order status", async () => {
   await detail();

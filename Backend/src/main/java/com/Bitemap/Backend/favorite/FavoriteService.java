@@ -46,13 +46,15 @@ public class FavoriteService {
 		long count = jdbc.queryForObject(
 				"SELECT count(*) FROM customer_favorites WHERE user_id = ?", Long.class, userId);
 		var items = jdbc.query("""
-				SELECT v.id, v.name, v.category, v.location, f.created_at
+				SELECT v.id, v.name, v.category, v.location, f.created_at,
+                    (SELECT round(avg(rating),1) FROM customer_reviews r WHERE r.vendor_id=v.id) AS average_rating,
+                    (SELECT count(*) FROM customer_reviews r WHERE r.vendor_id=v.id) AS review_count
 				FROM customer_favorites f JOIN vendors v ON v.id = f.vendor_id
 				WHERE f.user_id = ?
 				ORDER BY f.created_at DESC, v.id DESC
 				LIMIT ? OFFSET ?
 				""", (rs, row) -> new FavoritePage.Truck(rs.getLong(1), rs.getString(2), rs.getString(3),
-						rs.getString(4), rs.getTimestamp(5).toInstant()),
+						rs.getString(4), rs.getTimestamp(5).toInstant(), rs.getBigDecimal("average_rating"), rs.getLong("review_count")),
 				userId, size, (long) page * size);
 		return new FavoritePage(items, page, size, count, (count + size - 1) / size);
 	}

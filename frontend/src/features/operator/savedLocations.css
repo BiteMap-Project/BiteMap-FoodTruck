@@ -1,0 +1,15 @@
+.ow-connected .sl-manager { margin-block: 24px; padding: 24px; border: 1px solid var(--od-line); border-radius: 16px; background: #fafaf6; }
+.ow-connected .sl-toolbar, .ow-connected .sl-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.ow-connected .sl-manager h3, .ow-connected .sl-manager h4 { margin: 0; }
+.ow-connected .sl-manager p { margin-block: 12px; overflow-wrap: anywhere; }
+.ow-connected .sl-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 20px; padding: 20px; margin-top: 16px; border: 1px solid var(--od-line); border-radius: 12px; background: #fff; }
+.ow-connected .sl-confirm { grid-column: 1 / -1; border-top: 1px solid var(--od-line); padding-top: 12px; }
+.ow-connected .sl-editor { margin-block: 24px; }
+.ow-connected .sl-editor > button { margin-top: 16px; }
+.ow-connected .sl-picker { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--od-line); border-radius: 12px; background: #f3f5eb; }
+.ow-connected .sl-manager button, .ow-connected .sl-picker select { min-height: 44px; }
+@media (max-width: 700px) {
+  .ow-connected .sl-manager { padding: 16px; }
+  .ow-connected .sl-card { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .ow-connected .sl-actions { align-items: stretch; }
+}

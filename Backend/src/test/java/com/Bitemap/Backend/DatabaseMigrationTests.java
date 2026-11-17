@@ -269,6 +269,7 @@ class DatabaseMigrationTests {
 		var stops = jdbc.queryForList("SELECT * FROM " + schema + ".vendor_stops ORDER BY id");
 		// V7 adds only a zero-initialized version; all pre-existing stop fields must remain identical.
 		stops.forEach(stop -> stop.put("version", 0L));
+		stops.forEach(stop -> stop.put("location_confirmed_at", null));
 		migrateAndValidate(migrations(false));
 		assertThat(vendorBusinessRows()).isEqualTo(vendors);
 		assertThat(jdbc.queryForList("SELECT * FROM " + schema + ".vendor_stops ORDER BY id")).isEqualTo(stops);
@@ -327,6 +328,8 @@ class DatabaseMigrationTests {
 		migrateAndValidate(migrations(false));
 		var after = jdbc.queryForMap("SELECT * FROM " + schema + ".vendor_stops");
 		assertThat(after.remove("version")).isEqualTo(0L);
+		assertThat(after).containsKey("location_confirmed_at");
+		assertThat(after.remove("location_confirmed_at")).isNull();
 		assertThat(after).isEqualTo(before);
 		assertThatThrownBy(() -> jdbc.update("UPDATE " + schema + ".vendor_stops SET version=-1"))
 				.isInstanceOf(DataIntegrityViolationException.class);
@@ -348,6 +351,8 @@ class DatabaseMigrationTests {
         upgradedVendors.forEach(row -> {
             assertThat(row.remove("accepting_orders")).isEqualTo(true);
             assertThat(row.remove("ordering_version")).isEqualTo(0L);
+            assertThat(row.remove("ordering_cutoff_minutes")).isEqualTo(15);
+            assertThat(row.remove("acceptance_minutes")).isEqualTo(5);
         });
         assertThat(upgradedVendors).isEqualTo(oldVendors);
         assertThat(jdbc.queryForObject("SELECT user_id FROM " + schema + ".operators WHERE id=?", Long.class, owner)).isEqualTo(owner);
@@ -376,9 +381,32 @@ class DatabaseMigrationTests {
         assertThat(after.remove("updated_at")).isEqualTo(before.get("created_at"));
         assertThat(after.remove("cancellation_reason")).isNull();
         assertThat(after.remove("estimated_ready_at")).isNull();
+        assertThat(after).containsKeys("acceptance_minutes", "acceptance_deadline");
+        assertThat(after.remove("acceptance_minutes")).isNull();
+        assertThat(after.remove("acceptance_deadline")).isNull();
+        assertThat(after).containsKey("cancellation_source");
+        assertThat(after.remove("cancellation_source")).isNull();
         assertThat(after).isEqualTo(before);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".customer_order_status_history",Integer.class)).isZero();
         assertThat(migrations(false).migrate().migrationsExecuted).isZero();
+    }
+
+    @Test
+    void cancellationSourceUpgradePreservesLegacyCancellationWithoutGuessingActorContext() {
+        Flyway.configure().configuration(migrations(false).getConfiguration()).target("23").load().migrate();
+        long user=jdbc.queryForObject("INSERT INTO " + schema + ".app_users(display_name,email,password_hash) VALUES ('Legacy','cancellation-migration@example.test','unused') RETURNING id",Long.class);
+        long vendor=jdbc.queryForObject("INSERT INTO " + schema + ".vendors(name,category,location) VALUES ('Truck','Food','LA') RETURNING id",Long.class);
+        jdbc.update("INSERT INTO " + schema + ".customer_orders(customer_user_id,vendor_id,idempotency_key,total,status,cancellation_reason) VALUES (?,?,?,5,'CANCELLED','Keep original reason')",user,vendor,UUID.randomUUID());
+        var before=jdbc.queryForMap("SELECT * FROM " + schema + ".customer_orders");
+        migrateAndValidate(migrations(false));
+        var after=jdbc.queryForMap("SELECT * FROM " + schema + ".customer_orders");
+        assertThat(after).containsKey("cancellation_source");
+        assertThat(after.remove("cancellation_source")).isNull();
+        assertThat(after).isEqualTo(before);
+        assertThatThrownBy(() -> jdbc.update("UPDATE " + schema + ".customer_orders SET cancellation_source='ADMIN'"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbc.update("UPDATE " + schema + ".customer_orders SET status='PLACED',cancellation_reason=NULL,cancellation_source='CUSTOMER'"))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
@@ -391,6 +419,11 @@ class DatabaseMigrationTests {
         migrateAndValidate(migrations(false));
         var after=jdbc.queryForMap("SELECT * FROM " + schema + ".customer_orders");
         assertThat(after.remove("estimated_ready_at")).isNull();
+        assertThat(after).containsKeys("acceptance_minutes", "acceptance_deadline");
+        assertThat(after.remove("acceptance_minutes")).isNull();
+        assertThat(after.remove("acceptance_deadline")).isNull();
+        assertThat(after).containsKey("cancellation_source");
+        assertThat(after.remove("cancellation_source")).isNull();
         assertThat(after).isEqualTo(before);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM " + schema + ".customer_order_pickups",Integer.class)).isZero();
         assertThat(migrations(false).migrate().migrationsExecuted).isZero();

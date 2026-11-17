@@ -5,6 +5,7 @@ import { EmptyState, ErrorState, LoadingState, SuccessNotice } from "../componen
 import { listFavorites, isSignedOut, removeFavorite, type FavoritePage } from "../services/favorites";
 import { forgetFavorite } from "../features/favorites/favoritesStore";
 import "./cart.css";
+import RatingBadge from "../features/reviews/RatingBadge";
 import "../features/favorites/favorites.css";
 
 type State = { kind: "loading" } | { kind: "error" } | { kind: "ready"; data: FavoritePage };
@@ -67,10 +68,7 @@ export default function FavoritesPage() {
 
   return (
     <div className="cart-site">
-      <header className="cart-header">
-        <Link className="cart-brand" to="/trucks">BiteMap<span>.</span></Link>
-        <Link to="/trucks">Browse trucks</Link>
-      </header>
+      <nav className="customer-page-links" aria-label="Page navigation"><Link to="/trucks">Browse trucks</Link></nav>
       <main className="cart-page">
         <p className="cart-eyebrow">SAVED FOR LATER</p>
         <h1>Favorites</h1>
@@ -98,6 +96,7 @@ export default function FavoritesPage() {
                 <li key={truck.id}>
                   <div>
                     <h2>{truck.name}</h2>
+                    <RatingBadge vendorId={truck.id} averageRating={truck.averageRating} reviewCount={truck.reviewCount} />
                     <p>{truck.category} · {truck.location}</p>
                   </div>
                   <div className="favorites-actions">

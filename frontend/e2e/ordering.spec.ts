@@ -267,6 +267,124 @@ async function login(page: Page, email: string, owner = false) {
   await expect(page).toHaveURL(owner ? /\/operator$/ : /\/cart$/);
 }
 
+test('owner acceptance window is saved, shown at checkout, and expires orders with the customer browser closed', async ({ browser }, testInfo) => {
+  const owner = await browser.newContext({ baseURL });
+  const customer = await browser.newContext({ baseURL });
+  try {
+    const ownerEmail = `deadline-owner-${randomUUID()}@example.test`;
+    const customerEmail = `deadline-customer-${randomUUID()}@example.test`;
+    for (const [api, email] of [[owner.request, ownerEmail], [customer.request, customerEmail]] as const) {
+      expect((await write(api, '/api/auth/register', { displayName: 'Deadline tester', email, password })).status()).toBe(201);
+    }
+    sql(`INSERT INTO app_user_roles(user_id,role) SELECT id,'OPERATOR' FROM app_users WHERE email='${ownerEmail}';
+      INSERT INTO operators(user_id) SELECT id FROM app_users WHERE email='${ownerEmail}';`);
+    const ownerPage = await owner.newPage();
+    const customerPage = await customer.newPage();
+    await login(ownerPage, ownerEmail, true);
+    await login(customerPage, customerEmail);
+    const vendor = await (await write(owner.request, '/api/operator/vendors', { name: 'Acceptance window truck', category: 'Food', location: 'CSUN' })).json();
+    const item = await (await write(owner.request, `/api/operator/vendors/${vendor.id}/menu-items`, { name: 'Deadline lunch', price: 5, status: 'ACTIVE' })).json();
+    sql(`INSERT INTO vendor_stops(vendor_id,venue_name,address,latitude,longitude,starts_at,ends_at,time_zone)
+      VALUES (${vendor.id},'Campus entrance','18111 Nordhoff St',34.24,-118.53,now()-interval '1 hour',now()+interval '1 hour','America/Los_Angeles')`);
+    await ownerPage.goto(`/operator/vendors/${vendor.id}/orders`);
+    await ownerPage.getByRole('combobox', { name: 'Time to accept new orders', exact: true }).selectOption('20');
+    await ownerPage.getByRole('button', { name: 'Save acceptance timeout' }).click();
+    await expect(ownerPage.getByText('Acceptance timeout saved. Existing order deadlines are unchanged.')).toBeVisible();
+    await ownerPage.reload();
+    await expect(ownerPage.getByRole('combobox', { name: 'Time to accept new orders', exact: true })).toHaveValue('20');
+    await ownerPage.screenshot({ path: testInfo.outputPath('acceptance-settings.png'), fullPage: true });
+    await customerPage.goto(`/trucks/${vendor.id}`);
+    await customerPage.getByRole('button', { name: 'Add Deadline lunch to cart' }).click();
+    await customerPage.getByRole('link', { name: 'My cart', exact: true }).click();
+    await expect(customerPage.getByText(/This truck may take up to 20 minutes/)).toBeVisible();
+    const submitted = customerPage.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/customer/orders'));
+    await customerPage.getByRole('button', { name: 'Place pickup order' }).click();
+    const command = (await submitted).postDataJSON();
+    await expect(customerPage).toHaveURL(/\/orders\/\d+\/confirmation$/);
+    const id = Number(customerPage.url().match(/\/orders\/(\d+)/)![1]);
+    await expect(customerPage.getByText(/Waiting for acceptance until/)).toBeVisible();
+    await customerPage.screenshot({ path: testInfo.outputPath('customer-acceptance-deadline.png'), fullPage: true });
+    const original = await (await customer.request.get(`/api/customer/orders/${id}`)).json();
+    expect(original.acceptanceMinutes).toBe(20);
+    expect(command.items[0].menuItemId).toBe(item.id);
+    await ownerPage.getByRole('combobox', { name: 'Time to accept new orders', exact: true }).selectOption('3');
+    await ownerPage.getByRole('button', { name: 'Save acceptance timeout' }).click();
+    await expect(ownerPage.getByText('Acceptance timeout saved. Existing order deadlines are unchanged.')).toBeVisible();
+    const unchanged = await (await customer.request.get(`/api/customer/orders/${id}`)).json();
+    expect(unchanged.acceptanceDeadline).toBe(original.acceptanceDeadline);
+    await ownerPage.getByRole('button', { name: 'Refresh orders', exact: true }).click();
+    await ownerPage.getByRole('button', { name: `View order #${id}`, exact: true }).click();
+    await expect(ownerPage.getByRole('button', { name: 'Accept order', exact: true })).toBeEnabled();
+    await customerPage.close();
+    // Time travel is restricted by sql() to this disposable test database, never the application database.
+    sql(`UPDATE customer_orders SET acceptance_deadline=clock_timestamp()-interval '1 second' WHERE id=${id}`);
+    await expect.poll(async () => (await (await customer.request.get(`/api/customer/orders/${id}`)).json()).status, { timeout: 20000 }).toBe('CANCELLED');
+    const recovered = await write(customer.request, '/api/customer/orders', command);
+    expect(recovered.status()).toBe(201);
+    expect((await recovered.json()).id).toBe(id);
+    expect(Number(sql(`SELECT count(*) FROM customer_orders WHERE vendor_id=${vendor.id}`))).toBe(1);
+    expect(sql(`SELECT actor_kind FROM customer_order_status_history WHERE order_id=${id}`)).toBe('SYSTEM');
+    const reopened = await customer.newPage();
+    await reopened.goto(`/orders/${id}/confirmation`);
+    await expect(reopened.getByText('The truck did not accept your order in time.', { exact: true })).toBeVisible();
+    await expect(reopened.getByRole('heading', { level: 1, name: 'Order cancelled' })).toBeVisible();
+    await expect(reopened.getByRole('status')).toContainText('The truck did not accept in time.');
+    await expect(reopened.getByRole('link', { name: 'Browse available trucks' })).toHaveAttribute('href', '/trucks');
+    await reopened.goto('/orders');
+    await expect(reopened.getByText('The truck did not accept in time.', { exact: true })).toBeVisible();
+    await expect(reopened.getByText('The truck did not accept your order in time.', { exact: true })).toBeVisible();
+    await reopened.getByRole('link', { name: `View order #${id}`, exact: true }).click();
+    await expect(reopened.getByRole('status')).toContainText('The truck did not accept in time.');
+    await expect(reopened.getByText('The truck did not accept your order in time.', { exact: true })).toBeVisible();
+    await reopened.screenshot({ path: testInfo.outputPath('customer-timeout-cancellation.png'), fullPage: true });
+    await expect(ownerPage.getByText('The truck did not accept your order in time.', { exact: true })).toBeVisible({ timeout: 35000 });
+    await expect(ownerPage.getByRole('button', { name: 'Accept order', exact: true })).toHaveCount(0);
+  } finally {
+    await owner.close();
+    await customer.close();
+  }
+});
+
+test('owner cutoff settings block new checkout while preserving existing order recovery', async ({ page, context }, testInfo) => {
+  const email = `cutoff-${randomUUID()}@example.test`;
+  expect((await write(context.request, '/api/auth/register', { displayName: 'Cutoff Owner', email, password })).status()).toBe(201);
+  sql(`INSERT INTO app_user_roles(user_id,role) SELECT id,'OPERATOR' FROM app_users WHERE email='${email}';
+    INSERT INTO operators(user_id) SELECT id FROM app_users WHERE email='${email}';`);
+  await login(page, email, true);
+  const vendor = await (await write(context.request, '/api/operator/vendors', { name: 'Cutoff truck', category: 'Food', location: 'CSUN' })).json();
+  const item = await (await write(context.request, `/api/operator/vendors/${vendor.id}/menu-items`, { name: 'Lunch', price: 5, status: 'ACTIVE' })).json();
+  const stop = Number(sql(`INSERT INTO vendor_stops(vendor_id,venue_name,address,latitude,longitude,starts_at,ends_at,time_zone)
+    VALUES (${vendor.id},'Entrance','18111 Nordhoff St',34.24,-118.53,now()-interval '1 hour',now()+interval '1 hour','America/Los_Angeles') RETURNING id`).split('\n')[0]);
+  expect(Number.isSafeInteger(stop)).toBe(true);
+  expect(stop).toBeGreaterThan(0);
+  const command = { vendorId: vendor.id, pickupStopId: stop, idempotencyKey: randomUUID(), items: [{ menuItemId: item.id, quantity: 1 }] };
+  const original = await write(context.request, '/api/customer/orders', command);
+  expect(original.status()).toBe(201);
+  const originalOrder = await original.json();
+  await page.goto(`/operator/vendors/${vendor.id}/orders`);
+  const input = page.getByLabel('Close new orders before pickup ends (minutes)');
+  await expect(input).toHaveValue('15');
+  await input.fill('120');
+  await page.getByRole('button', { name: 'Save cutoff' }).click();
+  await expect(page.getByText('Current cutoff: 120 minutes before pickup ends.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save cutoff' })).toBeDisabled();
+  await page.reload();
+  await expect(input).toHaveValue('120');
+  await page.screenshot({ path: testInfo.outputPath('owner-cutoff.png'), fullPage: true });
+  const rejected = await write(context.request, '/api/customer/orders', { ...command, idempotencyKey: randomUUID() });
+  expect(rejected.status()).toBe(409);
+  expect((await rejected.json()).detail).toContain('120 minutes');
+  const recovered = await write(context.request, '/api/customer/orders', command);
+  expect(recovered.status()).toBe(201);
+  expect((await recovered.json()).id).toBe(originalOrder.id);
+  expect(Number(sql(`SELECT count(*) FROM customer_orders WHERE vendor_id=${vendor.id}`))).toBe(1);
+  await input.fill('0');
+  await page.getByRole('button', { name: 'Save cutoff' }).click();
+  await expect(page.getByText('Current cutoff: 0 minutes before pickup ends.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save cutoff' })).toBeDisabled();
+  expect((await write(context.request, '/api/customer/orders', { ...command, idempotencyKey: randomUUID() })).status()).toBe(201);
+});
+
 test("real customer checkout, lost response retry, owner processing, tracking and isolation", async ({ browser }, testInfo) => {
   test.setTimeout(120_000); // Includes customer (10s) and owner (30s) real polling intervals.
   const customer = await browser.newContext({ baseURL });
@@ -316,7 +434,7 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     await customerPage.getByRole("article").filter({ has: customerPage.getByRole("heading", { name, exact: true }) })
       .getByRole("link", { name: "View Profile & Menu" }).click();
     await customerPage.getByRole("button", { name: "Add Campus Taco to cart" }).click();
-    await customerPage.getByRole("link", { name: /Cart \(/ }).click();
+    await customerPage.getByRole("link", { name: "My cart", exact: true }).click();
     await customerPage.getByLabel("Quantity for Campus Taco").selectOption("2");
     await expect(customerPage.getByText("18111 Nordhoff St", { exact: true })).toBeVisible();
 
@@ -394,15 +512,31 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     const pausedCart = await customer.newPage();
     await pausedCart.goto(`/trucks/${vendor.id}`);
     await pausedCart.getByRole("button", { name: "Add Campus Taco to cart" }).click();
-    await pausedCart.getByRole("link", { name: /Cart \(/ }).click();
+    await pausedCart.getByRole("link", { name: "My cart", exact: true }).click();
     await expect(pausedCart.getByText("Temporarily not accepting orders.", {exact: true})).toBeVisible();
     await expect(pausedCart.getByRole("button", {name:"Place pickup order"})).toBeDisabled();
     await ownerPage.getByRole("button", { name: `View order #${savedId}`, exact: true }).click();
     for (const [button, message] of [
       ["Accept order", "Your order has been accepted."],
       ["Mark ready", "Your order is ready for pickup."],
-      ["Mark collected", "Your order has been collected."],
+      ["Verify pickup & mark collected", "Your order has been collected."],
     ]) {
+      if (button.startsWith("Verify")) {
+        const customerOrder = await (await customer.request.get(`/api/customer/orders/${savedId}`)).json();
+        await expect(customerPage.getByRole("region", { name: "Pickup verification" })).toContainText(customerOrder.pickupCode);
+        await customerPage.reload();
+        await expect(customerPage.getByRole("region", { name: "Pickup verification" })).toContainText(customerOrder.pickupCode);
+        expect((await write(owner.request, `${path}/${savedId}/status`, { status: "COMPLETED", version: customerOrder.version }, "PATCH")).status()).toBe(409);
+        await ownerPage.getByLabel("Customer pickup code").fill(customerOrder.pickupCode === "000000" ? "000001" : "000000");
+        await ownerPage.getByRole("button", { name: button, exact: true }).click();
+        await expect(ownerPage.getByText("Pickup code is incorrect. Ask the customer to check their order details.")).toBeVisible();
+        await ownerPage.getByRole("button", { name: "Refresh order details", exact: true }).click();
+        await expect(ownerPage.getByLabel("Customer pickup code")).toBeEnabled();
+        await ownerPage.getByLabel("Customer pickup code").fill(customerOrder.pickupCode);
+        // Synthetic disposable accounts only; never record real customer pickup secrets.
+        await ownerPage.getByRole("form", { name: "Verify pickup" }).screenshot({ path: testInfo.outputPath("pickup-owner-verification.png") });
+        await customerPage.getByRole("region", { name: "Pickup verification" }).screenshot({ path: testInfo.outputPath("pickup-customer-code.png") });
+      }
       await ownerPage.getByRole("button", { name: button, exact: true }).click();
       // No reload/click on the customer page: verify actual automatic polling.
       await expect(customerPage.getByRole("region", { name: "Order status", exact: true }).getByRole("status")).toHaveText(message, { timeout: 25_000 });
@@ -439,8 +573,19 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     await ownerPage.getByLabel("Reason visible to the customer").fill("Kitchen closed unexpectedly.");
     await ownerPage.getByRole("button", { name: "Confirm cancellation", exact: true }).click();
     await expect(customerPage.getByRole("region", { name: "Order status", exact: true }).getByRole("status"))
-      .toHaveText("Your order was cancelled.", { timeout: 25_000 });
+      .toContainText("The truck cancelled your order.", { timeout: 25_000 });
     await expect(customerPage.getByText("Kitchen closed unexpectedly.", { exact: true })).toBeVisible();
+    await expect(customerPage.getByRole('heading', { level: 1, name: 'Order cancelled' })).toBeVisible();
+    await expect(customerPage.getByRole('region', { name: 'Pickup verification' })).toHaveCount(0);
+    await expect(customerPage.getByRole('link', { name: 'Get directions' })).toHaveCount(0);
+    await customerPage.goto('/orders');
+    await expect(customerPage.getByText('The truck cancelled your order.', { exact: true })).toBeVisible();
+    await expect(customerPage.getByText('Kitchen closed unexpectedly.', { exact: true })).toBeVisible();
+    await customerPage.screenshot({ path: testInfo.outputPath('customer-cancellation-history.png'), fullPage: true });
+    await customerPage.getByRole('link', { name: `View order #${secondId}`, exact: true }).click();
+    await expect(customerPage.getByRole('status')).toContainText('The truck cancelled your order.');
+    await customerPage.setViewportSize({ width: 390, height: 844 });
+    await customerPage.screenshot({ path: testInfo.outputPath('customer-owner-cancellation-mobile.png'), fullPage: true });
     // Customer cancellation uses the real session, CSRF, row version and database.
     const third = await write(customer.request, "/api/customer/orders", { ...submitted, idempotencyKey: randomUUID() });
     expect(third.status()).toBe(201);
@@ -454,7 +599,7 @@ test("real customer checkout, lost response retry, owner processing, tracking an
     await customerPage.getByRole("button", { name: "Cancel order", exact: true }).click();
     await customerPage.getByRole("button", { name: "Confirm cancellation", exact: true }).click();
     await expect(customerPage.getByRole("region", { name: "Order status", exact: true }).getByRole("status"))
-      .toHaveText("Your order was cancelled.");
+      .toContainText("You cancelled this order.");
     await expect(customerPage.getByRole("button", { name: "Cancel order", exact: true })).toHaveCount(0);
     const replayCancellation = await write(customer.request, cancelPath, { version: 0 });
     expect(replayCancellation.status()).toBe(200);
@@ -550,7 +695,7 @@ test("negative fixture IDs work; sold-out items and inactive pickup stops fail c
   await login(page, email);
   await page.goto("/trucks/-900001");
   await page.getByRole("button", { name: "Add Fixture Taco to cart" }).click();
-  await page.getByRole("link", { name: /Cart \(/ }).click();
+  await page.getByRole("link", { name: "My cart", exact: true }).click();
   await expect(page.getByRole("button", { name: "Place pickup order" })).toBeEnabled();
   sql("UPDATE vendor_menu_items SET availability_status='SOLD_OUT' WHERE id=-900001;");
   await page.getByRole("button", { name: "Place pickup order" }).click();

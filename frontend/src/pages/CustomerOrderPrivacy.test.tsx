@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import App from "../App";
@@ -16,6 +16,31 @@ const payload = (path: string) => path === "/orders" ? { items: [order], page: 0
 const show = (path: string) => render(<MemoryRouter initialEntries={[path]}><AuthProvider><App /></AuthProvider></MemoryRouter>);
 
 beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal("fetch", fetchMock); });
+
+it.each(routes)('clears cancellation reasons when a different account is recognized on %s', async path => {
+  let account = alice;
+  const cancelled = { ...order, status: 'CANCELLED', cancellationSource: 'OWNER', cancellationReason: 'Alice private cancellation reason' };
+  fetchMock.mockImplementation((url: string) => Promise.resolve(url === '/api/auth/me' ? reply(account)
+    : account.id === alice.id ? reply(path === '/orders' ? { items: [cancelled], page: 0, totalPages: 1 } : cancelled)
+      : path === '/orders' ? reply({ items: [], page: 0, totalPages: 0 }) : reply({},404)));
+  show(path);
+  await screen.findByText('Alice private cancellation reason');
+  account = bob;
+  fireEvent(window, new Event('focus'));
+  await waitFor(() => expect(screen.queryByText('Alice private cancellation reason')).not.toBeInTheDocument());
+  expect(screen.queryByText('The truck cancelled your order.')).not.toBeInTheDocument();
+});
+
+it("removes the private pickup code immediately when the account changes", async () => {
+  let account = alice;
+  fetchMock.mockImplementation((url: string) => Promise.resolve(url === "/api/auth/me" ? reply(account)
+    : account.id === alice.id ? reply({ ...order, status: "READY", pickupCode: "012345" }) : reply({},404)));
+  show("/orders/42/confirmation");
+  await screen.findByText("012345");
+  account = bob;
+  fireEvent(window,new Event("focus"));
+  await waitFor(()=>expect(screen.queryByText("012345")).not.toBeInTheDocument());
+});
 
 it.each(routes)("removes private data when a focus check discovers account switching on %s", async path => {
   let account = alice;
@@ -66,7 +91,7 @@ it.each(routes)("hides private orders if session verification fails on %s", asyn
   await screen.findByText(/Alice private truck/);
   failed = true;
   fireEvent(window, new Event("focus"));
-  expect(await screen.findByRole("alert")).toHaveTextContent("Unable to check your session");
+  await waitFor(() => expect(within(screen.getByRole("main")).getByRole("alert")).toHaveTextContent("Unable to check your session"));
   expect(screen.queryByText(/Alice private truck/)).not.toBeInTheDocument();
 });
 

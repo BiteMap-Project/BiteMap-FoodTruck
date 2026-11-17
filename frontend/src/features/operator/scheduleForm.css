@@ -2,6 +2,7 @@
   max-width: 760px;
 }
 .ow-connected .sf-address,
+.ow-connected .sf-pin,
 .ow-connected .sf-times {
   display: grid;
   gap: 14px;
@@ -10,6 +11,16 @@
   border-radius: 12px;
   background: #fff;
   min-width: 0;
+}
+.ow-connected .sf-pin-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.ow-connected .sf-pin-confirm input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 .ow-connected .sf-grid {
   display: grid;

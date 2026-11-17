@@ -20,7 +20,25 @@
 .ow-connected .ow-ordering-control + .ow-orders { margin-top: 28px; }
 .ow-connected .ow-ordering-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
 .ow-connected .ow-ordering-actions .od-button { white-space: normal; }
+.ow-connected .ow-cutoff-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: 1px solid var(--od-line, #e1e5dc);
+  max-width: 680px;
+}
+.ow-connected .ow-cutoff-form h3 { margin: 0; font-size: 1.1rem; font-weight: 650; }
+.ow-connected .ow-cutoff-form label { display: grid; gap: 10px; line-height: 1.5; }
+.ow-connected .ow-cutoff-form input,
+.ow-connected .ow-cutoff-form select { width: 100%; max-width: 320px; min-height: 44px; box-sizing: border-box; }
+.ow-connected .ow-cutoff-form p { margin: 0; color: #596354; line-height: 1.65; }
+.ow-connected .ow-cutoff-form > .od-button { justify-self: start; min-height: 44px; margin-top: 4px; }
 @media (max-width: 480px) {
+  .ow-connected .ow-cutoff-form { margin-top: 24px; padding-top: 24px; }
+  .ow-connected .ow-cutoff-form input,
+  .ow-connected .ow-cutoff-form select { max-width: none; }
+  .ow-connected .ow-cutoff-form > .od-button { width: 100%; justify-content: center; }
   .ow-connected .ow-ordering-actions { flex-direction: column; align-items: stretch; }
   .ow-connected .ow-ordering-actions .od-button { width: 100%; justify-content: center; }
 }
@@ -28,3 +46,8 @@
 .ow-estimate-control { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin: 18px 0; }
 .ow-estimate-control label { display: grid; gap: 7px; color: #344c31; font-weight: 700; }
 .ow-estimate-control select { min-height: 42px; padding: 8px 34px 8px 10px; border: 1px solid #d6dacf; border-radius: 8px; background: white; color: #293c31; font: inherit; }
+.ow-pickup-verification { display: grid; gap: 1rem; margin-block: 1.5rem; padding: 1.5rem; border: 1px solid #e3e5db; border-radius: 1rem; background: #f8f8f2; }
+.ow-pickup-verification h4, .ow-pickup-verification p { margin: 0; }
+.ow-pickup-verification label { display: grid; gap: .5rem; }
+.ow-pickup-verification input { width: 100%; max-width: 16rem; box-sizing: border-box; padding: .85rem; font: inherit; font-size: 1.5rem; letter-spacing: .3em; border: 1px solid #a8b0a5; border-radius: .6rem; }
+.ow-pickup-verification button { justify-self: start; }

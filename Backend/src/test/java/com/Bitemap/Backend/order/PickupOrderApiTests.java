@@ -100,6 +100,27 @@ class PickupOrderApiTests {
         assertThat(new PickupService(jdbc,java.time.Clock.fixed(end,java.time.ZoneOffset.UTC)).current(vendor)).isNull();
     }
 
+    @Test void defaultCutoffIncludesTheExactBoundaryAndPreservesRetries() throws Exception {
+        var end = java.time.Instant.parse("2030-01-01T20:00:00Z");
+        jdbc.update("UPDATE vendor_stops SET starts_at=?,ends_at=? WHERE id=?",
+            java.sql.Timestamp.from(end.minusSeconds(7200)), java.sql.Timestamp.from(end), stop);
+        var before = new PickupService(jdbc, java.time.Clock.fixed(end.minusSeconds(901), java.time.ZoneOffset.UTC));
+        assertThat(before.current(vendor).stopId()).isEqualTo(stop);
+        var boundary = new PickupService(jdbc, java.time.Clock.fixed(end.minusSeconds(900), java.time.ZoneOffset.UTC));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> boundary.current(vendor))
+            .isInstanceOf(OrderUnavailableException.class).hasMessageContaining("Ordering closed");
+    }
+
+    @Test void checkoutAtCutoffCreatesNothingAndAnExistingAttemptStillRecovers() throws Exception {
+        String original = body(UUID.randomUUID(), stop);
+        long id = json.readTree(submit(original).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).get("id").asLong();
+        jdbc.update("UPDATE vendor_stops SET ends_at=clock_timestamp()+interval '10 minutes' WHERE id=?", stop);
+        submit(body(UUID.randomUUID(), stop)).andExpect(status().isConflict())
+            .andExpect(jsonPath("$.detail").value("Ordering closed for this stop. New orders close 15 minutes before pickup ends."));
+        submit(original).andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(id));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM customer_orders", Integer.class)).isEqualTo(1);
+    }
+
     @Test void ownerSeesSameSnapshotAndCannotCancelStopWithOpenOrders() throws Exception {
         long operator=com.Bitemap.Backend.TestAccounts.operator(jdbc,"Owner","pickup-owner@example.com","unused");
         jdbc.update("UPDATE vendors SET operator_id=? WHERE id=?",operator,vendor);

@@ -20,6 +20,11 @@ function setup(pickupResponse:Response) {
     ?response(200,{id:1,displayName:'Customer',roles:['ROLE_CUSTOMER']}):pickupResponse);
   render(<MemoryRouter><CartPage/></MemoryRouter>);
 }
+it('shows the acceptance window before checkout separately from preparation time',async()=>{
+  setup(response(200,{...pickup,acceptanceMinutes:20}));
+  expect(await screen.findByText(/up to 20 minutes to accept/)).toBeInTheDocument();
+  expect(screen.getByText(/Preparation time is separate/)).toBeInTheDocument();
+});
 it('blocks checkout without a current stop and allows a retry',async()=>{
   setup(response(204));
   expect(await screen.findByText(/No active pickup stop/)).toBeInTheDocument();
@@ -40,6 +45,13 @@ it('explains an ordering pause and retains the cart', async () => {
   expect(await screen.findByText('Temporarily not accepting orders.')).toBeInTheDocument();
   expect(screen.getByRole('button', {name:'Place pickup order'})).toBeDisabled();
   expect(screen.getByRole('heading', {name:'Taco'})).toBeInTheDocument();
+});
+it('explains the closing-time cutoff without discarding the cart', async () => {
+  const detail = 'Ordering closed for this stop. New orders close 15 minutes before pickup ends.';
+  setup(response(409, { detail }));
+  expect(await screen.findByText(detail)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Place pickup order' })).toBeDisabled();
+  expect(screen.getByRole('heading', { name: 'Taco' })).toBeInTheDocument();
 });
 it('shows the exact address and coordinate-based directions',async()=>{
   setup(response(200,pickup));

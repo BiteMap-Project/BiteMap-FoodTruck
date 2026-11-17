@@ -19,8 +19,10 @@ public class PickupService {
 
     @Transactional(readOnly=true)
     public PickupDetails current(long vendorId) {
-        Boolean accepting = jdbc.query("SELECT accepting_orders FROM vendors WHERE id=?", r -> r.next() ? r.getBoolean(1) : null, vendorId);
-        if (Boolean.FALSE.equals(accepting)) throw new OrderUnavailableException("Temporarily not accepting orders.");
+        var settings = jdbc.query("SELECT accepting_orders,ordering_cutoff_minutes,acceptance_minutes FROM vendors WHERE id=?",
+            (r, n) -> new com.Bitemap.Backend.vendor.OrderingControl(r.getBoolean(1), 0, r.getLong(2), r.getLong(3)), vendorId);
+        if (settings.isEmpty()) return null;
+        if (!settings.getFirst().acceptingOrders()) throw new OrderUnavailableException("Temporarily not accepting orders.");
         var now=Timestamp.from(clock.instant());
         var rows=jdbc.query("""
             SELECT id AS stop_id,venue_name,address,latitude,longitude,starts_at,ends_at,time_zone
@@ -28,7 +30,13 @@ public class PickupService {
               AND starts_at <= ? AND ends_at > ? ORDER BY id LIMIT 2
             """,ROW,vendorId,now,now);
         // Fail closed for legacy/imported overlapping stops instead of picking an arbitrary location.
-        return rows.size()==1 ? rows.getFirst() : null;
+        if (rows.size()!=1) return null;
+        var stop = rows.getFirst();
+        long cutoff = settings.getFirst().cutoffMinutes();
+        if (!now.toInstant().isBefore(stop.endsAt().minusSeconds(cutoff * 60)))
+            throw new OrderUnavailableException("Ordering closed for this stop. New orders close " + cutoff + " minutes before pickup ends.");
+        return new PickupDetails(stop.stopId(),stop.venueName(),stop.address(),stop.latitude(),stop.longitude(),
+            stop.startsAt(),stop.endsAt(),stop.timeZone(),settings.getFirst().acceptanceMinutes());
     }
 
     // Caller holds the vendor row FOR SHARE. Schedule writers take FOR UPDATE on that

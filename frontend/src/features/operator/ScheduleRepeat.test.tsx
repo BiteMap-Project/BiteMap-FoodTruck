@@ -68,6 +68,7 @@ async function openForm() {
   ]) fireEvent.change(screen.getByLabelText(label), { target: { value } });
   fireEvent.click(screen.getByText("Find address"));
   fireEvent.click(await screen.findByText("Use 18111 NORDHOFF ST"));
+  fireEvent.click(screen.getByRole('checkbox', { name: /I checked the pin/ }));
 }
 
 function repeat(frequency: RepeatRule["frequency"], until: string) {

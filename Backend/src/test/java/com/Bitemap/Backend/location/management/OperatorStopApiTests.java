@@ -40,15 +40,38 @@ class OperatorStopApiTests {
     }
     Map<String, Object> details() {
         return new HashMap<>(Map.of("venueName", " Campus lunch ", "address", " CSUN ", "latitude", 34.24, "longitude", -118.53,
-                "startsAt", "2030-01-02T11:00:00-08:00", "endsAt", "2030-01-02T14:00:00-08:00", "timeZone", "America/Los_Angeles"));
+                "startsAt", "2030-01-02T11:00:00-08:00", "endsAt", "2030-01-02T14:00:00-08:00", "timeZone", "America/Los_Angeles", "locationConfirmed", true));
+    }
+    @Test void publishingRequiresExplicitLocationConfirmation() throws Exception {
+        for (Object confirmation : new Object[]{false, "true", 1}) {
+            var body = details(); body.put("locationConfirmed", confirmation);
+            mvc.perform(post(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))
+                .with(csrf()).contentType("application/json").content(json.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
+        }
+        var missing = details(); missing.remove("locationConfirmed");
+        mvc.perform(post(root(vendor)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))
+            .with(csrf()).contentType("application/json").content(json.writeValueAsString(missing)))
+            .andExpect(status().isBadRequest());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM vendor_stops WHERE vendor_id=?", Integer.class, vendor)).isZero();
     }
     String root(long v) { return "/api/operator/vendors/" + v + "/stops"; }
+    @Test void editingRequiresReconfirmationAndPreservesTheStoredPinOnRejection() throws Exception {
+        long id = create(vendor, details());
+        var original = jdbc.queryForMap("SELECT * FROM vendor_stops WHERE id=?", id);
+        var changed = details(); changed.put("latitude", 34.25); changed.put("locationConfirmed", false);
+        mvc.perform(put(root(vendor)+"/"+id).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR"))
+            .with(csrf()).contentType("application/json").content(json.writeValueAsString(Map.of("stop", changed, "version", 0))))
+            .andExpect(status().isBadRequest());
+        assertThat(jdbc.queryForMap("SELECT * FROM vendor_stops WHERE id=?", id)).isEqualTo(original);
+    }
     long owner(String email) { return com.Bitemap.Backend.TestAccounts.operator(jdbc, "Schedule test", email, "unused"); }
     long vendor(Long id) { return jdbc.queryForObject("INSERT INTO vendors(name,category,location,operator_id) VALUES ('Schedule truck','Food','Test',?) RETURNING id", Long.class, id); }
     long create(long v, Map<String,Object> body) throws Exception {
         var result = mvc.perform(post(root(v)).with(com.Bitemap.Backend.TestAccounts.user(EMAIL).roles("OPERATOR")).with(csrf()).contentType("application/json").content(json.writeValueAsString(body)))
                 .andExpect(status().isCreated()).andExpect(header().string("Cache-Control", "no-store")).andExpect(jsonPath("$.version").value(0)).andReturn();
         long id = json.readTree(result.getResponse().getContentAsString()).get("id").asLong();
+        assertThat(jdbc.queryForObject("SELECT location_confirmed_at FROM vendor_stops WHERE id=?", java.sql.Timestamp.class, id)).isNotNull();
         assertThat(result.getResponse().getHeader("Location")).isEqualTo(root(v) + "/" + id);
         return id;
     }

@@ -209,3 +209,30 @@ body:has(.auth-page) { background: #f8f8f4; }
   .auth-story-foot { display: none; }
   .auth-card { width: 100%; max-width: 560px; }
 }
+
+/* Customer and operator login pages */
+.auth-login-page .auth-story {
+  justify-content: flex-start;
+}
+
+.auth-login-page .auth-story h2 {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(32px, 3.5vw, 52px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.8px;
+}
+
+.auth-login-page .auth-story h2 em {
+  font-style: normal;
+  font-weight: inherit;
+}
+
+.auth-login-page .auth-card h1 {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 600;
+}
+
+.auth-login-page .auth-card form {
+  margin-top: 24px;
+}

@@ -1,5 +1,5 @@
 import ActionError from "../components/ActionError";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { cartTotal, clearCart, readCart, setCartQuantity } from "../features/cart/cart";
 import "./cart.css";
@@ -31,6 +31,23 @@ function CartContent() {
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState("");
   const stop = usePickupStop(cart?.vendorId);
+  const [cartMessage, setCartMessage] = useState('');
+  const pageRef = useRef<HTMLElement>(null);
+  const focusAfterRemoval = useRef<number | 'empty' | null>(null);
+  useLayoutEffect(() => {
+    const target = focusAfterRemoval.current;
+    if (target === null) return;
+    pageRef.current?.querySelector<HTMLElement>(target === 'empty' ? '.cart-empty h2' : `[data-cart-quantity="${target}"]`)?.focus();
+    focusAfterRemoval.current = null;
+  }, [cart]);
+  function removeItem(id: number, name: string) {
+    if (locked || submitting || !cart) return;
+    const index = cart.items.findIndex(item => item.id === id);
+    const next = setCartQuantity(id, 0);
+    focusAfterRemoval.current = next?.items[Math.min(index, next.items.length - 1)]?.id ?? 'empty';
+    setCart(next);
+    setCartMessage(`${name} removed from your cart.`);
+  }
 
   async function placeOrder() {
     if (!cart || !account || submittingRef.current || recoveryBlocked || (!attempt && (stop.loading || !stop.pickup))) return;
@@ -53,19 +70,20 @@ function CartContent() {
 
   return <div className="cart-site">
     <nav className="customer-page-links" aria-label="Page navigation"><Link to="/trucks">Browse trucks</Link></nav>
-    <main className="cart-page">
+    <main className="cart-page" ref={pageRef}>
       <p className="cart-eyebrow">PICKUP ORDER</p>
       <h1>Your cart</h1>
+      <p className="a11y-only" role="status">{submitting ? 'Submitting your order. Please wait.' : cartMessage}</p>
       {recoveryBlocked ? <section role="alert"><h2>Checkout needs recovery</h2><p>Sign in with the account that started checkout to recover its order. If recovery data is unavailable, check My orders and contact support before starting another order. Do not clear browser storage.</p><Link to="/customer/login">Customer sign in</Link></section>
-      : !cart ? <section className="cart-empty"><h2>Your cart is empty.</h2><p>Choose an available item from a truck menu to get started.</p><Link className="cart-primary" to="/trucks">Find a food truck</Link></section> : <>
+      : !cart ? <section className="cart-empty"><h2 tabIndex={-1}>Your cart is empty.</h2><p>Choose an available item from a truck menu to get started.</p><Link className="cart-primary" to="/trucks">Find a food truck</Link></section> : <>
         {locked && <section className="cart-pickup" role="status"><h2>Recover your checkout</h2><p>Your original items and pickup stop are saved. The order may already exist. Recover it before changing your cart; recovery uses the same order reference.</p></section>}
         <section className="cart-summary" aria-labelledby="cart-truck"><div><p>Ordering from</p><h2 id="cart-truck">{cart.vendorName}</h2></div><Link to={`/trucks/${cart.vendorId}`}>Add more items</Link></section>
         <ul className="cart-items">
           {cart.items.map((item) => <li key={item.id}>
             <div><h3>{item.name}</h3><p>{dollars.format(item.price)} each</p></div>
-            <label>Quantity for {item.name}<select disabled={locked || submitting} value={item.quantity} onChange={(event) => setCart(setCartQuantity(item.id, Number(event.target.value)))}>{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((quantity) => <option key={quantity} value={quantity}>{quantity}</option>)}</select></label>
+            <label>Quantity for {item.name}<select data-cart-quantity={item.id} disabled={locked || submitting} value={item.quantity} onChange={(event) => { setCart(setCartQuantity(item.id, Number(event.target.value))); setCartMessage(`${item.name} quantity updated to ${event.target.value}.`); }}>{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((quantity) => <option key={quantity} value={quantity}>{quantity}</option>)}</select></label>
             <strong>{dollars.format(item.price * item.quantity)}</strong>
-            <button disabled={locked || submitting} className="cart-remove-item" type="button" aria-label={`Remove ${item.name}`} title="Remove item" onClick={() => setCart(setCartQuantity(item.id, 0))}>
+            <button disabled={locked || submitting} className="cart-remove-item" type="button" aria-label={`Remove ${item.name}`} title="Remove item" onClick={() => removeItem(item.id, item.name)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></svg>
             </button>
           </li>)}
@@ -92,7 +110,7 @@ function CartContent() {
         {account
           ? <><p className="cart-signed-in">Signed in as {account.displayName}</p>{<ActionError className="cart-order-error" message={orderError}/>}<button className="cart-checkout" type="button" disabled={submitting || (!attempt && (stop.loading || !stop.pickup))} onClick={placeOrder}>{submitting ? "Placing order…" : attempt ? "Recover order" : "Place pickup order"}</button></>
           : <Link className="cart-checkout cart-checkout-link" to="/customer/login" state={{ returnTo: "/cart" }}>Sign in to continue</Link>}
-        <button disabled={locked || submitting} className="cart-clear" type="button" onClick={() => { clearCart(); setCart(null); }}>Clear cart</button>
+        <button disabled={locked || submitting} className="cart-clear" type="button" onClick={() => { focusAfterRemoval.current = 'empty'; clearCart(); setCart(null); setCartMessage('Your cart was cleared.'); }}>Clear cart</button>
       </>}
     </main>
   </div>;

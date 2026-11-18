@@ -25,11 +25,14 @@ it('requires explicit confirmation, sends version and CSRF, and updates status',
   open(); fireEvent.click(await screen.findByRole('button',{name:'Cancel order'}));
   expect(fetchMock.mock.calls.some(([url])=>url.endsWith('/cancel'))).toBe(false);
   expect(screen.getByRole('button',{name:'Keep order'})).toHaveClass('cart-primary');
+  expect(screen.getByRole('heading',{name:'Cancel order #42?'})).toHaveFocus();
   fireEvent.click(screen.getByRole('button',{name:'Keep order'}));
+  expect(screen.getByRole('button',{name:'Cancel order'})).toHaveFocus();
   expect(screen.queryByRole('button',{name:'Confirm cancellation'})).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button',{name:'Cancel order'}));
   fireEvent.click(screen.getByRole('button',{name:'Confirm cancellation'}));
   expect(await screen.findByText('Your order was cancelled.')).toBeInTheDocument();
+  expect(screen.getByRole('heading',{name:'Your order was cancelled.'})).toHaveFocus();
   expect(screen.queryByRole('button',{name:'Cancel order'})).not.toBeInTheDocument();
   const write = fetchMock.mock.calls.find(([url])=>url.endsWith('/cancel'))![1];
   expect(JSON.parse(write.body)).toEqual({version:0});
@@ -48,6 +51,7 @@ it('refreshes on a conflict without automatically retrying cancellation', async 
   open(); fireEvent.click(await screen.findByRole('button',{name:'Cancel order'}));
   fireEvent.click(screen.getByRole('button',{name:'Confirm cancellation'}));
   await waitFor(()=>expect(screen.getByText('Your order has been accepted.')).toBeInTheDocument());
+  expect(screen.getByRole('heading',{name:'Your order has been accepted.'})).toHaveFocus();
   expect(fetchMock.mock.calls.filter(([url])=>url.endsWith('/cancel'))).toHaveLength(1);
 });
 it('locks duplicate confirmations and recovers a committed cancellation after a lost response', async () => {
@@ -62,6 +66,7 @@ it('locks duplicate confirmations and recovers a committed cancellation after a 
   fireEvent.click(confirm); fireEvent.click(confirm);
   await waitFor(()=>expect(fetchMock.mock.calls.filter(([url])=>url.endsWith('/cancel'))).toHaveLength(1));
   expect(screen.getByRole('button',{name:'Cancelling…'})).toBeDisabled();
+  expect(screen.getByText('Cancellation is being checked. Please wait.')).toHaveAttribute('role','status');
   current={...order,status:'CANCELLED',version:1};
   rejectWrite(new TypeError('Network interrupted'));
   expect(await screen.findByText('Your order was cancelled.')).toBeInTheDocument();

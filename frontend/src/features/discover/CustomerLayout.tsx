@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { useLayoutEffect, useRef } from 'react';
 import { BagIcon, ClockIcon, PinIcon, SearchIcon } from "../../components/icons";
 import AccountNavigation from "./AccountNavigation";
 import ResponsiveNavigation from "./ResponsiveNavigation";
@@ -9,6 +10,17 @@ import "./customer-layout.css";
 export default function CustomerLayout() {
   const count = useCartCount();
   const location = useLocation();
+  const content = useRef<HTMLDivElement>(null);
+  const previousPath = useRef(location.pathname);
+  useLayoutEffect(() => {
+    if (previousPath.current === location.pathname) return;
+    previousPath.current = location.pathname;
+    // Dialog cleanup runs before layout setup. Finish the focus handoff before
+    // paint, so it cannot steal focus from the user's next Tab action.
+    const target = content.current?.querySelector<HTMLElement>('main') ?? content.current;
+    target?.setAttribute('tabindex', '-1');
+    target?.focus();
+  }, [location.pathname]);
   const discovery = ["/", "/trucks", "/stops"].includes(location.pathname);
   function destination(path: string) {
     const params = new URLSearchParams(discovery ? location.search : "");
@@ -30,6 +42,6 @@ export default function CustomerLayout() {
         <AccountNavigation />
       </ResponsiveNavigation>
     </aside>
-    <div id="customer-content" className="customer-content"><Outlet /></div>
+    <div id="customer-content" ref={content} className="customer-content" tabIndex={-1}><Outlet /></div>
   </div>;
 }

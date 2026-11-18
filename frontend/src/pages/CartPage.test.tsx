@@ -65,4 +65,14 @@ it("removes the final item", () => {
   expect(remove.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
   fireEvent.click(remove);
   expect(screen.getByRole("heading", { name: "Your cart is empty." })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Your cart is empty." })).toHaveFocus();
+  expect(screen.getByRole("status")).toHaveTextContent("Taco removed from your cart.");
+});
+
+it("moves focus to the next quantity after removing a cart row", () => {
+  addCartItem(4, "Taco Truck", { id: 8, name: "Taco", price: 4.5 });
+  addCartItem(4, "Taco Truck", { id: 9, name: "Lassi", price: 3 });
+  render(<MemoryRouter><CartPage /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Remove Taco" }));
+  expect(screen.getByLabelText("Quantity for Lassi")).toHaveFocus();
 });

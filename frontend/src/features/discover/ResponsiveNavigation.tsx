@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/authState";
 
@@ -12,7 +12,7 @@ export default function ResponsiveNavigation({ children }: { children: ReactNode
   const open = openedFor === context;
   const setOpen = (value: boolean) => setOpenedFor(value ? context : null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const panel = dialog.current;
     const opener = trigger.current;
     if (!panel) return;

@@ -27,17 +27,21 @@ it("shows pickup codes with leading zeros and removes them after collection", as
   fetchMock.mockResolvedValue(response({ ...order, pickupCode: "012345" }));
   await show();
   expect(screen.getByText("012345")).toBeInTheDocument();
+  expect(screen.getByText('Pickup code 0 1 2 3 4 5')).toBeInTheDocument();
   fetchMock.mockResolvedValue(response({ ...order, status: "COMPLETED", pickupCode: null }));
   await tick();
   expect(screen.queryByText("012345")).not.toBeInTheDocument();
 });
 it("shows placed, accepted, ready and collected status without reloading", async () => {
   await show();
+  const link = screen.getByRole('link', {name:'Other order'});
+  link.focus();
   expect(screen.getByText("Your order has been placed.")).toBeInTheDocument();
   for (const [status, message] of [["ACCEPTED","Your order has been accepted."],["READY","Your order is ready for pickup."],["COMPLETED","Your order has been collected."]]) {
     fetchMock.mockResolvedValue(response({ ...order, status }));
     await tick();
     expect(screen.getByText(message)).toBeInTheDocument();
+    expect(link).toHaveFocus();
   }
   const count = fetchMock.mock.calls.length;
   await tick(60000); expect(fetchMock).toHaveBeenCalledTimes(count);

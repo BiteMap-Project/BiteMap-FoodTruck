@@ -122,7 +122,7 @@ for (const device of cases) {
           await expect(card).toBeVisible();
           await fits(page, "discovery");
           await activate(page, card.getByRole("link", { name: "View Profile & Menu" }), device.keyboard);
-          const add = page.getByRole("button", { name: "Add Campus Taco to cart" });
+          const add = page.getByRole("button", { name: "Add to cart: Campus Taco" });
           await usable(add);
           await fits(page, "menu");
           await activate(page, add, device.keyboard);

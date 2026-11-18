@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { auditOrderingPage } from './accessibility.js';
 
 test("mobile discovery puts search before promotional copy without changing desktop", async ({ page }) => {
   await page.route("**/api/**", route => route.fulfill({
@@ -48,6 +49,7 @@ test("shared customer navigation preserves checkout recovery and follows account
     await panel.getByRole("link", { name, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${path}$`));
     await expect(panel).toBeHidden();
+    if (path === '/orders') await expect(page.locator('main')).toBeFocused();
     await menu.click();
     await expect(panel.getByRole("link", { name, exact: true })).toHaveAttribute("aria-current", "page");
     await page.keyboard.press("Escape");
@@ -57,7 +59,9 @@ test("shared customer navigation preserves checkout recovery and follows account
   await expect(page).toHaveURL(/\/orders$/);
   await page.reload();
   await expect(page.getByRole("heading", { name: "My orders", exact: true })).toBeVisible();
+  await auditOrderingPage(page);
   await menu.click();
+  await auditOrderingPage(page);
   await expect(panel.getByRole("link", { name: "Access your truck", exact: true })).toBeVisible();
   for (let i = 0; i < 20; i++) {
     await page.keyboard.press("Tab");

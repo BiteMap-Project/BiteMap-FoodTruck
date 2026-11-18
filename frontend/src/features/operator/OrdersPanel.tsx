@@ -176,7 +176,7 @@ function OrderDetail({ vendorId, orderId, observedVersion, onBusy, onSaved }: {
       setLoading(true); setOrder(null); setError(""); setMessage(""); setAttempt(value => value + 1);
     }}>Refresh order details</button>
     {loading && <p role="status">Loading order details…</p>}
-    <ActionError className="ow-error" message={error} />
+    <ActionError id="owner-order-action-error" className="ow-error" message={error} />
     {blocked && <p>Refresh order details before taking another action. The previous request may already have succeeded.</p>}
     {message && <p role="status" className="ow-message">{message}</p>}
     {order && <>
@@ -204,8 +204,8 @@ function OrderDetail({ vendorId, orderId, observedVersion, onBusy, onSaved }: {
         {["PLACED", "ACCEPTED"].includes(order.status) && !cancelling && <button disabled={busy || blocked || loading} onClick={() => setCancelling(true)}>Cancel order</button>}
       </div>
       {order.status === "READY" && <form className="ow-pickup-verification" aria-label="Verify pickup" onSubmit={event => { event.preventDefault(); if (/^[0-9]{6}$/.test(pickupCode)) void change("COMPLETED"); }}>
-        <h4>Confirm food handoff</h4><p>Ask the customer for the six-digit code from their order. There is no manual override.</p>
-        <label>Customer pickup code<input type="text" inputMode="numeric" autoComplete="off" pattern="[0-9]{6}" maxLength={6}
+        <h4>Confirm food handoff</h4><p id="pickup-code-help">Enter all six digits, including any starting zero. Ask the customer for the code from their order. There is no manual override.</p>
+        <label>Customer pickup code<input aria-describedby={`pickup-code-help${error ? ' owner-order-action-error' : ''}`} type="text" inputMode="numeric" autoComplete="off" pattern="[0-9]{6}" maxLength={6}
           required value={pickupCode} disabled={busy || blocked || loading} onChange={event => setPickupCode(event.target.value.replace(/[^0-9]/g, ""))} /></label>
         <button className="od-button od-button-primary" disabled={busy || blocked || loading || !/^[0-9]{6}$/.test(pickupCode)}>
           {busy ? "Verifying pickup…" : "Verify pickup & mark collected"}</button>

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import TruckAvailabilityBadge from "../components/TruckAvailabilityBadge";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { getVendor, type VendorProfile } from "../services/vendors";
 import { EmptyState, ErrorState, LoadingState } from "../components/StatusViews";
@@ -165,6 +166,7 @@ function TruckMenuPage() {
             <div className="truck-profile-copy">
               <p className="truck-eyebrow">MEET YOUR NEXT FAVORITE</p>
               <h1>{current.truck.name}</h1>
+              <TruckAvailabilityBadge vendorId={current.truck.id} availability={current.truck.availability} />
               <p>Category: {current.truck.category}</p>
               <p>Location: {current.truck.location}</p>
               <RatingBadge vendorId={current.truck.id} averageRating={current.truck.averageRating} reviewCount={current.truck.reviewCount} onProfile />

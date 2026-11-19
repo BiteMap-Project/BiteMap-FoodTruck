@@ -13,7 +13,13 @@
 .ow-connected .ow-order-ready { background: #dcead7; color: #2d5224; }
 .ow-connected .ow-order-cancelled { background: #f8e4df; color: #8a3025; }
 .ow-connected .ow-order-list button[aria-pressed="true"] { outline: 2px solid #98401f; outline-offset: 2px; }
-@media (max-width: 1050px) { .ow-connected .ow-order-layout { grid-template-columns: minmax(0, 1fr); } }
+.ow-connected .ow-order-back { display: none; margin-bottom: 20px; }
+@media (max-width: 1050px) {
+  .ow-connected .ow-order-layout { grid-template-columns: minmax(0, 1fr); }
+  .ow-connected .ow-order-layout.has-selection > .ow-order-queue,
+  .ow-connected .ow-order-placeholder { display: none; }
+  .ow-connected .ow-order-back { display: inline-flex; }
+}
 @media (max-width: 480px) { .ow-connected .ow-order-detail { padding: 16px; } }
 .ow-connected .ow-ordering-control { border-top: 3px solid #80905f; }
 .ow-connected .ow-ordering-control h2, .ow-connected .ow-orders > .ow-toolbar h2 { margin-top: 0; }

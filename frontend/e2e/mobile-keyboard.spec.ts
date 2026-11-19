@@ -161,6 +161,15 @@ for (const device of cases) {
           await ownerPage.goto(`/operator/vendors/${vendor.id}/orders`);
           await activate(ownerPage, ownerPage.getByRole("button", { name: `View order #${orderId}`, exact: true }), device.keyboard);
           await expect(ownerPage.getByRole("heading", { name: `Order #${orderId} details` })).toBeFocused();
+          await expect(ownerPage.locator('.ow-order-queue')).toBeHidden();
+          await expect(ownerPage.getByRole('button', {name:'Back to orders', exact:true})).toBeVisible();
+          await activate(ownerPage, ownerPage.getByRole('button', {name:'Back to orders', exact:true}), device.keyboard);
+          await expect(ownerPage.getByRole('button', {name:`View order #${orderId}`, exact:true})).toBeFocused();
+          await expect(ownerPage).not.toHaveURL(/order=/);
+          await activate(ownerPage, ownerPage.getByRole('button', {name:`View order #${orderId}`, exact:true}), device.keyboard);
+          await ownerPage.reload();
+          await expect(ownerPage.locator('.ow-order-queue')).toBeHidden();
+          await expect(ownerPage.getByRole("heading", { name: `Order #${orderId} details` })).toBeVisible();
           const accept = ownerPage.getByRole("button", { name: "Accept order", exact: true });
           await expect(accept).toBeEnabled();
           await usable(accept);

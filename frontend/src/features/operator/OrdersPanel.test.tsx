@@ -41,6 +41,15 @@ async function detail() {
 }
 const writes = () => fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH");
 
+it('returns from selected details to the queue and restores the originating button', async () => {
+  await detail();
+  expect(document.querySelector('.ow-order-layout')).toHaveClass('has-selection');
+  fireEvent.click(screen.getByRole('button', { name: 'Back to orders' }));
+  expect(screen.queryByRole('heading', {name:'Order #42 details'})).not.toBeInTheDocument();
+  expect(screen.getByRole('button', {name:'View order #42'})).toHaveFocus();
+  expect(document.querySelector('.ow-order-layout')).not.toHaveClass('has-selection');
+});
+
 it("reopens a bookmarked order and queue filter without a previous component session", async () => {
   render(<MemoryRouter initialEntries={["/operator/vendors/7/orders?order=42&status=PLACED&page=0"]}><OperatorWorkspace account={account} onSignOut={() => {}} signingOut={false} logoutError="" /></MemoryRouter>);
   expect(await screen.findByText("Saved taco")).toBeInTheDocument();

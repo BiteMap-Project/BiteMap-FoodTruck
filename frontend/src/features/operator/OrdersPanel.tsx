@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthApiError } from "../../services/auth";
 import { getOwnerOrder, listOwnerOrders, updateOrderEstimate, updateOwnerOrder, verifyOrderPickup, type OrderStatus, type OwnerOrder, type OwnerOrderSummary } from "../../services/operatorOrders";
@@ -33,6 +33,16 @@ export default function OrdersPanel({ vendorId, notificationRevision=0 }: { vend
   const [error, setError] = useState("");
   const orderValue = Number(params.get("order"));
   const selected = Number.isSafeInteger(orderValue) && orderValue > 0 ? orderValue : null;
+  const queue = useRef<HTMLDivElement>(null);
+  const queueHeading = useRef<HTMLHeadingElement>(null);
+  const previousSelection = useRef(selected);
+  useLayoutEffect(() => {
+    const previous = previousSelection.current;
+    previousSelection.current = selected;
+    if (previous !== null && selected === null) {
+      (queue.current?.querySelector<HTMLButtonElement>(`[data-order-id="${previous}"]`) ?? queueHeading.current)?.focus();
+    }
+  }, [selected]);
   const setSelected = (id: number | null) => setQuery({ order: id === null ? null : String(id) });
   const [busy, setBusy] = useState(false);
   const refresh = () => { setLoading(true); setAttempt(value => value + 1); };
@@ -62,7 +72,7 @@ export default function OrdersPanel({ vendorId, notificationRevision=0 }: { vend
   return <>
     <OrderingControl key={vendorId} vendorId={vendorId} />
     <section className="ow-panel ow-orders" aria-labelledby="orders-heading">
-    <div className="ow-toolbar"><div><h2 id="orders-heading">Orders for your truck</h2><p>Real customer orders · newest first</p></div>
+    <div className="ow-toolbar"><div><h2 id="orders-heading" tabIndex={-1} ref={queueHeading}>Orders for your truck</h2><p>Real customer orders · newest first</p></div>
       <button className="od-button od-button-secondary" disabled={busy || loading} onClick={refresh}>Refresh orders</button></div>
     <label className="ow-order-filter">Order status<select value={filter} disabled={busy} onChange={event => {
       setLoading(true); setQuery({ status: event.target.value || null, page: null, order: null }); setData(null);
@@ -70,8 +80,8 @@ export default function OrdersPanel({ vendorId, notificationRevision=0 }: { vend
     <p className="ow-order-help">Updates every 30 seconds while this tab is visible. Times use your device’s time zone.</p>
     {loading && <p role="status">Refreshing orders…</p>}
     {error && <p role="alert" className="ow-error">{error}</p>}
-    <div className="ow-order-layout">
-      <div aria-label="Order queue">
+    <div className={`ow-order-layout${selected !== null ? ' has-selection' : ''}`}>
+      <div className="ow-order-queue" ref={queue} aria-label="Order queue">
         {data && <>
           <p>{data.totalElements} matching orders</p>
           {!data.items.length && <p>No orders match this filter.</p>}
@@ -80,7 +90,7 @@ export default function OrdersPanel({ vendorId, notificationRevision=0 }: { vend
             <p><time dateTime={order.createdAt}>{date(order.createdAt)}</time></p>
             <AcceptanceDeadline status={order.status} deadline={order.acceptanceDeadline} owner />
             <div className="ow-order-row-heading"><strong>{money.format(order.total)}</strong><button disabled={busy}
-              aria-pressed={selected === order.id} onClick={() => setSelected(order.id)}>View order #{order.id}</button></div>
+              data-order-id={order.id} aria-pressed={selected === order.id} onClick={() => setSelected(order.id)}>View order #{order.id}</button></div>
           </li>)}</ul>
           <nav className="ow-pagination" aria-label="Order pages">
             <button disabled={busy || loading || page === 0} onClick={() => { setLoading(true); setQuery({ page: String(page - 1), order: null }); setData(null); }}>Previous orders</button>
@@ -91,13 +101,14 @@ export default function OrdersPanel({ vendorId, notificationRevision=0 }: { vend
       </div>
       {selected !== null ? <OrderDetail key={`${vendorId}-${selected}`} vendorId={vendorId} orderId={selected}
         observedVersion={data?.items.find(item => item.id === selected)?.version}
-        onBusy={setBusy} onSaved={refresh} /> : <div className="ow-order-placeholder"><h3>Order details</h3><p>Select an order to review its items and manage preparation.</p></div>}
+        onBusy={setBusy} onSaved={refresh} onBack={() => setSelected(null)} /> : <div className="ow-order-placeholder"><h3>Order details</h3><p>Select an order to review its items and manage preparation.</p></div>}
     </div>
   </section></>;
 }
 
-function OrderDetail({ vendorId, orderId, observedVersion, onBusy, onSaved }: {
+function OrderDetail({ vendorId, orderId, observedVersion, onBusy, onSaved, onBack }: {
   vendorId: number; orderId: number; observedVersion?: number; onBusy: (value: boolean) => void; onSaved: () => void;
+  onBack: () => void;
 }) {
   const navigate = useNavigate();
   const [order, setOrder] = useState<OwnerOrder | null>(null);
@@ -171,6 +182,7 @@ function OrderDetail({ vendorId, orderId, observedVersion, onBusy, onSaved }: {
   };
   const action = order ? next[order.status] : undefined;
   return <section className="ow-order-detail" aria-labelledby="order-detail-heading">
+    <button className="ow-order-back" type="button" disabled={busy} onClick={onBack}>Back to orders</button>
     <h3 id="order-detail-heading" tabIndex={-1} ref={title}>Order #{orderId} details</h3>
     <button disabled={busy || loading} onClick={() => {
       setLoading(true); setOrder(null); setError(""); setMessage(""); setAttempt(value => value + 1);

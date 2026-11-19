@@ -49,5 +49,5 @@
 .ow-pickup-verification { display: grid; gap: 1rem; margin-block: 1.5rem; padding: 1.5rem; border: 1px solid #e3e5db; border-radius: 1rem; background: #f8f8f2; }
 .ow-pickup-verification h4, .ow-pickup-verification p { margin: 0; }
 .ow-pickup-verification label { display: grid; gap: .5rem; }
-.ow-pickup-verification input { width: 100%; max-width: 16rem; box-sizing: border-box; padding: .85rem; font: inherit; font-size: 1.5rem; letter-spacing: .3em; border: 1px solid #a8b0a5; border-radius: .6rem; }
+.ow-pickup-verification input { width: 100%; max-width: 16rem; box-sizing: border-box; padding: .85rem; font: inherit; font-size: 1.5rem; letter-spacing: .3em; border: 1px solid #758170; border-radius: .6rem; }
 .ow-pickup-verification button { justify-self: start; }

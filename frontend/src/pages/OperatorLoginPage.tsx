@@ -43,16 +43,14 @@ function OperatorLoginPage() {
   }
 
   return (
-    <main className="auth-page">
+    <main className="auth-page auth-login-page">
       <aside className="auth-story" aria-label="Owner workspace introduction">
         <Link className="auth-brand" to="/trucks">BiteMap<span>.</span></Link>
         <div><p className="auth-eyebrow">YOUR KITCHEN. YOUR COMMUNITY.</p><h2>Good food.<br />Great places.<br /><em>Your next chapter.</em></h2><p>Keep your menu fresh and let people know where you’re headed. Your kitchen on wheels, all in one workspace.</p></div>
-        <p className="auth-story-foot">Made for the people who bring the flavor.</p>
       </aside>
       <section className="auth-card" aria-labelledby="login-heading">
         <p className="auth-eyebrow">WELCOME BACK</p>
         <h1 id="login-heading">Operator sign in</h1>
-        <p className="auth-intro">Sign in, then activate owner tools if this is your first visit.</p>
         {registration?.registered && (
           <p className="auth-success" role="status">Account created. You can sign in now.</p>
         )}
@@ -78,7 +76,11 @@ function OperatorLoginPage() {
             onChange={(event) => setPassword(event.target.value)}
           />
           <button type="submit" disabled={submitting || seconds > 0}>
-            {seconds > 0 ? `Try again in ${seconds}s` : submitting ? "Signing in…" : "Sign in"}
+            {seconds > 0
+              ? `Try again in ${seconds}s`
+              : submitting
+                ? "Signing in…"
+                : "Sign in"}
           </button>
         </form>
         <p className="auth-switch"><Link to="/forgot-password">Forgot password?</Link></p>

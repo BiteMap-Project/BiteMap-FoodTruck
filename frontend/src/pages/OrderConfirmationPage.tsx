@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { useRef } from 'react';
 import { useCustomerOrder } from "../features/orders/useCustomerOrder";
 import "./cart.css";
 import { PickupLocation } from "../features/orders/PickupLocation";
@@ -32,6 +33,7 @@ export default function OrderConfirmationPage() {
 }
 
 function OrderDetails({ id }: { id: number }) {
+  const statusHeading = useRef<HTMLHeadingElement>(null);
   const { order, loading, error, denied, checkedAt, paused, refresh, applyOrder, connection } = useCustomerOrder(id);
   const current = order ? steps.indexOf(order.status) : -1;
   const active = order && ["PLACED", "ACCEPTED", "READY"].includes(order.status);
@@ -55,7 +57,7 @@ function OrderDetails({ id }: { id: number }) {
       <AcceptanceDeadline status={order.status} deadline={order.acceptanceDeadline} />
       <section className={`customer-order-status ${order.status === "CANCELLED" ? "is-cancelled" : ""}`} aria-label="Order status">
         <div role="status" aria-live="polite" aria-atomic="true">
-          <h2>{cancelled ? cancellationMessage(order.cancellationSource) : messages[order.status] ?? "Order status is unavailable."}</h2>
+          <h2 ref={statusHeading} tabIndex={-1}>{cancelled ? cancellationMessage(order.cancellationSource) : messages[order.status] ?? "Order status is unavailable."}</h2>
           {cancelled && <><h3>Cancellation reason</h3><p className="customer-cancellation-reason">{order.cancellationReason || "No cancellation reason was recorded."}</p></>}
         </div>
         {cancelled && <div className="customer-cancellation-next">
@@ -70,7 +72,7 @@ function OrderDetails({ id }: { id: number }) {
         {order.status === "ACCEPTED" && <p>The truck is preparing your food.</p>}
         {active && <section className="customer-pickup-code" aria-label="Pickup verification">
           <h3>Your pickup code</h3>
-          {order.pickupCode ? <strong aria-label={`Pickup code ${order.pickupCode.split('').join(' ')}`}>{order.pickupCode}</strong>
+          {order.pickupCode ? <strong><span aria-hidden="true">{order.pickupCode}</span><span className="a11y-only">Pickup code {order.pickupCode.split('').join(' ')}</span></strong>
             : <p>Refresh your order to load your pickup code.</p>}
           <p>Share this code with the truck only when you collect your food. You can find it again in My orders.</p>
         </section>}
@@ -83,8 +85,8 @@ function OrderDetails({ id }: { id: number }) {
         <summary>Original pickup location</summary><p>This pickup is no longer active for this order.</p>
         <PickupLocation pickup={order.pickup} showDirections={false} />
       </details>}
-      {order.status === 'PLACED' && <CustomerCancellation order={order} loading={loading || paused}
-        onSaved={applyOrder} onRefresh={refresh}/>}
+      <CustomerCancellation order={order} statusHeading={statusHeading} loading={loading || paused}
+        onSaved={applyOrder} onRefresh={refresh}/>
       <ul className="cart-items">{order.items.map(item => <li key={item.menuItemId}>
         <div><h3>{item.name}</h3><p>{dollars.format(item.unitPrice)} × {item.quantity}</p></div><strong>{dollars.format(item.lineTotal)}</strong>
       </li>)}</ul>

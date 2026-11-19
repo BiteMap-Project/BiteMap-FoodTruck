@@ -50,15 +50,25 @@ it('locks menu cart controls while a checkout needs recovery', async () => {
 it("adds an available database menu item to the customer cart", async () => {
   fetchMock.mockResolvedValue(response({ ...truck, menu: [{ ...truck.menu[0], available: true }] }));
   open();
-  fireEvent.click(await screen.findByRole("button", { name: "Add Veggie Taco to cart" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Add to cart: Veggie Taco" }));
   expect(screen.getByRole("status")).toHaveTextContent("Veggie Taco added");
   expect(screen.getByRole("link", { name: "My cart, 1 items" })).toHaveAttribute("href", "/cart");
+});
+
+it("preserves focus when cart controls replace the activated menu button", async () => {
+  fetchMock.mockResolvedValue(response({ ...truck, menu: [{ ...truck.menu[0], available: true }] }));
+  open();
+  const add = await screen.findByRole("button", { name: "Add to cart: Veggie Taco" });
+  add.focus(); fireEvent.click(add);
+  expect(screen.getByRole("button", { name: "Remove Veggie Taco from cart" })).toHaveFocus();
+  fireEvent.click(screen.getByRole("button", { name: "Remove Veggie Taco from cart" }));
+  expect(screen.getByRole("button", { name: "Add to cart: Veggie Taco" })).toHaveFocus();
 });
 
 it("shows inline quantity controls, updates the cart and removes the whole item", async () => {
   fetchMock.mockResolvedValue(response({ ...truck, menu: [{ ...truck.menu[0], available: true }] }));
   open();
-  fireEvent.click(await screen.findByRole("button", { name: "Add Veggie Taco to cart" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Add to cart: Veggie Taco" }));
   expect(screen.getByText("Added to cart (1)")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Decrease Veggie Taco quantity" })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: "Increase Veggie Taco quantity" }));
@@ -69,7 +79,7 @@ it("shows inline quantity controls, updates the cart and removes the whole item"
   expect(readCart()?.items[0].quantity).toBe(1);
   fireEvent.click(screen.getByRole("button", { name: "Remove Veggie Taco from cart" }));
   expect(readCart()).toBeNull();
-  expect(screen.getByRole("button", { name: "Add Veggie Taco to cart" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Add to cart: Veggie Taco" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "My cart, 0 items" })).toBeInTheDocument();
 });
 
@@ -90,7 +100,7 @@ it("does not modify another truck's cart even when menu item IDs match", async (
   addCartItem(99, "Other truck", truck.menu[0]);
   fetchMock.mockResolvedValue(response({ ...truck, menu: [{ ...truck.menu[0], available: true }] }));
   open();
-  fireEvent.click(await screen.findByRole("button", { name: "Add Veggie Taco to cart" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Add to cart: Veggie Taco" }));
   expect(screen.getByRole("status")).toHaveTextContent("another truck");
   expect(screen.queryByText(/Added to cart/)).not.toBeInTheDocument();
   expect(readCart()?.vendorId).toBe(99);
@@ -104,7 +114,7 @@ it("allows removing unavailable items but not increasing their quantity", async 
   expect(screen.getByRole("button", { name: "Increase Veggie Taco quantity" })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: "Remove Veggie Taco from cart" }));
   expect(readCart()).toBeNull();
-  expect(screen.queryByRole("button", { name: "Add Veggie Taco to cart" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Add to cart: Veggie Taco" })).not.toBeInTheDocument();
 });
 
 it("opens the styled discovery page at /trucks", async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { getVendor, type VendorProfile } from "../services/vendors";
 import { EmptyState, ErrorState, LoadingState } from "../components/StatusViews";
@@ -84,6 +84,14 @@ function TruckMenuPage() {
   const [result, setResult] = useState<Result>({ status: "loading", id });
   const [cart, setCart] = useState(readCart);
   const [cartMessage, setCartMessage] = useState("");
+  const menuRef = useRef<HTMLUListElement>(null);
+  const focusItem = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    if (focusItem.current === null) return;
+    const row = menuRef.current?.querySelector<HTMLElement>(`[data-menu-item="${focusItem.current}"]`);
+    (row?.querySelector<HTMLElement>('button:not(:disabled)') ?? row?.querySelector<HTMLElement>('h3'))?.focus();
+    focusItem.current = null;
+  }, [cart]);
 
   useEffect(() => {
     const syncCart = () => setCart(readCart());
@@ -100,6 +108,7 @@ function TruckMenuPage() {
     if (!saved) return;
     const quantity = change === "remove" ? 0 : saved.quantity + change;
     if (change !== "remove" && (quantity < 1 || quantity > 10)) return;
+    if (change === 'remove' || quantity === 1 || quantity === 10) focusItem.current = itemId;
     setCartQuantity(itemId, quantity);
     setCartMessage(quantity ? `${name} quantity updated to ${quantity}.` : `${name} removed from your cart.`);
   }
@@ -171,30 +180,30 @@ function TruckMenuPage() {
               <div><p className="truck-eyebrow">TODAY'S MENU</p><h2 id="menu-heading">Pick your favorite</h2></div>
               <span>{current.truck.menu.length} {current.truck.menu.length === 1 ? "item" : "items"}</span>
             </div>
-            {cartMessage && <p className="cart-message" role="status">{cartMessage}</p>}
+            <p className={cartMessage ? 'cart-message' : 'a11y-only'} role="status">{cartMessage}</p>
             {checkoutLocked && <p className="cart-message" role="status">An earlier checkout needs recovery. <Link to="/cart">Recover order</Link> before changing your cart.</p>}
             {current.truck.menu.length === 0 ? (
               <EmptyState title="No menu available yet." hint="This truck hasn't posted its menu. Check back later." />
             ) : (
-              <ul className="menu-items">
+              <ul className="menu-items" ref={menuRef}>
                 {current.truck.menu.map((item) => {
                   const quantity = cart?.vendorId === current.truck.id
                     ? cart.items.find(saved => saved.id === item.id)?.quantity ?? 0 : 0;
                   return (
-                  <li key={item.id}>
+                  <li key={item.id} data-menu-item={item.id}>
                     <div className={`menu-item-art menu-item-art-${menuArtwork(item.name, item.imagePreset).tone}`} role="img" aria-label={`${item.name} image`}>
                       <MenuPhoto src={item.hasCustomImage ? `/api/vendors/${current.truck.id}/menu-items/${item.id}/image` : undefined} fallback={menuArtwork(item.name, item.imagePreset).icon} />
                     </div>
                     <div className="menu-item-content">
                       <div className="menu-item-heading">
-                        <h3>{item.name}</h3>
+                        <h3 tabIndex={-1}>{item.name}</h3>
                       </div>
                       {item.description && <p>{item.description}</p>}
                       <p className="menu-item-price">{dollars.format(item.price)}</p>
                       {!item.available && <p className="unavailable">Currently unavailable</p>}
                     </div>
                     <div className="menu-item-actions">
-                      {quantity > 0 ? <div className="menu-cart-controls" role="group" aria-label={`Cart controls for ${item.name}`}>
+                      {quantity > 0 ? <div className="menu-cart-controls" role="group" aria-label={`Cart controls for ${item.name}`} aria-describedby={`quantity-help-${item.id}`}>
                         <button disabled={checkoutLocked} type="button" aria-label={`Remove ${item.name} from cart`} title="Remove item" onClick={() => changeQuantity(current.truck.id, item.id, item.name, "remove")}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></svg>
                         </button>
@@ -205,10 +214,11 @@ function TruckMenuPage() {
                         <button type="button" aria-label={`Increase ${item.name} quantity`} title={quantity >= 10 ? "Maximum 10 per item" : "Increase quantity"} disabled={checkoutLocked || !item.available || quantity >= 10} onClick={() => changeQuantity(current.truck.id, item.id, item.name, 1)}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
                         </button>
-                      </div> : item.available ? <button disabled={checkoutLocked} className="add-to-cart" type="button" aria-label={`Add ${item.name} to cart`} onClick={() => {
+                        <span className="a11y-only" id={`quantity-help-${item.id}`}>Quantity: {quantity}. Minimum 1, maximum 10. Use Remove item to remove all.</span>
+                      </div> : item.available ? <button disabled={checkoutLocked} className="add-to-cart" type="button" aria-label={`Add to cart: ${item.name}`} onClick={() => {
                         const next = addCartItem(current.truck.id, current.truck.name, { id: item.id, name: item.name, price: item.price });
                         if (!next) setCartMessage("Your cart contains items from another truck. Clear that cart before starting a new order.");
-                        else setCartMessage(`${item.name} added to your cart.`);
+                        else { focusItem.current = item.id; setCartMessage(`${item.name} added to your cart.`); }
                       }}>Add to cart</button> : null}
                     </div>
                   </li>

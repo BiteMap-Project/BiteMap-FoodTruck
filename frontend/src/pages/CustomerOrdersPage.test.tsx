@@ -36,8 +36,19 @@ it("offers sign in when the session expires", async () => {
 it("clears private results on a failed refresh and allows retry", async () => {
   fetchMock.mockResolvedValueOnce(reply({ items: [item], page: 0, totalPages: 1 })); show();
   await screen.findByText("Spicy Food");
-  fetchMock.mockResolvedValue(reply({}, 403));
+  fetchMock.mockResolvedValueOnce(reply({}, 403));
   fireEvent.click(screen.getByRole("button", { name: "Refresh orders" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("Unable to load your orders");
+  expect(await screen.findByRole("alert")).toHaveTextContent("We couldn't load your orders");
   expect(screen.queryByText("Spicy Food")).not.toBeInTheDocument();
+  fetchMock.mockResolvedValueOnce(reply({ items: [item], page: 0, totalPages: 1 }));
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+  expect(await screen.findByText("Spicy Food")).toBeInTheDocument();
+});
+
+it("confirms a successful manual refresh", async () => {
+  fetchMock.mockResolvedValue(reply({ items: [item], page: 0, totalPages: 1 }));
+  show();
+  await screen.findByText("Spicy Food");
+  fireEvent.click(screen.getByRole("button", { name: "Refresh orders" }));
+  expect(await screen.findByText("Orders refreshed.")).toBeInTheDocument();
 });

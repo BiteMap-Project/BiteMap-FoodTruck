@@ -1,4 +1,5 @@
 import ActionError from "../components/ActionError";
+import { EmptyState, ErrorState } from "../components/StatusViews";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { cartTotal, clearCart, readCart, setCartQuantity } from "../features/cart/cart";
@@ -74,8 +75,8 @@ function CartContent() {
       <p className="cart-eyebrow">PICKUP ORDER</p>
       <h1>Your cart</h1>
       <p className="a11y-only" role="status">{submitting ? 'Submitting your order. Please wait.' : cartMessage}</p>
-      {recoveryBlocked ? <section role="alert"><h2>Checkout needs recovery</h2><p>Sign in with the account that started checkout to recover its order. If recovery data is unavailable, check My orders and contact support before starting another order. Do not clear browser storage.</p><Link to="/customer/login">Customer sign in</Link></section>
-      : !cart ? <section className="cart-empty"><h2 tabIndex={-1}>Your cart is empty.</h2><p>Choose an available item from a truck menu to get started.</p><Link className="cart-primary" to="/trucks">Find a food truck</Link></section> : <>
+      {recoveryBlocked ? <ErrorState title="Checkout needs recovery" message="Sign in with the account that started checkout to recover its order. If recovery data is unavailable, check My orders and contact support before starting another order. Do not clear browser storage."><Link to="/customer/login">Customer sign in</Link></ErrorState>
+      : !cart ? <EmptyState announce={false} title="Your cart is empty." hint="Choose an available item from a truck menu to get started."><Link className="cart-primary" to="/trucks">Find a food truck</Link></EmptyState> : <>
         {locked && <section className="cart-pickup" role="status"><h2>Recover your checkout</h2><p>Your original items and pickup stop are saved. The order may already exist. Recover it before changing your cart; recovery uses the same order reference.</p></section>}
         <section className="cart-summary" aria-labelledby="cart-truck"><div><p>Ordering from</p><h2 id="cart-truck">{cart.vendorName}</h2></div><Link to={`/trucks/${cart.vendorId}`}>Add more items</Link></section>
         <ul className="cart-items">

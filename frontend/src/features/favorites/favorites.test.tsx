@@ -144,6 +144,7 @@ it("lists favorites, removes one, and shows the empty state", async () => {
 
   fireEvent.click(screen.getByRole("button", { name: "Remove Taco Truck" }));
   expect(await screen.findByText("1 saved truck")).toBeInTheDocument();
+  expect(screen.getByText("Taco Truck removed from your favorites.")).toBeInTheDocument();
   expect(screen.queryByText("Taco Truck")).not.toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Remove Soup Cart" }));
@@ -155,7 +156,7 @@ it("offers a retry when favorites cannot be loaded", async () => {
   saved = [8];
   failListOnce = true;
   show("/favorites", <FavoritesPage />);
-  expect(await screen.findByRole("alert")).toHaveTextContent("Unable to load your favorites");
+  expect(await screen.findByRole("alert")).toHaveTextContent("We couldn't load your favorites");
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   expect(await screen.findByText("Soup Cart")).toBeInTheDocument();
 });

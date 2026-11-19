@@ -7,11 +7,16 @@ vi.mock("../services/auth", async (importOriginal) => ({
   ...await importOriginal<typeof import("../services/auth")>(),
   getCurrentAccount: vi.fn(async () => null),
 }));
-import { EmptyState, ErrorState, LoadingState } from "./StatusViews";
+import { EmptyState, ErrorState, LoadingState, SuccessNotice } from "./StatusViews";
 
 it("announces loading politely", () => {
   render(<LoadingState label="Loading trucks…" />);
   expect(screen.getByRole("status")).toHaveTextContent("Loading trucks…");
+});
+
+it("announces a successful action politely", () => {
+  render(<SuccessNotice message="Orders refreshed." />);
+  expect(screen.getByRole("status")).toHaveTextContent("Orders refreshed.");
 });
 
 it("announces errors immediately and offers Retry plus extra actions", () => {

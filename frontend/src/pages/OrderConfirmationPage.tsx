@@ -6,6 +6,8 @@ import { PickupLocation } from "../features/orders/PickupLocation";
 import CustomerCancellation from '../features/orders/CustomerCancellation';
 import AcceptanceDeadline from '../features/orders/AcceptanceDeadline';
 import { cancellationMessage } from '../features/orders/cancellationMessage';
+import ActionError from "../components/ActionError";
+import { ErrorState, LoadingState } from "../components/StatusViews";
 
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const steps = ["PLACED", "ACCEPTED", "READY", "COMPLETED"];
@@ -25,7 +27,7 @@ export default function OrderConfirmationPage() {
     <nav className="customer-page-links" aria-label="Page navigation"><Link to="/trucks">Browse trucks</Link></nav>
     <main className="cart-page order-confirmation">
       <Link to="/orders">← My orders</Link>
-      {valid ? <OrderDetails key={id} id={id} /> : <section className="cart-empty"><h1>We couldn’t load this order.</h1><p role="alert">Order not found.</p><Link className="cart-primary" to="/trucks">Return to trucks</Link></section>}
+      {valid ? <OrderDetails key={id} id={id} /> : <ErrorState title="We couldn’t load this order." message="Order not found."><Link className="cart-primary" to="/trucks">Return to trucks</Link></ErrorState>}
     </main>
   </div>;
 }
@@ -40,10 +42,12 @@ function OrderDetails({ id }: { id: number }) {
   return <>
     {!denied && <div className="customer-order-refresh"><button className="cart-primary" disabled={loading || paused} onClick={refresh}>Refresh status</button>
       <span>{loading ? "Checking order…" : checkedAt ? `Last checked ${checkedAt.toLocaleTimeString()}` : ""}</span></div>}
-    {error && <p role="alert" className="cart-order-error">{error}</p>}
-    {denied === 401 && <Link className="cart-primary" to="/customer/login" state={{ returnTo: `/orders/${id}/confirmation` }}>Customer sign in</Link>}
-    {!order && loading && <p role="status">Loading your order…</p>}
-    {denied && <Link className="cart-primary" to="/trucks">Return to trucks</Link>}
+    {error && order && <ActionError className="cart-order-error" message={error} />}
+    {error && !order && <ErrorState message={error} onRetry={denied ? undefined : refresh}>
+      {denied === 401 && <Link className="cart-primary" to="/customer/login" state={{ returnTo: `/orders/${id}/confirmation` }}>Customer sign in</Link>}
+      {denied && <Link className="cart-primary" to="/trucks">Return to trucks</Link>}
+    </ErrorState>}
+    {!order && loading && <LoadingState label="Loading your order…" />}
     {order && <>
       <p className="cart-eyebrow">YOUR PICKUP ORDER</p>
       <h1>{cancelled ? 'Order cancelled' : order.status === "PLACED" ? "Thanks, your pickup order is in." : "Your order updates"}</h1>

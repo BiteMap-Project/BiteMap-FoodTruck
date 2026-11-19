@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import ActionError from "../components/ActionError";
+import { EmptyState, ErrorState, LoadingState, SuccessNotice } from "../components/StatusViews";
 import { listFavorites, isSignedOut, removeFavorite, type FavoritePage } from "../services/favorites";
 import { forgetFavorite } from "../features/favorites/favoritesStore";
 import "./cart.css";
@@ -16,11 +18,19 @@ export default function FavoritesPage() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [removeError, setRemoveError] = useState("");
   const [removing, setRemoving] = useState<number | null>(null);
+  const [notice, setNotice] = useState("");
+  const successAfterLoad = useRef("");
 
   useEffect(() => {
     const controller = new AbortController();
     listFavorites(page, controller.signal).then(
-      (data) => { if (!controller.signal.aborted) setState({ kind: "ready", data }); },
+      (data) => {
+        if (!controller.signal.aborted) {
+          setState({ kind: "ready", data });
+          setNotice(successAfterLoad.current);
+          successAfterLoad.current = "";
+        }
+      },
       (error: unknown) => {
         if (controller.signal.aborted) return;
         if (isSignedOut(error)) navigate("/customer/login", { replace: true, state: { returnTo: "/favorites" } });
@@ -31,6 +41,7 @@ export default function FavoritesPage() {
   }, [page, attempt, navigate]);
 
   function reload(next = page) {
+    setNotice("");
     setState({ kind: "loading" });
     setPage(next);
     setAttempt((value) => value + 1);
@@ -44,6 +55,7 @@ export default function FavoritesPage() {
       // Removing is safe to repeat on the server, so a retry after a timeout is fine.
       await removeFavorite(id);
       forgetFavorite(id);
+      successAfterLoad.current = `${name} removed from your favorites.`;
       const lastOnPage = state.kind === "ready" && state.data.items.length === 1 && page > 0;
       reload(lastOnPage ? page - 1 : page);
     } catch (error) {
@@ -62,23 +74,20 @@ export default function FavoritesPage() {
         <h1>Favorites</h1>
         <p>Your saved trucks, newest first. Open one to see its menu and where it’s headed next.</p>
 
-        {state.kind === "loading" && <p role="status">Loading your favorites…</p>}
-        {state.kind === "error" && (
-          <div role="alert" className="cart-empty">
-            <p>Unable to load your favorites. Please try again.</p>
-            <button type="button" className="cart-primary favorites-retry" onClick={() => reload()}>Retry</button>
-          </div>
-        )}
-        {removeError && <p role="alert" className="cart-order-error">{removeError}</p>}
+        {notice && <SuccessNotice message={notice} />}
+        {state.kind === "loading" && <LoadingState label="Loading your favorites…" />}
+        {state.kind === "error" && <ErrorState message="We couldn't load your favorites. Check your connection and try again." onRetry={() => reload()} />}
+        <ActionError className="cart-order-error" message={removeError} />
 
         {state.kind === "ready" && (state.data.items.length === 0 ? (
-          <section className="cart-empty">
-            <h2>{page === 0 ? "No favorites yet." : "No favorites on this page."}</h2>
-            <p>{page === 0 ? "Tap Save on any truck to keep it here." : "Your list changed since this page loaded."}</p>
+          <EmptyState
+            title={page === 0 ? "No favorites yet." : "No favorites on this page."}
+            hint={page === 0 ? "Tap Save on any truck to keep it here." : "Your list changed since this page loaded."}
+          >
             {page === 0
               ? <Link className="cart-primary" to="/trucks">Find a truck</Link>
               : <button type="button" className="cart-primary favorites-retry" onClick={() => reload(page - 1)}>Previous page</button>}
-          </section>
+          </EmptyState>
         ) : (
           <>
             <p role="status" className="favorites-count">{state.data.totalElements} saved {state.data.totalElements === 1 ? "truck" : "trucks"}</p>

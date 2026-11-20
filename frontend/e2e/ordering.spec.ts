@@ -288,10 +288,12 @@ test('owner acceptance window is saved, shown at checkout, and expires orders wi
     sql(`INSERT INTO vendor_stops(vendor_id,venue_name,address,latitude,longitude,starts_at,ends_at,time_zone)
       VALUES (${vendor.id},'Campus entrance','18111 Nordhoff St',34.24,-118.53,now()-interval '1 hour',now()+interval '1 hour','America/Los_Angeles')`);
     await ownerPage.goto(`/operator/vendors/${vendor.id}/orders`);
+    await ownerPage.locator('summary').filter({hasText:'Order settings'}).click();
     await ownerPage.getByRole('combobox', { name: 'Time to accept new orders', exact: true }).selectOption('20');
     await ownerPage.getByRole('button', { name: 'Save acceptance timeout' }).click();
     await expect(ownerPage.getByText('Acceptance timeout saved. Existing order deadlines are unchanged.')).toBeVisible();
     await ownerPage.reload();
+    await ownerPage.locator('summary').filter({hasText:'Order settings'}).click();
     await expect(ownerPage.getByRole('combobox', { name: 'Time to accept new orders', exact: true })).toHaveValue('20');
     await ownerPage.screenshot({ path: testInfo.outputPath('acceptance-settings.png'), fullPage: true });
     await customerPage.goto(`/trucks/${vendor.id}`);
@@ -364,12 +366,14 @@ test('owner cutoff settings block new checkout while preserving existing order r
   const originalOrder = await original.json();
   await page.goto(`/operator/vendors/${vendor.id}/orders`);
   const input = page.getByLabel('Close new orders before pickup ends (minutes)');
+  await page.locator('summary').filter({hasText:'Order settings'}).click();
   await expect(input).toHaveValue('15');
   await input.fill('120');
   await page.getByRole('button', { name: 'Save cutoff' }).click();
   await expect(page.getByText('Current cutoff: 120 minutes before pickup ends.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save cutoff' })).toBeDisabled();
   await page.reload();
+  await page.locator('summary').filter({hasText:'Order settings'}).click();
   await expect(input).toHaveValue('120');
   await page.screenshot({ path: testInfo.outputPath('owner-cutoff.png'), fullPage: true });
   const rejected = await write(context.request, '/api/customer/orders', { ...command, idempotencyKey: randomUUID() });

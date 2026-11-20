@@ -159,6 +159,23 @@ for (const device of cases) {
         const orderId = Number(new URL(page.url()).pathname.split("/")[2]);
         await test.step("Accept the order on the owner's narrow screen", async () => {
           await ownerPage.goto(`/operator/vendors/${vendor.id}/orders`);
+          const headerBox = await ownerPage.locator('.od-sidebar').boundingBox();
+          expect(headerBox!.height, 'Stacked navigation must not reserve an empty viewport').toBeLessThan(device.height * .6);
+          const settings = ownerPage.locator('summary').filter({hasText:'Order settings'});
+          await expect(ownerPage.getByLabel('Time to accept new orders')).toBeHidden();
+          await activate(ownerPage, settings, device.keyboard);
+          await expect(ownerPage.getByLabel('Time to accept new orders')).toBeVisible();
+          await activate(ownerPage, settings, device.keyboard);
+          await activate(ownerPage, ownerPage.getByRole('button', {name:'Needs attention', exact:true}), device.keyboard);
+          await expect(ownerPage).toHaveURL(/status=PLACED/);
+          await ownerPage.reload();
+          await expect(ownerPage.getByRole('button', {name:'Needs attention', exact:true})).toHaveAttribute('aria-pressed', 'true');
+          await activate(ownerPage, ownerPage.getByRole('button', {name:'History', exact:true}), device.keyboard);
+          await expect(ownerPage.getByText('No orders match this filter.')).toBeVisible();
+          await ownerPage.goBack();
+          await expect(ownerPage.getByRole('button', {name:'Needs attention', exact:true})).toHaveAttribute('aria-pressed', 'true');
+          await fits(ownerPage, 'owner order queue');
+          await ownerPage.screenshot({path:testInfo.outputPath('owner-queue.png'), fullPage:true});
           await activate(ownerPage, ownerPage.getByRole("button", { name: `View order #${orderId}`, exact: true }), device.keyboard);
           await expect(ownerPage.getByRole("heading", { name: `Order #${orderId} details` })).toBeFocused();
           await expect(ownerPage.locator('.ow-order-queue')).toBeHidden();

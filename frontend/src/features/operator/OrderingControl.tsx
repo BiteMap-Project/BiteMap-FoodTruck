@@ -40,15 +40,20 @@ export default function OrderingControl({ vendorId }: { vendorId: number }) {
     } finally { lock.current = false; if (mounted.current) setBusy(false); }
   }
   return <section className="ow-panel ow-ordering-control" aria-label="Incoming orders">
-    <h2>Incoming orders</h2>
+    <div className="ow-ordering-summary">
+    <div><h2>Incoming orders</h2>
     {!settings && !error && <p role="status">Loading ordering settings…</p>}
-    {settings && <><p role="status">{settings.acceptingOrders ? 'New orders enabled — an active pickup stop is still required.' : 'Temporarily not accepting orders.'}</p>
-      <p className="ow-order-help">Pausing only blocks new orders. Continue preparing and completing existing orders.</p>
-      <p>Current cutoff: {settings.cutoffMinutes ?? 15} minutes before pickup ends.</p></>}
+    {settings && <p role="status">{settings.acceptingOrders ? 'Accepting orders · Active pickup stop required' : 'Temporarily not accepting orders.'}</p>}
+    </div>
     <div className="ow-ordering-actions">
     {settings && <button className="od-button od-button-primary" disabled={busy || blocked} onClick={() => void save()}>{busy ? 'Saving…' : settings.acceptingOrders ? 'Pause new orders' : 'Resume new orders'}</button>}
     <button className="od-button od-button-secondary" disabled={busy} onClick={() => { setSettings(null); setError(''); setAttempt(a => a + 1); }}>Refresh ordering settings</button>
     </div>
+    </div>
+    <details className="ow-order-settings">
+    <summary>Order settings</summary>
+    <p className="ow-order-help">Pausing only blocks new orders. Continue preparing and completing existing orders.</p>
+    {settings && <p>Current cutoff: {settings.cutoffMinutes ?? 15} minutes before pickup ends.</p>}
     {settings && <form className="ow-form ow-cutoff-form" aria-label="Ordering cutoff" onSubmit={event => { event.preventDefault(); void save('cutoff'); }}>
       <h3>Ordering cutoff</h3>
       <label>Close new orders before pickup ends (minutes)
@@ -67,6 +72,7 @@ export default function OrderingControl({ vendorId }: { vendorId: number }) {
       <p>Unaccepted orders automatically cancel when this time runs out, or when pickup closes—whichever comes first. Preparation time is separate. Changes apply only to new orders.</p>
       <button className="od-button od-button-secondary" disabled={busy || blocked || Number(acceptance)===(settings.acceptanceMinutes ?? 5)}>Save acceptance timeout</button>
     </form>}
+    </details>
     {message && <p role="status">{message}</p>}
     {error && <p role="alert">{error}</p>}
   </section>;

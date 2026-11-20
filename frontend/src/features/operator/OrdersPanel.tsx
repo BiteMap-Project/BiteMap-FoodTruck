@@ -45,6 +45,9 @@ export default function OrdersPanel({ vendorId, notificationRevision=0 }: { vend
   }, [selected]);
   const setSelected = (id: number | null) => setQuery({ order: id === null ? null : String(id) });
   const [busy, setBusy] = useState(false);
+  const changeFilter = (status: string) => {
+    setLoading(true); setQuery({ status: status || null, page: null, order: null }); setData(null);
+  };
   const refresh = () => { setLoading(true); setAttempt(value => value + 1); };
   const observedRevision = useRef(notificationRevision);
   useEffect(()=>{
@@ -72,12 +75,15 @@ export default function OrdersPanel({ vendorId, notificationRevision=0 }: { vend
   return <>
     <OrderingControl key={vendorId} vendorId={vendorId} />
     <section className="ow-panel ow-orders" aria-labelledby="orders-heading">
-    <div className="ow-toolbar"><div><h2 id="orders-heading" tabIndex={-1} ref={queueHeading}>Orders for your truck</h2><p>Real customer orders · newest first</p></div>
+    <div className="ow-toolbar"><div><h2 id="orders-heading" tabIndex={-1} ref={queueHeading}>Orders for your truck</h2></div>
       <button className="od-button od-button-secondary" disabled={busy || loading} onClick={refresh}>Refresh orders</button></div>
-    <label className="ow-order-filter">Order status<select value={filter} disabled={busy} onChange={event => {
-      setLoading(true); setQuery({ status: event.target.value || null, page: null, order: null }); setData(null);
-    }}><option value="">All statuses</option>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-    <p className="ow-order-help">Updates every 30 seconds while this tab is visible. Times use your device’s time zone.</p>
+    <div className="ow-order-views" role="group" aria-label="Order views">
+      {([['', 'All orders'], ['PLACED', 'Needs attention'], ['ACCEPTED', 'Preparing'], ['READY', 'Ready'], ['COMPLETED', 'History']] as const).map(([status, label]) =>
+        <button key={label} type="button" disabled={busy} aria-pressed={status === filter || (status === 'COMPLETED' && filter === 'CANCELLED')}
+          onClick={() => changeFilter(status)}>{label}</button>)}
+    </div>
+    <label className="ow-order-filter">Order status<select value={filter} disabled={busy} onChange={event => changeFilter(event.target.value)}><option value="">All statuses</option>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+    {(filter === 'COMPLETED' || filter === 'CANCELLED') && <p className="ow-order-help">History: use Order status to switch between completed and cancelled orders.</p>}
     {loading && <p role="status">Refreshing orders…</p>}
     {error && <p role="alert" className="ow-error">{error}</p>}
     <div className={`ow-order-layout${selected !== null ? ' has-selection' : ''}`}>

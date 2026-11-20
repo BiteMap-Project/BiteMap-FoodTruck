@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import OperatorWorkspace from "./OperatorWorkspace";
+import OrdersPanel from "./OrdersPanel";
 import type { OwnerOrder } from '../../types/api';
 
 const fetchMock = vi.fn();
@@ -40,6 +41,40 @@ async function detail() {
   await screen.findByText("Saved taco");
 }
 const writes = () => fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH");
+
+it('omits redundant explanatory copy while retaining queue controls', async () => {
+  await show();
+  expect(await screen.findByRole('button', {name:'Refresh orders'})).toBeInTheDocument();
+  expect(screen.queryByText('Real customer orders · newest first')).not.toBeInTheDocument();
+  expect(screen.queryByText(/Updates every 30 seconds while this tab is visible/)).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Order status')).toBeInTheDocument();
+});
+
+it('refreshes after a notification without moving focus or resetting the selected filter', async () => {
+  const view = (revision: number) => <MemoryRouter initialEntries={['/operator/vendors/7/orders?status=READY']}><OrdersPanel vendorId={7} notificationRevision={revision} /></MemoryRouter>;
+  const {rerender} = render(view(0));
+  const button = await screen.findByRole('button', {name:'View order #42'});
+  button.focus();
+  const before = fetchMock.mock.calls.filter(([url]) => url.includes('/orders?')).length;
+  rerender(view(1));
+  await waitFor(() => expect(fetchMock.mock.calls.filter(([url]) => url.includes('/orders?')).length).toBeGreaterThan(before));
+  expect(button).toHaveFocus();
+  expect(screen.getByRole('button', {name:'Ready'})).toHaveAttribute('aria-pressed', 'true');
+});
+
+it('filters the server queue with workflow shortcuts and separate history statuses', async () => {
+  await show();
+  fireEvent.click(await screen.findByRole('button', {name:'Needs attention'}));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/operator/vendors/7/orders?page=0&size=20&status=PLACED', expect.anything()));
+  expect(screen.getByRole('button', {name:'Needs attention'})).toHaveAttribute('aria-pressed', 'true');
+  fireEvent.click(screen.getByRole('button', {name:'Preparing'}));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/operator/vendors/7/orders?page=0&size=20&status=ACCEPTED', expect.anything()));
+  fireEvent.click(screen.getByRole('button', {name:'History'}));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/operator/vendors/7/orders?page=0&size=20&status=COMPLETED', expect.anything()));
+  fireEvent.change(screen.getByLabelText('Order status'), {target:{value:'CANCELLED'}});
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/operator/vendors/7/orders?page=0&size=20&status=CANCELLED', expect.anything()));
+  expect(screen.getByRole('button', {name:'History'})).toHaveAttribute('aria-pressed', 'true');
+});
 
 it('returns from selected details to the queue and restores the originating button', async () => {
   await detail();

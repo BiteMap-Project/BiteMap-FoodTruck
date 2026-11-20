@@ -429,7 +429,7 @@ test("real customer checkout, lost response retry, owner processing, tracking an
       VALUES (${Number(vendor.id)},'Orange Grove entrance','18111 Nordhoff St',34.24,-118.53,
       now()-interval '5 minutes',now()+interval '2 hours','America/Los_Angeles');`);
 
-    await ownerPage.goto(`/operator/vendors/${vendor.id}/overview`);
+    await ownerPage.goto(`/operator/vendors/${vendor.id}/orders`);
     await expect(ownerPage.getByText('Live order updates connected', {exact:true})).toBeVisible();
     await expect(ownerPage.getByText('0 orders awaiting acceptance', {exact:true})).toBeVisible();
     await ownerPage.getByRole('button', {name:'Enable order sound',exact:true}).click();

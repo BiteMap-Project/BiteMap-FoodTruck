@@ -10,7 +10,7 @@ body:has(.ow-connected) { background: #f8f8f4; }
 .ow-connected .od-brand { color: var(--od-ink); text-decoration: none; }
 .ow-connected .od-owner { overflow-wrap: anywhere; }
 .ow-connected .od-owner { display: flex; }
-@media (min-width: 701px) {
+@media (min-width: 851px) {
   .ow-connected .od-sidebar { min-height: 0; height: 100svh; overflow-y: auto; }
   .ow-connected .od-sidebar > * { flex-shrink: 0; }
 }

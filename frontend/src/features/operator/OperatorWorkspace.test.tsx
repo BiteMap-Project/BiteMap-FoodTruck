@@ -31,6 +31,20 @@ beforeEach(() => {
 function show(path = "/owner") {
   render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/owner" element={<RequireOperator><OperatorHomePage /></RequireOperator>} /><Route path="/operator/vendors/:vendorId/:section" element={<RequireOperator><OperatorHomePage /></RequireOperator>} /><Route path="/operator/login" element={<p>Login screen</p>} /></Routes></MemoryRouter>);
 }
+it('shows the order notification controls only in Orders', async () => {
+  show();
+  await screen.findByRole('heading', {name:'Spicy Food'});
+  expect(screen.queryByRole('region', {name:'Order notifications'})).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', {name:'Orders'}));
+  expect(await screen.findByRole('button', {name:'Enable order sound'})).toBeInTheDocument();
+  for (const section of ['Menu', 'Schedule', 'Reviews', 'Truck Details']) {
+    fireEvent.click(screen.getByRole('button', {name:section}));
+    expect(screen.queryByRole('region', {name:'Order notifications'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name:'Enable order sound'})).not.toBeInTheDocument();
+  }
+  fireEvent.click(screen.getByRole('button', {name:'Orders'}));
+  expect(await screen.findByRole('region', {name:'Order notifications'})).toBeInTheDocument();
+});
 it("opens the Schedule tab for the selected owned truck", async () => {
   show(); await screen.findByRole("heading", { name: "Spicy Food" });
   fireEvent.click(screen.getByRole("button", { name: "Schedule" }));

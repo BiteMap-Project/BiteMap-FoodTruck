@@ -10,6 +10,16 @@ beforeEach(() => {
     return response(200, {acceptingOrders: init?.method ? false : true, version: init?.method ? 1 : 0});
   });
 });
+it('keeps timing settings collapsed while pause remains available', async () => {
+  const { container } = render(<OrderingControl vendorId={7} />);
+  await screen.findByRole('button', {name:'Pause new orders'});
+  const disclosure = container.querySelector('details');
+  expect(disclosure).not.toBeNull();
+  expect(disclosure).not.toHaveAttribute('open');
+  expect(disclosure?.querySelector('summary')).toHaveTextContent('Order settings');
+  expect(disclosure).toContainElement(screen.getByLabelText('Time to accept new orders'));
+  expect(disclosure).not.toContainElement(screen.getByRole('button', {name:'Pause new orders'}));
+});
 it('pauses with a version and fresh CSRF, then reflects the server state', async () => {
   render(<OrderingControl vendorId={7} />);
   fireEvent.click(await screen.findByRole('button', {name:'Pause new orders'}));
@@ -21,6 +31,7 @@ it('pauses with a version and fresh CSRF, then reflects the server state', async
 it('offers only allowed acceptance windows and saves twenty minutes separately from the cutoff', async () => {
   render(<OrderingControl vendorId={7} />);
   const select = await screen.findByLabelText('Time to accept new orders');
+  fireEvent.click(screen.getByText('Order settings', {selector:'summary'}));
   expect(select).toHaveValue('5');
   expect(Array.from(select.querySelectorAll('option')).map(option=>option.value)).toEqual(['3','5','10','15','20']);
   fireEvent.change(select,{target:{value:'20'}});
@@ -43,6 +54,7 @@ it('blocks further writes after an uncertain response until settings are reloade
 it('saves a cutoff without changing whether orders are enabled', async () => {
   render(<OrderingControl vendorId={7} />);
   const input = await screen.findByLabelText('Close new orders before pickup ends (minutes)');
+  fireEvent.click(screen.getByText('Order settings', {selector:'summary'}));
   fireEvent.change(input, { target: { value: '0' } });
   fireEvent.click(screen.getByRole('button', { name: 'Save cutoff' }));
   await screen.findByRole('button', { name: 'Resume new orders' });

@@ -95,7 +95,7 @@ export default function OperatorWorkspace({ account, onSignOut, signingOut, logo
     <div className="od-workspace"><header className="od-topbar"><span>Workspace / {tab}</span><Link to="/">Browse trucks →</Link></header>
       <main className="od-main">{compactLayout ? <h1>{tab}</h1> : <div className="od-page-heading"><div><p className="od-eyebrow">GOOD FOOD. YOUR BUSINESS.</p><h1>Welcome, {account.displayName}</h1><p>Manage only the trucks owned by your account.</p></div></div>}
         {logoutError && <p role="alert" className="ow-error">{logoutError}</p>}
-        {selected && <section className="ow-order-notifications" aria-label="Order notifications">
+        {selected && tab === 'Orders' && <section className="ow-order-notifications" aria-label="Order notifications">
           <div><strong>{notifications.count} orders awaiting acceptance</strong><p role="status">{notifications.connection==='live' ? 'Live order updates connected' : notifications.connection==='paused' ? 'Live updates paused while this tab is hidden.' : notifications.connection==='connecting' ? 'Connecting live order updates…' : 'Live updates disconnected or stale. The order queue still refreshes periodically.'}</p></div>
           <button className="od-button od-button-secondary" aria-pressed={notifications.sound} onClick={()=>void notifications.toggleSound()}>{notifications.sound?'Disable order sound':'Enable order sound'}</button>
           {notifications.soundError && <p role="alert">{notifications.soundError}</p>}

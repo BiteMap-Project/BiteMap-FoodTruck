@@ -11,6 +11,34 @@ Requires an authenticated, enabled OPERATOR account with an enabled operator
 profile, plus explicit ownership of the selected vendor. ADMIN alone does not
 bypass ownership. Account and owner IDs are never accepted from request bodies.
 
+## Queue-first workspace
+
+The Orders screen keeps pause/resume visible in a compact ordering control.
+Cutoff and acceptance-time forms are under the collapsed **Order settings**
+disclosure. Opening or closing it never saves changes. Each form still requires
+its explicit save action; uncertain writes remain blocked until settings reload.
+
+Workflow shortcuts use the existing server-side `status` filter:
+
+- All orders: no status filter (the existing default).
+- Needs attention: `PLACED`.
+- Preparing: `ACCEPTED`.
+- Ready: `READY`.
+- History: `COMPLETED`; use Order status to select `CANCELLED` instead.
+
+History is not a client-side merge of partially loaded pages. Counts and
+pagination always describe the selected server filter. Changing views resets
+the page and selected order; `status`, `page`, and `order` remain URL-based.
+On mobile/tablet, opening details replaces the queue, and Back to orders restores
+focus to the originating order when present. Background notifications refresh
+the queue without changing filters or moving focus. Truck switching remounts
+the controls and closes the settings disclosure.
+
+Regression checks cover settings collapsed by default, explicit saves, workflow
+filter requests, notification focus preservation, mobile/keyboard disclosure,
+empty history, Back/refresh, and order acceptance. The stacked tablet navigation
+uses content height rather than reserving an empty viewport above the queue.
+
 ## Endpoints
 
 | Method | Path | Purpose |

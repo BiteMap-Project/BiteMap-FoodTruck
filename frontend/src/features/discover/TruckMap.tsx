@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import TruckAvailabilityBadge from "../../components/TruckAvailabilityBadge";
 import { divIcon, latLngBounds, type Marker as LeafletMarker } from "leaflet";
 import StopDirections from "../../components/StopDirections";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
@@ -154,6 +155,7 @@ export default function TruckMap({ stops, page, total, stale = false, selectedSt
             <Popup minWidth={180} maxWidth={220} maxHeight={260}>
               {group.stops.map(stop => <article className={`truck-map-popup${stop.stopId === selectedStopId ? " truck-map-popup-selected" : ""}`} key={stop.stopId}>
                 <h4>{stop.vendor.name}</h4>
+                <TruckAvailabilityBadge vendorId={stop.vendor.id} availability={stop.vendor.availability} stopId={stop.stopId} stale={stale} />
                 <p>{stop.vendor.category} · {stale ? "Status unconfirmed" : stop.status === "serving" ? "Serving" : "Scheduled"}</p>
                 <p><strong>{stop.venueName}</strong><br />{stop.address}</p>
                 <p>{formatStopTime(stop.startsAt, stop.endsAt, stop.timeZone)}</p>

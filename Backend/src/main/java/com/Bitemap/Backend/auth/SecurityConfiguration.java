@@ -73,7 +73,7 @@ public class SecurityConfiguration {
 				.requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/vendors/{vendorId}/review-summary", "/api/vendors/{vendorId}/reviews").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/vendors/{vendorId}/menu-items/{itemId}/image").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/vendors/{id}/pickup-stop").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/vendors/{id}/pickup-stop", "/api/vendors/{id}/availability").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/logout",
                         "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/vendors", "/api/vendors/{id}", "/api/vendor-stops", "/actuator/health", "/actuator/health/**").permitAll()

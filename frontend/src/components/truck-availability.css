@@ -1,0 +1,18 @@
+.truck-availability {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 6px 11px;
+  margin: 6px 0 10px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font: 700 14px/1.4 system-ui, sans-serif;
+}
+.truck-availability-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.truck-availability--open { color: #166534; background: #f0fdf4; }
+.truck-availability--soon { color: #9a3412; background: #fff7ed; }
+.truck-availability--closed { color: #b91c1c; background: #fef2f2; }
+.truck-availability--unknown { color: #4b5563; background: #f3f4f6; }

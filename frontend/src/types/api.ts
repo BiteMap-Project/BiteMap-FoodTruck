@@ -7,11 +7,19 @@ export type Page<T> = {
   totalPages: number;
 };
 
+export type TruckAvailability = {
+  status: "OPEN" | "CLOSING_SOON" | "CLOSED";
+  checkedAt: string;
+  ordersCloseAt: string | null;
+  stopId: number | null;
+};
+
 export type Vendor = {
   id: number;
   name: string;
   category: string;
   location: string;
+  availability?: TruckAvailability;
   averageRating?: number | null;
   reviewCount?: number;
 };

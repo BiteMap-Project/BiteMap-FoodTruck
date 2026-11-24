@@ -15,10 +15,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class VendorController {
 
 	private final VendorService service;
+    private final TruckAvailabilityService availability;
 
-	public VendorController(VendorService service) {
+	public VendorController(VendorService service, TruckAvailabilityService availability) {
+        this.availability = availability;
 		this.service = service;
 	}
+
+    @GetMapping("/{id}/availability")
+    public org.springframework.http.ResponseEntity<TruckAvailabilityService.Availability> availability(@PathVariable long id) {
+        var value = availability.forVendors(java.util.List.of(id)).get(id);
+        if (value == null) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND);
+        return org.springframework.http.ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore()).body(value);
+    }
 
 	@GetMapping("/{id}")
 	public VendorProfile profile(@PathVariable long id) {

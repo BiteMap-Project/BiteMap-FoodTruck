@@ -11,7 +11,7 @@ import type { Stop, StopPage } from "../../services/stops";
 
 const stop: Stop = {
   stopId: 7,
-  vendor: { id: -2, name: "Taco Mobile", category: "Tacos", location: "Northridge" },
+  vendor: { id: -2, name: "Taco Mobile", category: "Tacos", location: "Northridge", availability: { status: "OPEN", checkedAt: "2026-09-28T19:00:00Z", ordersCloseAt: "2026-09-28T21:00:00Z", stopId: 7 } },
   venueName: "CSUN Oviatt Lawn",
   address: "18111 Nordhoff St, Northridge, CA",
   latitude: 34.2400,
@@ -47,7 +47,7 @@ it("retains results on refresh failure and recovers through explicit refresh", a
   await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
   expect(screen.getByText("CSUN Oviatt Lawn")).toBeInTheDocument();
   expect(screen.getByRole("alert")).toHaveTextContent("may be outdated");
-  expect(screen.queryByText("Serving now")).not.toBeInTheDocument();
+  expect(screen.queryByText("Open now", { selector: ".truck-availability" })).not.toBeInTheDocument();
   fetchMock.mockResolvedValue(ok(data));
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
   await tick();
@@ -112,7 +112,7 @@ it("switches to scheduled stops and shows venue, local hours, status and profile
   expect(screen.getByText("1 stop found")).toBeInTheDocument();
   expect(screen.getByText("CSUN Oviatt Lawn")).toBeInTheDocument();
   expect(screen.getByText("Mon, Sep 28, 11:00 AM – 2:00 PM PDT")).toBeInTheDocument();
-  expect(screen.getByText("Serving now")).toBeInTheDocument();
+  expect(screen.getByText("Open now", { selector: ".truck-availability" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "View Profile & Menu" })).toHaveAttribute("href", "/trucks/-2");
 });
 

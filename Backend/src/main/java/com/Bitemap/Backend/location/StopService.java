@@ -16,8 +16,10 @@ import com.Bitemap.Backend.vendor.VendorSummary;
 @Service
 public class StopService {
     private final NamedParameterJdbcTemplate jdbc;
+    private final com.Bitemap.Backend.vendor.TruckAvailabilityService availability;
 
-    public StopService(NamedParameterJdbcTemplate jdbc) {
+    public StopService(NamedParameterJdbcTemplate jdbc, com.Bitemap.Backend.vendor.TruckAvailabilityService availability) {
+        this.availability = availability;
         this.jdbc = jdbc;
     }
 
@@ -94,7 +96,13 @@ public class StopService {
                     rs.getString("time_zone"), rs.getString("status"),
                     confirmed == null ? null : confirmed.toInstant(), rs.getObject("distance_meters", Double.class));
         });
-        return new StopPage(items, page, size, count, (count + size - 1) / size, evaluatedAt);
+        var statuses = availability.forVendors(items.stream().map(s -> s.vendor().id()).distinct().toList());
+        var withAvailability = items.stream().map(s -> new StopPage.Stop(s.stopId(),
+            new VendorSummary(s.vendor().id(), s.vendor().name(), s.vendor().category(), s.vendor().location(),
+                s.vendor().averageRating(), s.vendor().reviewCount(), statuses.get(s.vendor().id())),
+            s.venueName(), s.address(), s.latitude(), s.longitude(), s.startsAt(), s.endsAt(), s.timeZone(),
+            s.status(), s.lastConfirmedAt(), s.distanceMeters())).toList();
+        return new StopPage(withAvailability, page, size, count, (count + size - 1) / size, evaluatedAt);
     }
 
     private static ResponseStatusException invalid(String message) {

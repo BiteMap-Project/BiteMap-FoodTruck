@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import TruckAvailabilityBadge from "./TruckAvailabilityBadge";
 import RatingBadge from "../features/reviews/RatingBadge";
 import type { Stop } from "../services/stops";
 import { formatDistance, formatStopTime } from "../features/discover/format";
@@ -12,9 +13,9 @@ function StopCard({ stop, stale = false, selected = false, onShowMap }: { stop: 
     <article id={`stop-card-${stop.stopId}`} tabIndex={-1} className={`card${selected ? " stop-card-selected" : ""}`} aria-label={`${stop.vendor.name} at ${stop.venueName}`}>
       <div className="card-head">
         <h2>{stop.vendor.name}</h2>
-        {stale ? <span className="badge">Status unconfirmed</span> : stop.status === "serving" && <span className="badge">Serving now</span>}
         <FavoriteButton vendorId={stop.vendor.id} vendorName={stop.vendor.name} />
       </div>
+      <TruckAvailabilityBadge vendorId={stop.vendor.id} availability={stop.vendor.availability} stopId={stop.stopId} stale={stale} />
             <RatingBadge vendorId={stop.vendor.id} averageRating={stop.vendor.averageRating} reviewCount={stop.vendor.reviewCount} />
       <p className="chip">{stop.vendor.category}</p>
       <p className="card-line">

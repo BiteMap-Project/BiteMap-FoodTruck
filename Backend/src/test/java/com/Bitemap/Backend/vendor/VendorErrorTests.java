@@ -31,6 +31,9 @@ class VendorErrorTests {
 	@MockitoBean
 	private VendorService service;
 
+	@MockitoBean
+	private TruckAvailabilityService availability;
+
 	@Test
 	void reportsDatabaseFailureWithoutLeakingInternalDetails() throws Exception {
 		given(service.list("", 0, 20)).willThrow(new DataAccessResourceFailureException("internal-database-detail"));
